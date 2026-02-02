@@ -3,10 +3,11 @@ FROM node:18-alpine AS frontend-build
 
 WORKDIR /app/frontend
 
-# Copy frontend files
-COPY frontend/package*.json ./
+# Copy frontend package files
+COPY frontend/package.json ./
 RUN npm install
 
+# Copy frontend source
 COPY frontend/ ./
 RUN npm run build
 
@@ -15,10 +16,13 @@ FROM node:18-alpine AS production
 
 WORKDIR /app
 
-# Copy backend files
-COPY package*.json ./
-RUN npm install --production
+# Copy backend package files
+COPY package.json ./
 
+# Install backend dependencies
+RUN npm install
+
+# Copy backend server
 COPY server.js ./
 
 # Create public directory and copy built frontend
