@@ -37,7 +37,7 @@ import {
   formatFileSize,
   estimateProcessingTime
 } from './utils/documentUtils';
-import { CHUNK_SIZES } from './constants';
+import { CHUNK_SIZES, VERSION_DISPLAY } from './constants';
 
 // ============================================================================
 // MAIN APPLICATION COMPONENT
@@ -415,8 +415,9 @@ function App() {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-12 text-gray-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} Reach Publishers. Professional AI-Powered Editing.</p>
+        <div className="text-center mt-12 text-gray-500">
+          <p className="text-xs text-gray-600 mb-1">{VERSION_DISPLAY}</p>
+          <p className="text-sm">&copy; {new Date().getFullYear()} Reach Publishers. Professional AI-Powered Editing.</p>
         </div>
       </div>
     </div>

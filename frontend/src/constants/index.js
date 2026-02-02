@@ -103,3 +103,6 @@ The aim is to change whatever needs changing so the book reads well in good Engl
 Kind regards
 Sally Veenman
 Reach Publishers, Head of Editing Department`;
+
+// Re-export version info
+export { VERSION, VERSION_TAG, VERSION_DATE, VERSION_DISPLAY } from './version';
