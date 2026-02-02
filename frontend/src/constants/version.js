@@ -50,8 +50,8 @@
  *
  * VERSION HISTORY:
  * ----------------
- * v1.3.2 [Bugfix]   - 2026-02-02: Fix comments causing Word error - use dedicated summary paragraph
- * v1.3.1 [Bugfix]   - 2026-02-02: Fix Word "unreadable content" error - enable trackRevisions
+ * v1.3.2 [Bugfix]   - 2026-02-02: Fix nested comment ranges causing Word "unreadable content"
+ * v1.3.1 [Bugfix]   - 2026-02-03: Fix Word "unreadable content" error in comment feature
  * v1.3.0 [Feature]  - 2026-02-02: Add Word comments - summary & inline change explanations
  * v1.2.1 [Bugfix]   - 2026-02-02: Fix empty Track Changes entries, improve change merging
  * v1.2.0 [Security] - 2026-02-02: Security hardening, bug fixes, code quality improvements
