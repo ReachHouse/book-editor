@@ -54,6 +54,41 @@ import { API_BASE_URL, API_CONFIG } from '../constants';
 import { formatFileName } from '../utils/documentUtils';
 
 /**
+ * Default timeout for API requests (5 minutes)
+ * Editing large chunks can take time; this prevents indefinite hangs
+ */
+const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
+
+/**
+ * Fetch wrapper with timeout support using AbortController.
+ *
+ * @param {string} url - URL to fetch
+ * @param {Object} options - Fetch options (method, headers, body, etc.)
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns {Promise<Response>} Fetch response
+ * @throws {Error} If request times out or fails
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    return response;
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
  * Edit a chunk of text via the Claude AI backend.
  *
  * Sends the text to the server, which forwards it to Claude for editing
@@ -73,8 +108,8 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
   logFn('Sending to server for editing...');
 
   try {
-    // Make the API request
-    const response = await fetch(`${API_BASE_URL}/api/edit-chunk`, {
+    // Make the API request with timeout
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/edit-chunk`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, styleGuide, isFirst })
@@ -129,11 +164,11 @@ export async function generateStyleGuide(text, logFn) {
   try {
     logFn('Generating style guide from first section...');
 
-    const response = await fetch(`${API_BASE_URL}/api/generate-style-guide`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/generate-style-guide`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
-    });
+    }, 2 * 60 * 1000); // 2 minute timeout for style guide (shorter task)
 
     // Return default on HTTP error (non-critical)
     if (!response.ok) {
@@ -167,8 +202,8 @@ export async function generateStyleGuide(text, logFn) {
  * @throws {Error} If document generation fails
  */
 export async function downloadDocument(content) {
-  // Request the document from the server
-  const response = await fetch(`${API_BASE_URL}/api/generate-docx`, {
+  // Request the document from the server with timeout
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/generate-docx`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -176,7 +211,7 @@ export async function downloadDocument(content) {
       editedText: content.edited,
       fileName: formatFileName(content.fileName)
     })
-  });
+  }, 3 * 60 * 1000); // 3 minute timeout for document generation
 
   // Handle errors
   if (!response.ok) {
@@ -212,7 +247,11 @@ export async function downloadDocument(content) {
  */
 export async function checkApiStatus() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/status`);
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/api/status`,
+      {},
+      10 * 1000 // 10 second timeout for status check
+    );
     return await response.json();
   } catch (err) {
     // Return error status if request fails entirely

@@ -69,6 +69,45 @@ import { useState, useEffect, useCallback } from 'react';
 const STORAGE_PREFIX = 'book_';
 
 /**
+ * Check if an error is a QuotaExceededError.
+ * Different browsers use different names for this error.
+ *
+ * @param {Error} err - The error to check
+ * @returns {boolean} True if it's a quota exceeded error
+ */
+function isQuotaExceededError(err) {
+  return (
+    err instanceof DOMException && (
+      // Firefox
+      err.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+      // Most browsers
+      err.name === 'QuotaExceededError' ||
+      // Safari
+      err.code === 22
+    )
+  );
+}
+
+/**
+ * Estimate current localStorage usage in bytes.
+ *
+ * @returns {number} Estimated bytes used
+ */
+function getStorageUsage() {
+  let total = 0;
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith(STORAGE_PREFIX)) {
+      const value = localStorage.getItem(key);
+      if (value) {
+        // UTF-16: 2 bytes per character
+        total += (key.length + value.length) * 2;
+      }
+    }
+  }
+  return total;
+}
+
+/**
  * Custom hook for managing book editing projects.
  *
  * @returns {Object} Project management functions and state
@@ -122,16 +161,69 @@ export function useProjects() {
    * The project is identified by its ID - if a project with the same ID
    * already exists, it will be overwritten.
    *
+   * Handles QuotaExceededError by attempting to free space via deleting
+   * old completed projects before reporting failure.
+   *
    * @param {Object} projectData - Project data to save
-   * @throws {Error} If localStorage quota exceeded or other storage error
+   * @throws {Error} If localStorage quota exceeded and cannot free space
    */
   const saveProject = useCallback(async (projectData) => {
+    const key = `${STORAGE_PREFIX}${projectData.id}`;
+    const jsonData = JSON.stringify(projectData);
+
+    const attemptSave = () => {
+      localStorage.setItem(key, jsonData);
+    };
+
     try {
-      const key = `${STORAGE_PREFIX}${projectData.id}`;
-      localStorage.setItem(key, JSON.stringify(projectData));
-      // Reload to update the list
+      attemptSave();
       await loadProjects();
     } catch (err) {
+      if (isQuotaExceededError(err)) {
+        console.warn('localStorage quota exceeded, attempting to free space...');
+        const usageBytes = getStorageUsage();
+        console.warn(`Current usage: ${(usageBytes / 1024 / 1024).toFixed(2)} MB`);
+
+        // Try to free space by deleting oldest completed projects (not the current one)
+        const keys = Object.keys(localStorage)
+          .filter(k => k.startsWith(STORAGE_PREFIX) && k !== key);
+
+        // Sort by timestamp (oldest first) and filter to completed projects
+        const oldProjects = keys
+          .map(k => {
+            try {
+              return { key: k, data: JSON.parse(localStorage.getItem(k) || '{}') };
+            } catch {
+              return null;
+            }
+          })
+          .filter(p => p && p.data.isComplete)
+          .sort((a, b) => (a.data.timestamp || 0) - (b.data.timestamp || 0));
+
+        // Delete oldest completed projects until we have space or run out
+        for (const project of oldProjects) {
+          console.warn(`Deleting old project to free space: ${project.data.fileName}`);
+          localStorage.removeItem(project.key);
+
+          try {
+            attemptSave();
+            console.warn('Successfully saved after freeing space');
+            await loadProjects();
+            return;
+          } catch (retryErr) {
+            if (!isQuotaExceededError(retryErr)) {
+              throw retryErr;
+            }
+            // Still not enough space, continue deleting
+          }
+        }
+
+        // Could not free enough space
+        throw new Error(
+          'Storage full. Unable to save progress. Please delete some old projects and try again.'
+        );
+      }
+
       console.error('Failed to save project:', err);
       throw err;
     }

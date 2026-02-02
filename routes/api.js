@@ -36,6 +36,49 @@ const { editChunk, generateStyleGuide } = require('../services/anthropicService'
 const { generateDocxBuffer } = require('../services/documentService');
 
 // =============================================================================
+// INPUT VALIDATION HELPERS
+// =============================================================================
+
+/**
+ * Sanitize filename for Content-Disposition header.
+ * Prevents HTTP Header Injection attacks by removing control characters.
+ *
+ * @param {string} fileName - The filename to sanitize
+ * @returns {string} Sanitized filename safe for HTTP headers
+ */
+function sanitizeFileName(fileName) {
+  if (!fileName || typeof fileName !== 'string') {
+    return 'edited_document.docx';
+  }
+  // Remove newlines, carriage returns, and other control characters
+  // Also remove quotes which could break the header format
+  return fileName
+    .replace(/[\r\n\t\0]/g, '')
+    .replace(/["']/g, '')
+    .substring(0, 255); // Limit length
+}
+
+/**
+ * Validate that a value is a non-empty string.
+ *
+ * @param {*} value - Value to check
+ * @param {string} fieldName - Name of field for error message
+ * @returns {string|null} Error message if invalid, null if valid
+ */
+function validateTextField(value, fieldName) {
+  if (value === undefined || value === null) {
+    return `${fieldName} is required`;
+  }
+  if (typeof value !== 'string') {
+    return `${fieldName} must be a string`;
+  }
+  if (!value.trim()) {
+    return `${fieldName} cannot be empty`;
+  }
+  return null;
+}
+
+// =============================================================================
 // EDITING ENDPOINT
 // =============================================================================
 
@@ -65,9 +108,10 @@ router.post('/api/edit-chunk', async (req, res) => {
   try {
     const { text, styleGuide, isFirst } = req.body;
 
-    // Validate required input
-    if (!text) {
-      return res.status(400).json({ error: 'No text provided' });
+    // Validate required input with type checking
+    const textError = validateTextField(text, 'text');
+    if (textError) {
+      return res.status(400).json({ error: textError });
     }
 
     // Check API key configuration
@@ -112,9 +156,10 @@ router.post('/api/generate-style-guide', async (req, res) => {
   try {
     const { text } = req.body;
 
-    // Validate required input
-    if (!text) {
-      return res.status(400).json({ error: 'No text provided' });
+    // Validate required input with type checking
+    const textError = validateTextField(text, 'text');
+    if (textError) {
+      return res.status(400).json({ error: textError });
     }
 
     // Generate style guide from edited text
@@ -162,9 +207,15 @@ router.post('/api/generate-docx', async (req, res) => {
   try {
     const { originalText, editedText, fileName } = req.body;
 
-    // Validate required inputs
-    if (!originalText || !editedText) {
-      return res.status(400).json({ error: 'Missing originalText or editedText' });
+    // Validate required inputs with type checking
+    const originalError = validateTextField(originalText, 'originalText');
+    if (originalError) {
+      return res.status(400).json({ error: originalError });
+    }
+
+    const editedError = validateTextField(editedText, 'editedText');
+    if (editedError) {
+      return res.status(400).json({ error: editedError });
     }
 
     // Log generation start (useful for debugging)
@@ -175,8 +226,8 @@ router.post('/api/generate-docx', async (req, res) => {
     // Generate the .docx buffer
     const buffer = await generateDocxBuffer(originalText, editedText);
 
-    // Set output filename
-    const outputFileName = fileName || 'edited_document.docx';
+    // Sanitize filename to prevent HTTP Header Injection
+    const outputFileName = sanitizeFileName(fileName);
 
     // Set headers for file download
     res.setHeader(

@@ -32,6 +32,7 @@
  * ---------------------------------
  * - 'Overhaul'  : Major restructuring or complete rewrite (bump MAJOR)
  * - 'Feature'   : New functionality added (bump MINOR)
+ * - 'Security'  : Security fixes and hardening (bump MINOR)
  * - 'Refactor'  : Code improvements without changing behavior (bump MINOR or PATCH)
  * - 'Bugfix'    : Bug fixes (bump PATCH)
  * - 'Hotfix'    : Urgent production fixes (bump PATCH)
@@ -49,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.2.0 [Security] - 2026-02-02: Security hardening, bug fixes, code quality improvements
  * v1.1.1 [Docs]     - 2026-02-02: Comprehensive documentation across entire codebase
  * v1.1.0 [Refactor] - 2026-02-02: Split monolithic code into modules, fixed diff
  * v1.0.0 [Initial]  - Initial release
@@ -64,13 +66,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.1.1';
+export const VERSION = '1.2.0';
 
 /**
  * Tag describing the type of changes in this version
- * Must be one of: Overhaul, Feature, Refactor, Bugfix, Hotfix, UI, Docs, Config
+ * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Docs';
+export const VERSION_TAG = 'Security';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

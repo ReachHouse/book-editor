@@ -75,19 +75,25 @@ const ANTHROPIC_VERSION = '2023-06-01';
  */
 const MODEL = 'claude-sonnet-4-20250514';
 
+/**
+ * API request timeout in milliseconds (4 minutes)
+ * Claude can take a while for large chunks; this prevents indefinite hangs
+ */
+const API_TIMEOUT_MS = 4 * 60 * 1000;
+
 // =============================================================================
 // LOW-LEVEL API COMMUNICATION
 // =============================================================================
 
 /**
- * Make a request to the Anthropic API.
+ * Make a request to the Anthropic API with timeout.
  *
  * This is the core function that handles HTTP communication with Claude.
- * It adds authentication headers and handles error responses.
+ * It adds authentication headers, timeout handling, and error responses.
  *
  * @param {Object} body - Request body matching Anthropic API schema
  * @returns {Promise<Object>} Parsed API response
- * @throws {Error} If API key missing, request fails, or response invalid
+ * @throws {Error} If API key missing, request fails, timeout, or response invalid
  */
 async function makeAnthropicRequest(body) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -97,33 +103,55 @@ async function makeAnthropicRequest(body) {
     throw new Error('ANTHROPIC_API_KEY is not configured');
   }
 
-  // Make HTTP request to Anthropic API
-  const response = await fetch(ANTHROPIC_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': ANTHROPIC_VERSION
-    },
-    body: JSON.stringify(body)
-  });
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-  // Handle non-200 responses
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData.error?.message || `API request failed with status ${response.status}`;
-    throw new Error(message);
+  try {
+    // Make HTTP request to Anthropic API with timeout
+    const response = await fetch(ANTHROPIC_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': ANTHROPIC_VERSION
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+
+    // Handle non-200 responses
+    if (!response.ok) {
+      let errorMessage = `API request failed with status ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        }
+      } catch {
+        // Failed to parse error response, use default message
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Parse response
+    const data = await response.json();
+
+    // Validate response structure
+    if (!data.content || !data.content[0]) {
+      throw new Error('Invalid API response: missing content');
+    }
+
+    return data;
+  } catch (error) {
+    // Handle timeout specifically
+    if (error.name === 'AbortError') {
+      throw new Error('API request timed out after 4 minutes');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  // Parse response
-  const data = await response.json();
-
-  // Validate response structure
-  if (!data.content || !data.content[0]) {
-    throw new Error('Invalid API response: missing content');
-  }
-
-  return data;
 }
 
 // =============================================================================

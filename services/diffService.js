@@ -46,11 +46,13 @@
  *
  * EXPORTS:
  * --------
+ * - computeWordDiff: Word-level diff within a paragraph
+ * - alignParagraphs: Paragraph-level alignment
+ *
+ * Internal functions (not exported):
  * - tokenize: Split text into words and whitespace
  * - computeLCS: Standard LCS with DP
  * - computeLCSOptimized: Memory-efficient LCS approximation
- * - computeWordDiff: Word-level diff within a paragraph
- * - alignParagraphs: Paragraph-level alignment
  * - calculateSimilarity: Jaccard similarity for paragraph matching
  * - mergeConsecutiveChanges: Clean up adjacent same-type changes
  *
@@ -320,6 +322,25 @@ function calculateSimilarity(str1, str2) {
  * - 'insert': Paragraph added (exists in edited only)
  */
 function alignParagraphs(originalParas, editedParas) {
+  // Handle null/undefined inputs
+  if (!originalParas || !Array.isArray(originalParas)) {
+    originalParas = [];
+  }
+  if (!editedParas || !Array.isArray(editedParas)) {
+    editedParas = [];
+  }
+
+  // Handle empty arrays
+  if (originalParas.length === 0 && editedParas.length === 0) {
+    return [];
+  }
+  if (originalParas.length === 0) {
+    return editedParas.map(p => ({ original: null, edited: p, type: 'insert' }));
+  }
+  if (editedParas.length === 0) {
+    return originalParas.map(p => ({ original: p, edited: null, type: 'delete' }));
+  }
+
   // Normalize paragraphs for comparison
   const normalizedOrig = originalParas.map(normalizeParagraph);
   const normalizedEdit = editedParas.map(normalizeParagraph);
@@ -415,6 +436,26 @@ function alignParagraphs(originalParas, editedParas) {
  *     { type: 'equal', text: ' fox' }]
  */
 function computeWordDiff(original, edited) {
+  // Handle null/undefined inputs
+  if (!original && !edited) {
+    return [];
+  }
+  if (!original) {
+    return [{ type: 'insert', text: edited }];
+  }
+  if (!edited) {
+    return [{ type: 'delete', text: original }];
+  }
+
+  // Ensure inputs are strings
+  original = String(original);
+  edited = String(edited);
+
+  // Handle identical strings
+  if (original === edited) {
+    return [{ type: 'equal', text: original }];
+  }
+
   const originalTokens = tokenize(original);
   const editedTokens = tokenize(edited);
 
@@ -524,19 +565,10 @@ function mergeConsecutiveChanges(changes) {
 // MODULE EXPORTS
 // =============================================================================
 
+// Only export functions needed by documentService.js
+// Internal functions (tokenize, computeLCS, etc.) are kept private
 module.exports = {
-  // Tokenization
-  tokenize,
-
-  // LCS algorithms
-  computeLCS,
-  computeLCSOptimized,
-
-  // Diff functions
+  // Primary diff functions used by documentService
   computeWordDiff,
-  alignParagraphs,
-
-  // Utilities
-  calculateSimilarity,
-  mergeConsecutiveChanges
+  alignParagraphs
 };

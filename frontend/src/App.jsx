@@ -5,9 +5,12 @@
  * Refactored for maintainability with modular components and services.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Loader } from 'lucide-react';
 import * as mammoth from 'mammoth';
+
+// Maximum log entries to prevent memory leak
+const MAX_LOG_ENTRIES = 500;
 
 // Components
 import {
@@ -69,13 +72,23 @@ function App() {
     deleteProject
   } = useProjects();
 
+  // Ref to prevent duplicate processBook calls (race condition fix)
+  const processingRef = useRef(false);
+
   // ============================================================================
   // LOGGING
   // ============================================================================
 
   const addLog = useCallback((message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString();
-    setDebugLog(prev => [...prev, { timestamp, message, type }]);
+    setDebugLog(prev => {
+      const newLog = [...prev, { timestamp, message, type }];
+      // Limit log entries to prevent memory leak
+      if (newLog.length > MAX_LOG_ENTRIES) {
+        return newLog.slice(-MAX_LOG_ENTRIES);
+      }
+      return newLog;
+    });
   }, []);
 
   // ============================================================================
@@ -134,6 +147,11 @@ function App() {
   // ============================================================================
 
   const processBook = async (resumeProject = null) => {
+    // Race condition guard: prevent duplicate calls
+    if (processingRef.current) {
+      return;
+    }
+
     // Validation
     if (resumeProject && (!resumeProject.originalText || !resumeProject.fileName)) {
       setError('Invalid project data. Please upload the document again.');
@@ -141,6 +159,9 @@ function App() {
     }
 
     if (!file && !resumeProject) return;
+
+    // Set processing lock
+    processingRef.current = true;
 
     // Initialize processing state
     setProcessing(true);
@@ -289,12 +310,14 @@ function App() {
       addLog('Complete! File saved.');
       setCompleted(true);
       setProcessing(false);
+      processingRef.current = false; // Release processing lock
       await loadProjects();
 
     } catch (err) {
       addLog(`Error: ${err.message}`, 'error');
       setError('Processing failed: ' + err.message);
       setProcessing(false);
+      processingRef.current = false; // Release processing lock
       await loadProjects();
     }
   };

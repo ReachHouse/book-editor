@@ -70,10 +70,10 @@ FROM node:18-alpine AS frontend-build
 # Set working directory for frontend build
 WORKDIR /app/frontend
 
-# Copy package.json first (better layer caching)
-# If package.json hasn't changed, npm install will use cache
-COPY frontend/package.json ./
-RUN npm install
+# Copy package files first (better layer caching)
+# If package files haven't changed, npm ci will use cache
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci --include=dev
 
 # Copy all frontend source files
 COPY frontend/ ./
@@ -92,9 +92,10 @@ FROM node:18-alpine AS production
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and install backend dependencies
-COPY package.json ./
-RUN npm install
+# Copy package files and install production dependencies only
+# npm ci is more reliable than npm install for production
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy backend server and module directories
 # IMPORTANT: If you create new directories (middleware/, utils/, etc.),
@@ -111,6 +112,15 @@ RUN mkdir -p public
 # The Express server serves these files from /public
 COPY --from=frontend-build /app/frontend/dist ./public/
 
+# Create non-root user for security
+# Running as root inside containers is a security risk
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 -G nodejs && \
+    chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
+
 # Expose the internal port
 # Note: External port mapping is done in docker-compose.yml
 EXPOSE 3001
@@ -118,6 +128,11 @@ EXPOSE 3001
 # Set production environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
+
+# Health check to verify the server is running
+# Docker/orchestrators use this to detect unhealthy containers
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
 # Start the server
 # ANTHROPIC_API_KEY must be provided at runtime via docker-compose or -e flag

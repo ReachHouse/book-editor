@@ -65,9 +65,28 @@ const PORT = process.env.PORT || 3001;
 // MIDDLEWARE STACK
 // =============================================================================
 
-// CORS: Allow cross-origin requests from any domain
-// Note: For production, consider restricting to specific domains
-app.use(cors());
+// CORS: Configure allowed origins based on environment
+// In production, restricts to specific domains; in development, allows localhost
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
+    : true, // Allow all origins in development
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+  maxAge: 86400 // Cache preflight for 24 hours
+};
+app.use(cors(corsOptions));
+
+// Request Timeout: Prevent indefinite hangs (5 minutes for large documents)
+const REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
+app.use((req, res, next) => {
+  res.setTimeout(REQUEST_TIMEOUT_MS, () => {
+    if (!res.headersSent) {
+      res.status(408).json({ error: 'Request timeout' });
+    }
+  });
+  next();
+});
 
 // JSON Parser: Accept large payloads for manuscript processing
 // 50MB limit accommodates large documents with full text content
