@@ -330,37 +330,15 @@ function createDocumentWithTrackChanges(original, edited) {
     commentId = result.nextCommentId;
   }
 
-  // Add summary comment to first paragraph if there are changes
-  if (stats.totalInsertions > 0 || stats.totalDeletions > 0) {
-    const summaryComment = createSummaryComment(stats, timestamp);
-    comments.unshift(summaryComment); // Add at beginning
+  // TEMPORARILY DISABLED: Comments were causing "unreadable content" error in Word
+  // TODO: Fix comment implementation and re-enable
+  // The comment feature adds summary and inline comments explaining changes,
+  // but the current implementation causes Word to report document corruption.
 
-    // Wrap first paragraph with summary comment reference
-    if (paragraphs.length > 0) {
-      const firstPara = paragraphs[0];
-      const children = firstPara.root && firstPara.root[1] && firstPara.root[1].root
-        ? [...firstPara.root[1].root]
-        : [];
-
-      // Create new paragraph with comment markers
-      paragraphs[0] = new Paragraph({
-        children: [
-          new CommentRangeStart({ id: 0 }),
-          ...getTextRunsFromParagraph(firstPara),
-          new CommentRangeEnd({ id: 0 }),
-          new CommentReference({ id: 0 })
-        ]
-      });
-    }
-  }
-
-  // Create and return Document with comments
+  // Create and return Document WITHOUT comments (comments disabled for now)
   return new Document({
     features: {
       trackRevisions: true
-    },
-    comments: {
-      children: comments
     },
     sections: [{
       properties: {
@@ -455,36 +433,17 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       const wordCount = countWords(aligned.original);
       stats.wordsDeleted += wordCount;
 
-      // Add comment for paragraph deletion
-      const comment = createInlineComment(
-        currentCommentId,
-        'delete',
-        aligned.original,
-        null,
-        timestamp
-      );
-      comments.push(comment);
-
-      stats.significantChanges.push({
-        type: categorizeChange(aligned.original, null),
-        description: 'Paragraph removed',
-        wordCount
-      });
-
+      // Comments disabled - just track the deletion
       const paragraph = new Paragraph({
         children: [
-          new CommentRangeStart({ id: currentCommentId }),
           new DeletedTextRun({
             text: aligned.original,
             id: currentRevisionId++,
             author: AUTHOR,
             date: timestamp,
-          }),
-          new CommentRangeEnd({ id: currentCommentId }),
-          new CommentReference({ id: currentCommentId })
+          })
         ]
       });
-      currentCommentId++;
 
       return {
         paragraph,
@@ -500,36 +459,17 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       const wordCount = countWords(aligned.edited);
       stats.wordsInserted += wordCount;
 
-      // Add comment for paragraph insertion
-      const comment = createInlineComment(
-        currentCommentId,
-        'insert',
-        null,
-        aligned.edited,
-        timestamp
-      );
-      comments.push(comment);
-
-      stats.significantChanges.push({
-        type: categorizeChange(null, aligned.edited),
-        description: 'Paragraph added',
-        wordCount
-      });
-
+      // Comments disabled - just track the insertion
       const paragraph = new Paragraph({
         children: [
-          new CommentRangeStart({ id: currentCommentId }),
           new InsertedTextRun({
             text: aligned.edited,
             id: currentRevisionId++,
             author: AUTHOR,
             date: timestamp,
-          }),
-          new CommentRangeEnd({ id: currentCommentId }),
-          new CommentReference({ id: currentCommentId })
+          })
         ]
       });
-      currentCommentId++;
 
       return {
         paragraph,
@@ -593,19 +533,15 @@ function isWhitespaceOnly(text) {
  */
 function createTrackedParagraphWithComments(original, edited, startRevisionId, startCommentId, timestamp, stats, comments) {
   // Get word-level changes from diff service
+  // Comments are DISABLED - this function now only creates track changes without comments
   const changes = computeWordDiff(original, edited);
   const textRuns = [];
   let currentRevisionId = startRevisionId;
-  let currentCommentId = startCommentId;
 
-  // Track consecutive significant changes to group comments
-  let pendingSignificantChange = null;
-
-  // Convert each change to appropriate TextRun
+  // Convert each change to appropriate TextRun (no comments)
   for (let i = 0; i < changes.length; i++) {
     const change = changes[i];
     const wordCount = countWords(change.text);
-    const isSignificant = wordCount >= SIGNIFICANT_CHANGE_THRESHOLD;
 
     switch (change.type) {
       case 'equal':
@@ -623,91 +559,12 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
         stats.totalDeletions++;
         stats.wordsDeleted += wordCount;
 
-        if (isSignificant) {
-          // Check if next change is an insert (replacement pattern)
-          const nextChange = changes[i + 1];
-          const isReplacement = nextChange &&
-            nextChange.type === 'insert' &&
-            !isWhitespaceOnly(nextChange.text);
-
-          if (isReplacement) {
-            // Group delete + insert as a single commented replacement
-            const comment = createInlineComment(
-              currentCommentId,
-              'change',
-              change.text,
-              nextChange.text,
-              timestamp
-            );
-            comments.push(comment);
-
-            stats.significantChanges.push({
-              type: categorizeChange(change.text, nextChange.text),
-              description: 'Text replaced',
-              wordCount: wordCount + countWords(nextChange.text)
-            });
-
-            // Add delete with comment
-            textRuns.push(new CommentRangeStart({ id: currentCommentId }));
-            textRuns.push(new DeletedTextRun({
-              text: change.text,
-              id: currentRevisionId++,
-              author: AUTHOR,
-              date: timestamp,
-            }));
-
-            // Add insert (process it now, skip in loop)
-            stats.totalInsertions++;
-            stats.wordsInserted += countWords(nextChange.text);
-            textRuns.push(new InsertedTextRun({
-              text: nextChange.text,
-              id: currentRevisionId++,
-              author: AUTHOR,
-              date: timestamp,
-            }));
-            textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
-            textRuns.push(new CommentReference({ id: currentCommentId }));
-            currentCommentId++;
-
-            i++; // Skip the next insert since we processed it
-            break;
-          }
-
-          // Standalone significant deletion
-          const comment = createInlineComment(
-            currentCommentId,
-            'delete',
-            change.text,
-            null,
-            timestamp
-          );
-          comments.push(comment);
-
-          stats.significantChanges.push({
-            type: categorizeChange(change.text, null),
-            description: 'Text removed',
-            wordCount
-          });
-
-          textRuns.push(new CommentRangeStart({ id: currentCommentId }));
-          textRuns.push(new DeletedTextRun({
-            text: change.text,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: timestamp,
-          }));
-          textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
-          textRuns.push(new CommentReference({ id: currentCommentId }));
-          currentCommentId++;
-        } else {
-          // Non-significant deletion - no comment
-          textRuns.push(new DeletedTextRun({
-            text: change.text,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: timestamp,
-          }));
-        }
+        textRuns.push(new DeletedTextRun({
+          text: change.text,
+          id: currentRevisionId++,
+          author: AUTHOR,
+          date: timestamp,
+        }));
         break;
 
       case 'insert':
@@ -720,42 +577,12 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
         stats.totalInsertions++;
         stats.wordsInserted += wordCount;
 
-        if (isSignificant) {
-          // Significant standalone insertion
-          const comment = createInlineComment(
-            currentCommentId,
-            'insert',
-            null,
-            change.text,
-            timestamp
-          );
-          comments.push(comment);
-
-          stats.significantChanges.push({
-            type: categorizeChange(null, change.text),
-            description: 'Text added',
-            wordCount
-          });
-
-          textRuns.push(new CommentRangeStart({ id: currentCommentId }));
-          textRuns.push(new InsertedTextRun({
-            text: change.text,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: timestamp,
-          }));
-          textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
-          textRuns.push(new CommentReference({ id: currentCommentId }));
-          currentCommentId++;
-        } else {
-          // Non-significant insertion - no comment
-          textRuns.push(new InsertedTextRun({
-            text: change.text,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: timestamp,
-          }));
-        }
+        textRuns.push(new InsertedTextRun({
+          text: change.text,
+          id: currentRevisionId++,
+          author: AUTHOR,
+          date: timestamp,
+        }));
         break;
     }
   }
@@ -763,7 +590,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
   return {
     paragraph: new Paragraph({ children: textRuns }),
     nextRevisionId: currentRevisionId,
-    nextCommentId: currentCommentId
+    nextCommentId: startCommentId  // Comments disabled, return unchanged
   };
 }
 
