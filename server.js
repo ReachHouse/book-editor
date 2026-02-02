@@ -278,8 +278,24 @@ function createDocumentWithTrackChanges(original, edited) {
   }
   
   return new Document({
+    features: {
+      trackRevisions: true
+    },
     sections: [{
-      properties: {},
+      properties: {
+        page: {
+          size: {
+            width: 12240,  // 8.5 inches in twips
+            height: 15840  // 11 inches in twips
+          },
+          margin: {
+            top: 1440,     // 1 inch in twips
+            right: 1440,
+            bottom: 1440,
+            left: 1440
+          }
+        }
+      },
       children: paragraphs
     }]
   });
