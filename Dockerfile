@@ -71,9 +71,9 @@ FROM node:18-alpine AS frontend-build
 WORKDIR /app/frontend
 
 # Copy package files first (better layer caching)
-# If package files haven't changed, npm ci will use cache
+# Using npm install since package-lock.json may not exist in repo
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci --include=dev
+RUN npm install --include=dev
 
 # Copy all frontend source files
 COPY frontend/ ./
@@ -93,9 +93,9 @@ FROM node:18-alpine AS production
 WORKDIR /app
 
 # Copy package files and install production dependencies only
-# npm ci is more reliable than npm install for production
+# Using npm install since package-lock.json may not exist in repo
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Copy backend server and module directories
 # IMPORTANT: If you create new directories (middleware/, utils/, etc.),
