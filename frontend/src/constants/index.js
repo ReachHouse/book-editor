@@ -1,23 +1,105 @@
 /**
- * Application Constants
- * Central location for all configuration values
+ * =============================================================================
+ * APPLICATION CONSTANTS
+ * =============================================================================
+ *
+ * Central location for all configuration values used throughout the frontend.
+ * This file serves as a single source of truth for configuration, making it
+ * easy to adjust settings without searching through component code.
+ *
+ * CONTENTS:
+ * ---------
+ * 1. API Configuration - Backend communication settings
+ * 2. Document Processing - Chunk sizes for text processing
+ * 3. Style Guide - Reach Publishers House Style (condensed for UI)
+ * 4. Full Style Guide - Complete document for modal display
+ * 5. Version Exports - Re-exported from version.js
+ *
+ * IMPORTANT:
+ * ----------
+ * - The STYLE_GUIDE constant here is a COPY of the backend version
+ *   (config/styleGuide.js). If updating style rules, update BOTH files.
+ * - Version information is managed in version.js - see that file for
+ *   instructions on updating version numbers.
+ *
+ * RELATED FILES:
+ * --------------
+ * - version.js: Version system (VERSION, VERSION_TAG, VERSION_DATE)
+ * - /config/styleGuide.js: Backend copy of style guide (used in AI prompts)
+ *
+ * =============================================================================
  */
 
-// API Configuration
+// =============================================================================
+// API CONFIGURATION
+// =============================================================================
+
+/**
+ * Base URL for API requests.
+ * Empty string means use relative URLs (same origin as frontend).
+ * This works because the backend serves both the API and the static frontend.
+ *
+ * In development with separate servers, you might set this to:
+ * 'http://localhost:3001'
+ */
 export const API_BASE_URL = '';
 
+/**
+ * API retry configuration for handling transient failures.
+ *
+ * The frontend uses exponential backoff when API calls fail:
+ * - Attempt 1: Wait 2000ms (2s)
+ * - Attempt 2: Wait 4000ms (4s)
+ * - Attempt 3: Wait 6000ms (6s)
+ * - After 3 failures: Give up and show error
+ *
+ * This helps handle temporary network issues or server overload
+ * without immediately failing the entire editing session.
+ */
 export const API_CONFIG = {
-  MAX_RETRIES: 3,
-  RETRY_DELAY_BASE: 2000  // ms
+  MAX_RETRIES: 3,             // Maximum retry attempts per API call
+  RETRY_DELAY_BASE: 2000      // Base delay in milliseconds (multiplied by attempt number)
 };
 
-// Document Processing
+// =============================================================================
+// DOCUMENT PROCESSING CONFIGURATION
+// =============================================================================
+
+/**
+ * Chunk sizes control how the document is split for processing.
+ *
+ * WHY CHUNKING:
+ * The Claude API has token limits, so we can't send entire books at once.
+ * Documents are split into chunks of approximately this many words each.
+ *
+ * CHUNK SIZE TRADE-OFFS:
+ * - Smaller chunks (1000 words): More API calls, but each is faster and cheaper
+ * - Larger chunks (3000 words): Fewer API calls, but more context for AI
+ *
+ * We use different sizes for new vs resumed projects to maintain backward
+ * compatibility with projects saved before chunk size changes.
+ */
 export const CHUNK_SIZES = {
-  NEW_DOCUMENTS: 2000,    // words per chunk for new documents
-  LEGACY_DEFAULT: 3000    // words per chunk for legacy/resumed projects
+  NEW_DOCUMENTS: 2000,    // Words per chunk for new documents (optimal balance)
+  LEGACY_DEFAULT: 3000    // Words per chunk for legacy/resumed projects
 };
 
-// Style Guide (condensed version for UI display)
+// =============================================================================
+// STYLE GUIDE (CONDENSED VERSION FOR UI DISPLAY)
+// =============================================================================
+
+/**
+ * Condensed Reach Publishers House Style Guide.
+ *
+ * This is displayed in the UI and used as a quick reference.
+ * The full version (FULL_STYLE_GUIDE_DOCUMENT below) is shown in the modal.
+ *
+ * IMPORTANT: This must match the backend config/styleGuide.js
+ * If you update style rules, update BOTH files!
+ *
+ * Based on: Oxford Style Manual by R.M. Ritter
+ * Maintained by: Sally Veenman, Head of Editing Department
+ */
 export const STYLE_GUIDE = `REACH PUBLISHERS HOUSE STYLE GUIDE
 
 All edits follow UK English (Oxford Style Manual by R.M. Ritter)
@@ -44,7 +126,25 @@ KEY RULES:
 
 CRITICAL: All changes must be highlighted/tracked.`;
 
-// Full Style Guide Document (for modal display)
+// =============================================================================
+// FULL STYLE GUIDE DOCUMENT (FOR MODAL DISPLAY)
+// =============================================================================
+
+/**
+ * Complete Reach Publishers New Editors' Guidelines.
+ *
+ * This comprehensive document is displayed in the Style Guide Modal
+ * when users click "View Reach Publishers Style Guide" button.
+ *
+ * It contains the full editing brief from Sally Veenman including:
+ * - UK English requirements
+ * - Grammar rules
+ * - Apostrophe usage
+ * - Race term capitalization (South African context)
+ * - Number formatting
+ * - Fiction-specific tips
+ * - And more
+ */
 export const FULL_STYLE_GUIDE_DOCUMENT = `REACH PUBLISHERS NEW EDITORS' GUIDELINES TO HOUSE STYLE - Editing Brief
 
 All our edits (if not a proofread) are in-depth edits i.e. it is not just a simple proofread, but rather a thorough in-depth edit looking at all facets including the following:
@@ -104,5 +204,18 @@ Kind regards
 Sally Veenman
 Reach Publishers, Head of Editing Department`;
 
-// Re-export version info
+// =============================================================================
+// VERSION EXPORTS
+// =============================================================================
+
+/**
+ * Re-export version information from version.js
+ *
+ * This allows components to import version info from either file:
+ *   import { VERSION_DISPLAY } from './constants';
+ * or
+ *   import { VERSION_DISPLAY } from './constants/version';
+ *
+ * See version.js for full documentation on the version system.
+ */
 export { VERSION, VERSION_TAG, VERSION_DATE, VERSION_DISPLAY } from './version';

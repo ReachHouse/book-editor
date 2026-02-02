@@ -1,8 +1,38 @@
 /**
- * Reach Publishers Book Editor - Server Entry Point
+ * =============================================================================
+ * REACH PUBLISHERS BOOK EDITOR - SERVER ENTRY POINT
+ * =============================================================================
  *
- * A professional AI-powered manuscript editing application
- * with native Microsoft Word Track Changes support.
+ * This is the main entry point for the Reach Publishers AI Book Editor backend.
+ * The application provides AI-powered manuscript editing with native Microsoft
+ * Word Track Changes support.
+ *
+ * ARCHITECTURE OVERVIEW:
+ * ----------------------
+ * The backend is organized into modular components:
+ *
+ *   server.js (this file)     - Express app setup, middleware, and startup
+ *   routes/health.js          - Health check and status endpoints
+ *   routes/api.js             - Core API endpoints (edit, style guide, docx)
+ *   services/anthropicService.js - Claude AI API communication
+ *   services/diffService.js   - LCS-based diff algorithms for Track Changes
+ *   services/documentService.js - Word document generation with Track Changes
+ *   config/styleGuide.js      - Reach Publishers House Style Guide
+ *
+ * DEPLOYMENT:
+ * -----------
+ * - Runs in Docker container (see Dockerfile)
+ * - Default port: 3001 (mapped to 3002 externally via docker-compose)
+ * - Requires ANTHROPIC_API_KEY environment variable
+ * - Frontend is built and served from /public directory
+ *
+ * VERSIONING:
+ * -----------
+ * Version is tracked in frontend/src/constants/version.js
+ * Update that file with each release before pushing.
+ * See version.js for tag conventions ([Refactor], [Feature], [Bugfix], etc.)
+ *
+ * =============================================================================
  */
 
 require('dotenv').config();
@@ -10,58 +40,77 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
-// Import routes
+// -----------------------------------------------------------------------------
+// Route Imports
+// -----------------------------------------------------------------------------
+// Routes are split into logical modules for maintainability:
+// - healthRoutes: System health and configuration status
+// - apiRoutes: Core editing functionality (edit-chunk, generate-docx, etc.)
+
 const healthRoutes = require('./routes/health');
 const apiRoutes = require('./routes/api');
 const { validateEnvironment } = require('./routes/health');
 
-// ============================================================================
-// APP CONFIGURATION
-// ============================================================================
+// =============================================================================
+// EXPRESS APP CONFIGURATION
+// =============================================================================
 
 const app = express();
+
+// Port configuration: Use environment variable or default to 3001
+// In Docker, this is mapped to external port 3002 via docker-compose.yml
 const PORT = process.env.PORT || 3001;
 
-// ============================================================================
-// MIDDLEWARE
-// ============================================================================
+// =============================================================================
+// MIDDLEWARE STACK
+// =============================================================================
 
-// Enable CORS for all origins (consider restricting in production)
+// CORS: Allow cross-origin requests from any domain
+// Note: For production, consider restricting to specific domains
 app.use(cors());
 
-// Parse JSON with generous limit for large documents
+// JSON Parser: Accept large payloads for manuscript processing
+// 50MB limit accommodates large documents with full text content
 app.use(express.json({ limit: '50mb' }));
 
-// Trust proxy for accurate IP detection behind Nginx/reverse proxy
+// Proxy Trust: Enable accurate client IP detection when behind reverse proxy
+// Required for Hostinger/Nginx deployment to log correct client IPs
 app.set('trust proxy', 1);
 
-// Serve static frontend files
+// Static Files: Serve the built React frontend from /public
+// The Dockerfile copies the Vite build output here during container build
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ============================================================================
-// ROUTES
-// ============================================================================
+// =============================================================================
+// ROUTE REGISTRATION
+// =============================================================================
 
-// Health check and status endpoints
+// Health & Status Routes: /health, /api/status
+// Used for monitoring, deployment verification, and debugging
 app.use(healthRoutes);
 
-// API endpoints for editing and document generation
+// API Routes: /api/edit-chunk, /api/generate-style-guide, /api/generate-docx
+// Core editing functionality that communicates with Claude AI
 app.use(apiRoutes);
 
-// ============================================================================
-// SPA FALLBACK
-// ============================================================================
+// =============================================================================
+// SPA (SINGLE PAGE APPLICATION) FALLBACK
+// =============================================================================
 
-// Serve React app for any unmatched routes (SPA support)
+// Catch-all route: Serve React app for any unmatched routes
+// This enables client-side routing in the React frontend
+// All non-API, non-static requests return index.html, letting React Router handle them
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ============================================================================
-// ERROR HANDLING
-// ============================================================================
+// =============================================================================
+// GLOBAL ERROR HANDLER
+// =============================================================================
 
-// Global error handler
+// Express error handler middleware (must have 4 parameters)
+// Catches any unhandled errors from route handlers
+// In development, includes error message; in production, hides details
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({
@@ -70,13 +119,18 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // SERVER STARTUP
-// ============================================================================
+// =============================================================================
 
+// Validate environment before starting
+// This checks for required variables like ANTHROPIC_API_KEY
 const envIssues = validateEnvironment();
 
+// Start listening on all network interfaces (0.0.0.0)
+// This is required for Docker container networking
 app.listen(PORT, '0.0.0.0', () => {
+  // Startup banner with configuration summary
   console.log('==================================================');
   console.log('  Reach Publishers Book Editor');
   console.log('==================================================');
@@ -86,6 +140,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  Track Changes: Native Word Format`);
   console.log(`  Environment:   ${process.env.NODE_ENV || 'development'}`);
 
+  // Display any configuration warnings
   if (envIssues.length > 0) {
     console.log('');
     console.log('  WARNINGS:');
@@ -95,12 +150,17 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('==================================================');
 });
 
-// Handle graceful shutdown
+// =============================================================================
+// GRACEFUL SHUTDOWN HANDLERS
+// =============================================================================
+
+// Handle SIGTERM (Docker stop, Kubernetes pod termination)
 process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully...');
   process.exit(0);
 });
 
+// Handle SIGINT (Ctrl+C in terminal)
 process.on('SIGINT', () => {
   console.log('SIGINT received. Shutting down gracefully...');
   process.exit(0);

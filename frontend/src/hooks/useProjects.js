@@ -1,28 +1,100 @@
 /**
- * useProjects Hook
- * Manages saved projects in localStorage
+ * =============================================================================
+ * USE PROJECTS HOOK
+ * =============================================================================
+ *
+ * Custom React hook for managing book editing projects in localStorage.
+ * Provides CRUD operations for saving, loading, resuming, and deleting projects.
+ *
+ * PURPOSE:
+ * --------
+ * - Persist editing progress across browser sessions
+ * - Allow users to resume interrupted edits
+ * - Store completed projects for later download
+ *
+ * STORAGE FORMAT:
+ * ---------------
+ * Projects are stored in localStorage with keys prefixed by 'book_'.
+ * Example: 'book_1707134400000' where the number is the project ID (timestamp).
+ *
+ * Each project is stored as a JSON string containing:
+ * {
+ *   id: string,              - Unique identifier (timestamp string)
+ *   fileName: string,        - Original file name
+ *   timestamp: number,       - Last modified time (Date.now())
+ *   chunksCompleted: number, - Number of chunks processed
+ *   totalChunks: number,     - Total chunks in document
+ *   chunkSize: number,       - Words per chunk (for resume compatibility)
+ *   editedChunks: Array,     - Array of edited chunk strings
+ *   originalText: string,    - Complete original document text
+ *   styleGuide: string,      - Generated style guide for consistency
+ *   isComplete: boolean,     - True if all chunks processed
+ *   fullEditedText: string,  - Complete edited text (only if complete)
+ *   docContent: Object       - Pre-prepared download content (optional)
+ * }
+ *
+ * USAGE:
+ * ------
+ * import { useProjects } from './hooks/useProjects';
+ *
+ * function MyComponent() {
+ *   const {
+ *     savedProjects,    // Array of saved projects (sorted by timestamp)
+ *     loading,          // True while initial load is in progress
+ *     loadProjects,     // Function to reload the list
+ *     saveProject,      // Function to save/update a project
+ *     deleteProject,    // Function to delete by ID
+ *     getProject,       // Function to get a single project by ID
+ *     projectExists     // Function to check if project exists
+ *   } = useProjects();
+ * }
+ *
+ * STORAGE LIMITATIONS:
+ * --------------------
+ * localStorage typically has a 5-10 MB limit per origin.
+ * Large documents (100k+ words) may approach this limit.
+ * If quota is exceeded, saveProject will throw an error.
+ *
+ * TODO: Consider using IndexedDB for larger storage capacity.
+ *
+ * =============================================================================
  */
 
 import { useState, useEffect, useCallback } from 'react';
 
+/**
+ * Prefix for all project keys in localStorage.
+ * Used to identify and filter project data from other stored items.
+ */
 const STORAGE_PREFIX = 'book_';
 
 /**
- * Custom hook for managing book editing projects
- * Handles saving, loading, and deleting projects from localStorage
+ * Custom hook for managing book editing projects.
+ *
+ * @returns {Object} Project management functions and state
  */
 export function useProjects() {
+  // State: array of saved projects
   const [savedProjects, setSavedProjects] = useState([]);
+
+  // State: true while loading from localStorage
   const [loading, setLoading] = useState(true);
 
   /**
-   * Load all saved projects from localStorage
+   * Load all saved projects from localStorage.
+   *
+   * Iterates through all localStorage keys, finds those with our prefix,
+   * parses the JSON data, and sorts by timestamp (newest first).
+   *
+   * @returns {Promise<void>}
    */
   const loadProjects = useCallback(async () => {
     try {
+      // Find all keys that start with our prefix
       const keys = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX));
       const projects = [];
 
+      // Parse each project
       for (const key of keys) {
         try {
           const data = localStorage.getItem(key);
@@ -30,6 +102,7 @@ export function useProjects() {
             projects.push(JSON.parse(data));
           }
         } catch (err) {
+          // Log but don't fail - one corrupted project shouldn't break everything
           console.error('Error loading project:', key, err);
         }
       }
@@ -44,13 +117,19 @@ export function useProjects() {
   }, []);
 
   /**
-   * Save or update a project
+   * Save or update a project in localStorage.
+   *
+   * The project is identified by its ID - if a project with the same ID
+   * already exists, it will be overwritten.
+   *
+   * @param {Object} projectData - Project data to save
+   * @throws {Error} If localStorage quota exceeded or other storage error
    */
   const saveProject = useCallback(async (projectData) => {
     try {
       const key = `${STORAGE_PREFIX}${projectData.id}`;
       localStorage.setItem(key, JSON.stringify(projectData));
-      // Reload to update list
+      // Reload to update the list
       await loadProjects();
     } catch (err) {
       console.error('Failed to save project:', err);
@@ -59,7 +138,10 @@ export function useProjects() {
   }, [loadProjects]);
 
   /**
-   * Delete a project by ID
+   * Delete a project from localStorage by ID.
+   *
+   * @param {string} projectId - The ID of the project to delete
+   * @throws {Error} If deletion fails
    */
   const deleteProject = useCallback(async (projectId) => {
     try {
@@ -72,7 +154,10 @@ export function useProjects() {
   }, [loadProjects]);
 
   /**
-   * Get a specific project by ID
+   * Get a specific project by ID.
+   *
+   * @param {string} projectId - The ID of the project to retrieve
+   * @returns {Object|null} The project data, or null if not found
    */
   const getProject = useCallback((projectId) => {
     try {
@@ -85,25 +170,28 @@ export function useProjects() {
   }, []);
 
   /**
-   * Check if a project exists
+   * Check if a project exists in storage.
+   *
+   * @param {string} projectId - The ID to check
+   * @returns {boolean} True if the project exists
    */
   const projectExists = useCallback((projectId) => {
     return localStorage.getItem(`${STORAGE_PREFIX}${projectId}`) !== null;
   }, []);
 
-  // Load projects on mount
+  // Load projects when the hook is first used
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
 
   return {
-    savedProjects,
-    loading,
-    loadProjects,
-    saveProject,
-    deleteProject,
-    getProject,
-    projectExists
+    savedProjects,    // Array of saved projects
+    loading,          // Loading state
+    loadProjects,     // Reload the project list
+    saveProject,      // Save or update a project
+    deleteProject,    // Delete a project by ID
+    getProject,       // Get a single project by ID
+    projectExists     // Check if a project exists
   };
 }
 
