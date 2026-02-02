@@ -55,7 +55,8 @@ const {
   DeletedTextRun,
   CommentRangeStart,
   CommentRangeEnd,
-  CommentReference
+  CommentReference,
+  Comment
 } = require('docx');
 const { alignParagraphs, computeWordDiff } = require('./diffService');
 
@@ -212,20 +213,16 @@ function createSummaryComment(stats, timestamp) {
   lines.push("Track Changes feature to accept");
   lines.push("or reject individual edits.");
 
-  // Return plain object - docx library creates Comment instances internally
-  // Use a SINGLE paragraph - multiple paragraphs may cause blank comment issues
+  // Use Comment class explicitly - plain objects don't serialize correctly
   const commentText = lines.filter(line => line.length > 0).join(' | ');
+  const para = new Paragraph({ children: [new TextRun(commentText)] });
 
-  return {
+  return new Comment({
     id: 0,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: [
-      new Paragraph({
-        children: [new TextRun(commentText)]
-      })
-    ]
-  };
+    children: [para]
+  });
 }
 
 /**
@@ -281,20 +278,16 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
       lines.push("Edit made for improvement.");
   }
 
-  // Return plain object - docx library creates Comment instances internally
-  // Use a SINGLE paragraph - multiple paragraphs may cause blank comment issues
+  // Use Comment class explicitly - plain objects don't serialize correctly
   const commentText = lines.filter(line => line.length > 0).join(' | ');
+  const para = new Paragraph({ children: [new TextRun(commentText)] });
 
-  return {
+  return new Comment({
     id,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: [
-      new Paragraph({
-        children: [new TextRun(commentText)]
-      })
-    ]
-  };
+    children: [para]
+  });
 }
 
 // =============================================================================
