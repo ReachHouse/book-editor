@@ -212,10 +212,15 @@ function createSummaryComment(stats, timestamp) {
   lines.push("Track Changes feature to accept");
   lines.push("or reject individual edits.");
 
-  // Build comment content - v9.x: use multiple Paragraphs as shown in official demo
+  // Build comment content - v9.x: use exact syntax from official demo
+  // Demo uses: new TextRun({ text: "..." }) - NOT the shorthand new TextRun("...")
   const paragraphs = lines.map(line =>
     new Paragraph({
-      children: [new TextRun(line || " ")]  // Empty lines need at least a space
+      children: [
+        new TextRun({
+          text: line || " "
+        })
+      ]
     })
   );
 
@@ -280,10 +285,15 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
       lines.push("Edit made for improvement.");
   }
 
-  // Build comment content - v9.x: use multiple Paragraphs as shown in official demo
+  // Build comment content - v9.x: use exact syntax from official demo
+  // Demo uses: new TextRun({ text: "..." }) - NOT the shorthand new TextRun("...")
   const paragraphs = lines.map(line =>
     new Paragraph({
-      children: [new TextRun(line || " ")]
+      children: [
+        new TextRun({
+          text: line || " "
+        })
+      ]
     })
   );
 
