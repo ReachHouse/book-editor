@@ -55,8 +55,7 @@ const {
   DeletedTextRun,
   CommentRangeStart,
   CommentRangeEnd,
-  CommentReference,
-  Comment
+  CommentReference
 } = require('docx');
 const { alignParagraphs, computeWordDiff } = require('./diffService');
 
@@ -213,16 +212,15 @@ function createSummaryComment(stats, timestamp) {
   lines.push("Track Changes feature to accept");
   lines.push("or reject individual edits.");
 
-  // Use Comment class explicitly - plain objects don't serialize correctly
+  // Try simple text property instead of children
   const commentText = lines.filter(line => line.length > 0).join(' | ');
-  const para = new Paragraph({ children: [new TextRun(commentText)] });
 
-  return new Comment({
+  return {
     id: 0,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: [para]
-  });
+    text: commentText
+  };
 }
 
 /**
@@ -278,16 +276,15 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
       lines.push("Edit made for improvement.");
   }
 
-  // Use Comment class explicitly - plain objects don't serialize correctly
+  // Try simple text property instead of children
   const commentText = lines.filter(line => line.length > 0).join(' | ');
-  const para = new Paragraph({ children: [new TextRun(commentText)] });
 
-  return new Comment({
+  return {
     id,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: [para]
-  });
+    text: commentText
+  };
 }
 
 // =============================================================================
