@@ -131,8 +131,9 @@ ENV PORT=3001
 
 # Health check to verify the server is running
 # Docker/orchestrators use this to detect unhealthy containers
+# Note: Use 127.0.0.1 instead of localhost to force IPv4 (Node.js doesn't listen on IPv6)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3001/health || exit 1
 
 # Start the server
 # ANTHROPIC_API_KEY must be provided at runtime via docker-compose or -e flag
