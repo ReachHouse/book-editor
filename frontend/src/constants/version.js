@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.3.6 [Bugfix]   - 2026-02-02: Fix comment syntax per docx demo (IDs, TextRun.children wrapper)
  * v1.3.5 [Bugfix]   - 2026-02-03: Fix inline comments - anchor after track changes, not wrapping
  * v1.3.4 [Bugfix]   - 2026-02-03: Fix comment creation - use plain objects, not Comment class
  * v1.3.3 [Bugfix]   - 2026-02-03: Fix DOCX comments - fix dates, remove unicode
@@ -73,7 +74,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.3.5';
+export const VERSION = '1.3.6';
 
 /**
  * Tag describing the type of changes in this version
@@ -84,7 +85,7 @@ export const VERSION_TAG = 'Bugfix';
 /**
  * Date of this version release (YYYY-MM-DD format)
  */
-export const VERSION_DATE = '2026-02-03';
+export const VERSION_DATE = '2026-02-02';
 
 /**
  * Combined display string shown in the UI footer
