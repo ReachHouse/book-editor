@@ -75,7 +75,7 @@ const DISABLE_COMMENTS = false;
 
 // TEMPORARY: Set to true to disable only inline comments (keep summary comment)
 // This helps identify if inline comments on track changes are the specific issue
-const DISABLE_INLINE_COMMENTS = true;
+const DISABLE_INLINE_COMMENTS = false;
 
 // =============================================================================
 // CHANGE STATISTICS TRACKING
@@ -487,14 +487,17 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         );
         comments.push(comment);
 
+        // IMPORTANT: Comment markers must NOT wrap track change elements (causes OOXML error)
+        // Instead, put comment on an anchor character AFTER the track change
         children = [
-          new CommentRangeStart({ id: currentCommentId }),
           new DeletedTextRun({
             text: aligned.original,
             id: currentRevisionId++,
             author: AUTHOR,
             date: dateObj,
           }),
+          new CommentRangeStart({ id: currentCommentId }),
+          new TextRun(" "),
           new CommentRangeEnd({ id: currentCommentId }),
           new CommentReference({ id: currentCommentId })
         ];
@@ -546,14 +549,17 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         );
         comments.push(comment);
 
+        // IMPORTANT: Comment markers must NOT wrap track change elements (causes OOXML error)
+        // Instead, put comment on an anchor character AFTER the track change
         children = [
-          new CommentRangeStart({ id: currentCommentId }),
           new InsertedTextRun({
             text: aligned.edited,
             id: currentRevisionId++,
             author: AUTHOR,
             date: dateObj,
           }),
+          new CommentRangeStart({ id: currentCommentId }),
+          new TextRun(" "),
           new CommentRangeEnd({ id: currentCommentId }),
           new CommentReference({ id: currentCommentId })
         ];
@@ -676,8 +682,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
               wordCount: wordCount + countWords(nextChange.text)
             });
 
-            // Add delete with comment
-            textRuns.push(new CommentRangeStart({ id: currentCommentId }));
+            // Add track changes first, then comment anchor AFTER (not wrapping)
             textRuns.push(new DeletedTextRun({
               text: change.text,
               id: currentRevisionId++,
@@ -694,6 +699,10 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
               author: AUTHOR,
               date: dateObj,
             }));
+
+            // Comment anchor AFTER the track changes (not wrapping them)
+            textRuns.push(new CommentRangeStart({ id: currentCommentId }));
+            textRuns.push(new TextRun(" "));
             textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
             textRuns.push(new CommentReference({ id: currentCommentId }));
             currentCommentId++;
@@ -718,13 +727,15 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             wordCount
           });
 
-          textRuns.push(new CommentRangeStart({ id: currentCommentId }));
+          // Track change first, then comment anchor AFTER (not wrapping)
           textRuns.push(new DeletedTextRun({
             text: change.text,
             id: currentRevisionId++,
             author: AUTHOR,
             date: dateObj,
           }));
+          textRuns.push(new CommentRangeStart({ id: currentCommentId }));
+          textRuns.push(new TextRun(" "));
           textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
           textRuns.push(new CommentReference({ id: currentCommentId }));
           currentCommentId++;
@@ -766,13 +777,15 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             wordCount
           });
 
-          textRuns.push(new CommentRangeStart({ id: currentCommentId }));
+          // Track change first, then comment anchor AFTER (not wrapping)
           textRuns.push(new InsertedTextRun({
             text: change.text,
             id: currentRevisionId++,
             author: AUTHOR,
             date: dateObj,
           }));
+          textRuns.push(new CommentRangeStart({ id: currentCommentId }));
+          textRuns.push(new TextRun(" "));
           textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
           textRuns.push(new CommentReference({ id: currentCommentId }));
           currentCommentId++;
