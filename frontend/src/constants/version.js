@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.3.7 [Bugfix]   - 2026-02-02: Fix comment content - single paragraph, v8.2.0 compatible syntax
  * v1.3.6 [Bugfix]   - 2026-02-02: Fix comment syntax per docx demo (IDs, TextRun.children wrapper)
  * v1.3.5 [Bugfix]   - 2026-02-03: Fix inline comments - anchor after track changes, not wrapping
  * v1.3.4 [Bugfix]   - 2026-02-03: Fix comment creation - use plain objects, not Comment class
@@ -74,7 +75,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.3.6';
+export const VERSION = '1.3.7';
 
 /**
  * Tag describing the type of changes in this version
