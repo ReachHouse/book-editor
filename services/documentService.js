@@ -212,18 +212,18 @@ function createSummaryComment(stats, timestamp) {
   lines.push("Track Changes feature to accept");
   lines.push("or reject individual edits.");
 
-  // Build comment content - use single paragraph with joined text (v8.2.0 compatible)
-  const commentText = lines.filter(line => line.length > 0).join('\n');
+  // Build comment content - v9.x: use multiple Paragraphs as shown in official demo
+  const paragraphs = lines.map(line =>
+    new Paragraph({
+      children: [new TextRun(line || " ")]  // Empty lines need at least a space
+    })
+  );
 
   return {
     id: 0,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: [
-      new Paragraph({
-        children: [new TextRun(commentText)]
-      })
-    ]
+    children: paragraphs
   };
 }
 
@@ -280,18 +280,18 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
       lines.push("Edit made for improvement.");
   }
 
-  // Build comment content - use single paragraph with joined text (v8.2.0 compatible)
-  const commentText = lines.filter(line => line.length > 0).join('\n');
+  // Build comment content - v9.x: use multiple Paragraphs as shown in official demo
+  const paragraphs = lines.map(line =>
+    new Paragraph({
+      children: [new TextRun(line || " ")]
+    })
+  );
 
   return {
     id,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: [
-      new Paragraph({
-        children: [new TextRun(commentText)]
-      })
-    ]
+    children: paragraphs
   };
 }
 
@@ -374,15 +374,18 @@ function createDocumentWithTrackChanges(original, edited) {
     comments.unshift(summaryComment); // Add at beginning
 
     // Create a dedicated summary paragraph with its own comment markers (no nesting)
+    // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
     paragraphs.push(new Paragraph({
       children: [
-        new CommentRangeStart({ id: 0 }),
+        new CommentRangeStart(0),
         new TextRun({
           text: "AI Editor Summary",
           bold: true
         }),
-        new CommentRangeEnd({ id: 0 }),
-        new CommentReference({ id: 0 })
+        new CommentRangeEnd(0),
+        new TextRun({
+          children: [new CommentReference(0)]
+        })
       ]
     }));
 
@@ -490,6 +493,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
 
         // IMPORTANT: Comment markers must NOT wrap track change elements (causes OOXML error)
         // Instead, put comment on an anchor character AFTER the track change
+        // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
         children = [
           new DeletedTextRun({
             text: aligned.original,
@@ -497,10 +501,12 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
             author: AUTHOR,
             date: dateObj,
           }),
-          new CommentRangeStart({ id: currentCommentId }),
+          new CommentRangeStart(currentCommentId),
           new TextRun(" "),
-          new CommentRangeEnd({ id: currentCommentId }),
-          new CommentReference({ id: currentCommentId })
+          new CommentRangeEnd(currentCommentId),
+          new TextRun({
+            children: [new CommentReference(currentCommentId)]
+          })
         ];
         currentCommentId++;
       }
@@ -552,6 +558,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
 
         // IMPORTANT: Comment markers must NOT wrap track change elements (causes OOXML error)
         // Instead, put comment on an anchor character AFTER the track change
+        // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
         children = [
           new InsertedTextRun({
             text: aligned.edited,
@@ -559,10 +566,12 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
             author: AUTHOR,
             date: dateObj,
           }),
-          new CommentRangeStart({ id: currentCommentId }),
+          new CommentRangeStart(currentCommentId),
           new TextRun(" "),
-          new CommentRangeEnd({ id: currentCommentId }),
-          new CommentReference({ id: currentCommentId })
+          new CommentRangeEnd(currentCommentId),
+          new TextRun({
+            children: [new CommentReference(currentCommentId)]
+          })
         ];
         currentCommentId++;
       }
@@ -702,10 +711,13 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             }));
 
             // Comment anchor AFTER the track changes (not wrapping them)
-            textRuns.push(new CommentRangeStart({ id: currentCommentId }));
+            // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
+            textRuns.push(new CommentRangeStart(currentCommentId));
             textRuns.push(new TextRun(" "));
-            textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
-            textRuns.push(new CommentReference({ id: currentCommentId }));
+            textRuns.push(new CommentRangeEnd(currentCommentId));
+            textRuns.push(new TextRun({
+              children: [new CommentReference(currentCommentId)]
+            }));
             currentCommentId++;
 
             i++; // Skip the next insert since we processed it
@@ -729,16 +741,19 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           });
 
           // Track change first, then comment anchor AFTER (not wrapping)
+          // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
           textRuns.push(new DeletedTextRun({
             text: change.text,
             id: currentRevisionId++,
             author: AUTHOR,
             date: dateObj,
           }));
-          textRuns.push(new CommentRangeStart({ id: currentCommentId }));
+          textRuns.push(new CommentRangeStart(currentCommentId));
           textRuns.push(new TextRun(" "));
-          textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
-          textRuns.push(new CommentReference({ id: currentCommentId }));
+          textRuns.push(new CommentRangeEnd(currentCommentId));
+          textRuns.push(new TextRun({
+            children: [new CommentReference(currentCommentId)]
+          }));
           currentCommentId++;
         } else {
           // No comment - just track change
@@ -779,16 +794,19 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           });
 
           // Track change first, then comment anchor AFTER (not wrapping)
+          // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
           textRuns.push(new InsertedTextRun({
             text: change.text,
             id: currentRevisionId++,
             author: AUTHOR,
             date: dateObj,
           }));
-          textRuns.push(new CommentRangeStart({ id: currentCommentId }));
+          textRuns.push(new CommentRangeStart(currentCommentId));
           textRuns.push(new TextRun(" "));
-          textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
-          textRuns.push(new CommentReference({ id: currentCommentId }));
+          textRuns.push(new CommentRangeEnd(currentCommentId));
+          textRuns.push(new TextRun({
+            children: [new CommentReference(currentCommentId)]
+          }));
           currentCommentId++;
         } else {
           // No comment - just track change
