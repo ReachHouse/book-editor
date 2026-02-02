@@ -55,7 +55,8 @@ const {
   DeletedTextRun,
   CommentRangeStart,
   CommentRangeEnd,
-  CommentReference
+  CommentReference,
+  Comment
 } = require('docx');
 const { alignParagraphs, computeWordDiff } = require('./diffService');
 
@@ -168,23 +169,23 @@ function categorizeChange(original, edited) {
 function createSummaryComment(stats, timestamp) {
   const lines = [
     "AI EDITOR SUMMARY",
-    "═══════════════════════════════",
+    "-------------------------------",
     "",
     `Edited: ${new Date(timestamp).toLocaleString()}`,
     "",
     "CHANGE STATISTICS:",
-    `• Total revisions: ${stats.totalInsertions + stats.totalDeletions}`,
-    `• Insertions: ${stats.totalInsertions}`,
-    `• Deletions: ${stats.totalDeletions}`,
+    `- Total revisions: ${stats.totalInsertions + stats.totalDeletions}`,
+    `- Insertions: ${stats.totalInsertions}`,
+    `- Deletions: ${stats.totalDeletions}`,
     "",
     "PARAGRAPH CHANGES:",
-    `• Paragraphs added: ${stats.paragraphsAdded}`,
-    `• Paragraphs removed: ${stats.paragraphsRemoved}`,
-    `• Paragraphs modified: ${stats.paragraphsModified}`,
+    `- Paragraphs added: ${stats.paragraphsAdded}`,
+    `- Paragraphs removed: ${stats.paragraphsRemoved}`,
+    `- Paragraphs modified: ${stats.paragraphsModified}`,
     "",
     "WORD-LEVEL CHANGES:",
-    `• Words inserted: ${stats.wordsInserted}`,
-    `• Words deleted: ${stats.wordsDeleted}`,
+    `- Words inserted: ${stats.wordsInserted}`,
+    `- Words deleted: ${stats.wordsDeleted}`,
   ];
 
   // Add significant changes summary if any
@@ -196,7 +197,7 @@ function createSummaryComment(stats, timestamp) {
       changeTypes[change.type] = (changeTypes[change.type] || 0) + 1;
     }
     for (const [type, count] of Object.entries(changeTypes)) {
-      lines.push(`• ${type}: ${count} occurrence${count > 1 ? 's' : ''}`);
+      lines.push(`- ${type}: ${count} occurrence${count > 1 ? 's' : ''}`);
     }
   }
 
@@ -205,27 +206,26 @@ function createSummaryComment(stats, timestamp) {
   lines.push("Track Changes feature to accept");
   lines.push("or reject individual edits.");
 
-  // Return options object - docx library creates Comment instance internally
-  return {
+  // Return Comment instance (required by docx library)
+  return new Comment({
     id: 0,
     author: AUTHOR,
     date: new Date(timestamp),
     children: lines.map(line => new Paragraph({
-      children: [new TextRun({ text: line })]
+      children: [new TextRun(line)]
     }))
-  };
+  });
 }
 
 /**
- * Create an inline comment options object for a significant change.
- * Note: Returns options object, not Comment instance (docx library creates Comment internally)
+ * Create an inline comment for a significant change.
  *
  * @param {number} id - Comment ID
  * @param {string} changeType - Type of change (delete, insert, change)
  * @param {string} original - Original text (if applicable)
  * @param {string} edited - Edited text (if applicable)
  * @param {string} timestamp - ISO timestamp
- * @returns {Object} Comment options object
+ * @returns {Comment} Comment instance
  */
 function createInlineComment(id, changeType, original, edited, timestamp) {
   const category = categorizeChange(original, edited);
@@ -270,15 +270,15 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
       lines.push("Edit made for improvement.");
   }
 
-  // Return options object - docx library creates Comment instance internally
-  return {
+  // Return Comment instance (required by docx library)
+  return new Comment({
     id,
     author: AUTHOR,
     date: new Date(timestamp),
     children: lines.map(line => new Paragraph({
-      children: [new TextRun({ text: line })]
+      children: [new TextRun(line)]
     }))
-  };
+  });
 }
 
 // =============================================================================
@@ -349,14 +349,19 @@ function createDocumentWithTrackChanges(original, edited) {
     paragraphs.push(new Paragraph({
       children: [
         new CommentRangeStart({ id: 0 }),
-        new TextRun({ text: 'AI Editor Summary', bold: true }),
+        new TextRun({
+          text: "AI Editor Summary",
+          bold: true
+        }),
         new CommentRangeEnd({ id: 0 }),
         new CommentReference({ id: 0 })
       ]
     }));
 
-    // Add empty paragraph for visual separation
-    paragraphs.push(new Paragraph({ children: [] }));
+    // Add paragraph with space for visual separation (empty children array can cause issues)
+    paragraphs.push(new Paragraph({
+      children: [new TextRun(" ")]
+    }));
 
     // Add ALL content paragraphs as-is (no wrapping - avoids nested comments)
     for (const data of paragraphData) {
@@ -409,7 +414,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
   switch (aligned.type) {
     case 'match': {
       // Paragraphs are identical - no Track Changes needed
-      const children = [new TextRun({ text: aligned.original })];
+      const children = [new TextRun(aligned.original)];
       return {
         paragraph: new Paragraph({ children }),
         children,
@@ -441,13 +446,14 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         wordCount
       });
 
+      const dateObj = new Date(timestamp);
       const children = [
         new CommentRangeStart({ id: currentCommentId }),
         new DeletedTextRun({
           text: aligned.original,
           id: currentRevisionId++,
           author: AUTHOR,
-          date: timestamp,
+          date: dateObj,
         }),
         new CommentRangeEnd({ id: currentCommentId }),
         new CommentReference({ id: currentCommentId })
@@ -485,13 +491,14 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         wordCount
       });
 
+      const dateObj = new Date(timestamp);
       const children = [
         new CommentRangeStart({ id: currentCommentId }),
         new InsertedTextRun({
           text: aligned.edited,
           id: currentRevisionId++,
           author: AUTHOR,
-          date: timestamp,
+          date: dateObj,
         }),
         new CommentRangeEnd({ id: currentCommentId }),
         new CommentReference({ id: currentCommentId })
@@ -522,7 +529,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
 
     default: {
       // Fallback - shouldn't happen, but handle gracefully
-      const children = [new TextRun({ text: aligned.original || aligned.edited || '' })];
+      const children = [new TextRun(aligned.original || aligned.edited || '')];
       return {
         paragraph: new Paragraph({ children }),
         children,
@@ -566,9 +573,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
   const textRuns = [];
   let currentRevisionId = startRevisionId;
   let currentCommentId = startCommentId;
-
-  // Track consecutive significant changes to group comments
-  let pendingSignificantChange = null;
+  const dateObj = new Date(timestamp);
 
   // Convert each change to appropriate TextRun
   for (let i = 0; i < changes.length; i++) {
@@ -579,13 +584,13 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
     switch (change.type) {
       case 'equal':
         // Unchanged text - normal formatting
-        textRuns.push(new TextRun({ text: change.text }));
+        textRuns.push(new TextRun(change.text));
         break;
 
       case 'delete':
         // Skip whitespace-only deletions
         if (isWhitespaceOnly(change.text)) {
-          textRuns.push(new TextRun({ text: change.text }));
+          textRuns.push(new TextRun(change.text));
           break;
         }
 
@@ -622,7 +627,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
               text: change.text,
               id: currentRevisionId++,
               author: AUTHOR,
-              date: timestamp,
+              date: dateObj,
             }));
 
             // Add insert (process it now, skip in loop)
@@ -632,7 +637,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
               text: nextChange.text,
               id: currentRevisionId++,
               author: AUTHOR,
-              date: timestamp,
+              date: dateObj,
             }));
             textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
             textRuns.push(new CommentReference({ id: currentCommentId }));
@@ -663,7 +668,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             text: change.text,
             id: currentRevisionId++,
             author: AUTHOR,
-            date: timestamp,
+            date: dateObj,
           }));
           textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
           textRuns.push(new CommentReference({ id: currentCommentId }));
@@ -674,7 +679,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             text: change.text,
             id: currentRevisionId++,
             author: AUTHOR,
-            date: timestamp,
+            date: dateObj,
           }));
         }
         break;
@@ -682,7 +687,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
       case 'insert':
         // Skip whitespace-only insertions
         if (isWhitespaceOnly(change.text)) {
-          textRuns.push(new TextRun({ text: change.text }));
+          textRuns.push(new TextRun(change.text));
           break;
         }
 
@@ -711,7 +716,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             text: change.text,
             id: currentRevisionId++,
             author: AUTHOR,
-            date: timestamp,
+            date: dateObj,
           }));
           textRuns.push(new CommentRangeEnd({ id: currentCommentId }));
           textRuns.push(new CommentReference({ id: currentCommentId }));
@@ -722,7 +727,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             text: change.text,
             id: currentRevisionId++,
             author: AUTHOR,
-            date: timestamp,
+            date: dateObj,
           }));
         }
         break;
