@@ -73,9 +73,10 @@ const AUTHOR = "AI Editor";
 // If document opens cleanly with this true, comments are the issue
 const DISABLE_COMMENTS = false;
 
-// TEMPORARY: Set to true to disable only inline comments (keep summary comment)
-// This helps identify if inline comments on track changes are the specific issue
-const DISABLE_INLINE_COMMENTS = false;
+// Inline comments on track changes cause OOXML validation errors in Word.
+// Even anchoring comments after track changes (not wrapping) still fails.
+// Keep only summary comment - users can review track changes directly.
+const DISABLE_INLINE_COMMENTS = true;
 
 // =============================================================================
 // CHANGE STATISTICS TRACKING
