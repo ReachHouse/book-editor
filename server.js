@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { Document, Packer, Paragraph, TextRun } = require('docx');
+const { Document, Packer, Paragraph, TextRun, InsertedTextRun, DeletedTextRun } = require('docx');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -158,7 +158,9 @@ app.post('/api/generate-docx', async (req, res) => {
       return res.status(400).json({ error: 'Missing originalText or editedText' });
     }
     
-    console.log('Generating document with Track Changes...');
+    console.log('Generating document with Native Track Changes...');
+    console.log('Original length:', originalText.length);
+    console.log('Edited length:', editedText.length);
     
     const doc = createDocumentWithTrackChanges(originalText, editedText);
     const buffer = await Packer.toBuffer(doc);
@@ -174,7 +176,7 @@ app.post('/api/generate-docx', async (req, res) => {
 });
 
 // ============================================================================
-// TRACK CHANGES DOCUMENT CREATION
+// NATIVE TRACK CHANGES DOCUMENT CREATION
 // ============================================================================
 
 function createDocumentWithTrackChanges(original, edited) {
@@ -184,16 +186,47 @@ function createDocumentWithTrackChanges(original, edited) {
   const paragraphs = [];
   const maxParas = Math.max(originalParas.length, editedParas.length);
   
+  // Track revision ID for unique IDs
+  let revisionId = 0;
+  
   for (let i = 0; i < maxParas; i++) {
     const origPara = originalParas[i] || '';
     const editPara = editedParas[i] || '';
     
     if (origPara === editPara) {
+      // No changes - just add the text
       paragraphs.push(new Paragraph({
         children: [new TextRun({ text: origPara })]
       }));
+    } else if (!origPara && editPara) {
+      // Entire paragraph is new (insertion)
+      paragraphs.push(new Paragraph({
+        children: [
+          new InsertedTextRun({
+            text: editPara,
+            id: revisionId++,
+            author: "AI Editor",
+            date: new Date().toISOString(),
+          })
+        ]
+      }));
+    } else if (origPara && !editPara) {
+      // Entire paragraph deleted
+      paragraphs.push(new Paragraph({
+        children: [
+          new DeletedTextRun({
+            text: origPara,
+            id: revisionId++,
+            author: "AI Editor",
+            date: new Date().toISOString(),
+          })
+        ]
+      }));
     } else {
-      paragraphs.push(createTrackedParagraph(origPara, editPara));
+      // Paragraph has changes - do word-level diff
+      const trackedPara = createTrackedParagraph(origPara, editPara, revisionId);
+      revisionId = trackedPara.nextId;
+      paragraphs.push(trackedPara.paragraph);
     }
   }
   
@@ -205,73 +238,155 @@ function createDocumentWithTrackChanges(original, edited) {
   });
 }
 
-function createTrackedParagraph(original, edited) {
-  const changes = simpleWordDiff(original, edited);
+function createTrackedParagraph(original, edited, startId) {
+  const changes = computeWordDiff(original, edited);
   const textRuns = [];
+  let currentId = startId;
   
   for (const change of changes) {
     if (change.type === 'equal') {
       textRuns.push(new TextRun({ text: change.text }));
     } else if (change.type === 'delete') {
       textRuns.push(
-        new TextRun({
+        new DeletedTextRun({
           text: change.text,
-          strike: true,
-          color: 'FF0000'
+          id: currentId++,
+          author: "AI Editor",
+          date: new Date().toISOString(),
         })
       );
     } else if (change.type === 'insert') {
       textRuns.push(
-        new TextRun({
+        new InsertedTextRun({
           text: change.text,
-          underline: {},
-          color: '0000FF'
+          id: currentId++,
+          author: "AI Editor",
+          date: new Date().toISOString(),
         })
       );
     }
   }
   
-  return new Paragraph({ children: textRuns });
+  return {
+    paragraph: new Paragraph({ children: textRuns }),
+    nextId: currentId
+  };
 }
 
-function simpleWordDiff(original, edited) {
-  const originalWords = original.split(/(\s+)/).filter(w => w);
-  const editedWords = edited.split(/(\s+)/).filter(w => w);
+// ============================================================================
+// IMPROVED WORD DIFF ALGORITHM
+// ============================================================================
+
+function computeWordDiff(original, edited) {
+  // Split into tokens (words and whitespace)
+  const originalTokens = tokenize(original);
+  const editedTokens = tokenize(edited);
+  
+  // Use Longest Common Subsequence approach for better diff
+  const lcs = computeLCS(originalTokens, editedTokens);
   
   const changes = [];
-  let i = 0, j = 0;
+  let origIndex = 0;
+  let editIndex = 0;
+  let lcsIndex = 0;
   
-  while (i < originalWords.length || j < editedWords.length) {
-    if (i >= originalWords.length) {
-      changes.push({ type: 'insert', text: editedWords[j] });
-      j++;
-    } else if (j >= editedWords.length) {
-      changes.push({ type: 'delete', text: originalWords[i] });
-      i++;
-    } else if (originalWords[i] === editedWords[j]) {
-      changes.push({ type: 'equal', text: originalWords[i] });
-      i++;
-      j++;
-    } else {
-      const origInEdited = editedWords.indexOf(originalWords[i], j);
-      const editInOrig = originalWords.indexOf(editedWords[j], i);
+  while (origIndex < originalTokens.length || editIndex < editedTokens.length) {
+    if (lcsIndex < lcs.length) {
+      const lcsItem = lcs[lcsIndex];
       
-      if (origInEdited > -1 && origInEdited - j < 5) {
-        changes.push({ type: 'insert', text: editedWords[j] });
-        j++;
-      } else if (editInOrig > -1 && editInOrig - i < 5) {
-        changes.push({ type: 'delete', text: originalWords[i] });
-        i++;
-      } else {
-        changes.push({ type: 'delete', text: originalWords[i] });
-        changes.push({ type: 'insert', text: editedWords[j] });
-        i++;
-        j++;
+      // Add deletions (tokens in original but not in LCS)
+      while (origIndex < lcsItem.origIndex) {
+        changes.push({ type: 'delete', text: originalTokens[origIndex] });
+        origIndex++;
+      }
+      
+      // Add insertions (tokens in edited but not in LCS)
+      while (editIndex < lcsItem.editIndex) {
+        changes.push({ type: 'insert', text: editedTokens[editIndex] });
+        editIndex++;
+      }
+      
+      // Add the matching token
+      changes.push({ type: 'equal', text: originalTokens[origIndex] });
+      origIndex++;
+      editIndex++;
+      lcsIndex++;
+    } else {
+      // No more LCS items - remaining are deletions/insertions
+      while (origIndex < originalTokens.length) {
+        changes.push({ type: 'delete', text: originalTokens[origIndex] });
+        origIndex++;
+      }
+      while (editIndex < editedTokens.length) {
+        changes.push({ type: 'insert', text: editedTokens[editIndex] });
+        editIndex++;
       }
     }
   }
   
-  return changes;
+  // Merge consecutive changes of the same type
+  return mergeConsecutiveChanges(changes);
+}
+
+function tokenize(text) {
+  // Split by word boundaries, keeping whitespace as separate tokens
+  return text.split(/(\s+)/).filter(t => t.length > 0);
+}
+
+function computeLCS(arr1, arr2) {
+  const m = arr1.length;
+  const n = arr2.length;
+  
+  // Create DP table
+  const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+  
+  // Fill DP table
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (arr1[i - 1] === arr2[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
+  }
+  
+  // Backtrack to find LCS with indices
+  const lcs = [];
+  let i = m, j = n;
+  
+  while (i > 0 && j > 0) {
+    if (arr1[i - 1] === arr2[j - 1]) {
+      lcs.unshift({ origIndex: i - 1, editIndex: j - 1, value: arr1[i - 1] });
+      i--;
+      j--;
+    } else if (dp[i - 1][j] > dp[i][j - 1]) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+  
+  return lcs;
+}
+
+function mergeConsecutiveChanges(changes) {
+  if (changes.length === 0) return changes;
+  
+  const merged = [];
+  let current = { ...changes[0] };
+  
+  for (let i = 1; i < changes.length; i++) {
+    if (changes[i].type === current.type) {
+      current.text += changes[i].text;
+    } else {
+      merged.push(current);
+      current = { ...changes[i] };
+    }
+  }
+  merged.push(current);
+  
+  return merged;
 }
 
 // ============================================================================
@@ -292,5 +407,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Port: ${PORT}`);
   console.log(`URL: http://localhost:${PORT}`);
   console.log('API Key loaded:', process.env.ANTHROPIC_API_KEY ? 'Yes' : 'NO - CHECK .env FILE');
+  console.log('Track Changes: NATIVE WORD FORMAT');
   console.log('==================================================');
 });
