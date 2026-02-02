@@ -384,7 +384,7 @@ function createDocumentWithTrackChanges(original, edited) {
     comments.unshift(summaryComment); // Add at beginning
 
     // Create a dedicated summary paragraph with its own comment markers (no nesting)
-    // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
+    // v9.5.1: CommentReference is a ParagraphChild, NOT a TextRun child (per type definitions)
     paragraphs.push(new Paragraph({
       children: [
         new CommentRangeStart(0),
@@ -393,9 +393,7 @@ function createDocumentWithTrackChanges(original, edited) {
           bold: true
         }),
         new CommentRangeEnd(0),
-        new TextRun({
-          children: [new CommentReference(0)]
-        })
+        new CommentReference(0)
       ]
     }));
 
@@ -503,7 +501,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
 
         // IMPORTANT: Comment markers must NOT wrap track change elements (causes OOXML error)
         // Instead, put comment on an anchor character AFTER the track change
-        // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
+        // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
         children = [
           new DeletedTextRun({
             text: aligned.original,
@@ -514,9 +512,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
           new CommentRangeStart(currentCommentId),
           new TextRun(" "),
           new CommentRangeEnd(currentCommentId),
-          new TextRun({
-            children: [new CommentReference(currentCommentId)]
-          })
+          new CommentReference(currentCommentId)
         ];
         currentCommentId++;
       }
@@ -568,7 +564,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
 
         // IMPORTANT: Comment markers must NOT wrap track change elements (causes OOXML error)
         // Instead, put comment on an anchor character AFTER the track change
-        // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
+        // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
         children = [
           new InsertedTextRun({
             text: aligned.edited,
@@ -579,9 +575,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
           new CommentRangeStart(currentCommentId),
           new TextRun(" "),
           new CommentRangeEnd(currentCommentId),
-          new TextRun({
-            children: [new CommentReference(currentCommentId)]
-          })
+          new CommentReference(currentCommentId)
         ];
         currentCommentId++;
       }
@@ -721,13 +715,11 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             }));
 
             // Comment anchor AFTER the track changes (not wrapping them)
-            // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
+            // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
             textRuns.push(new CommentRangeStart(currentCommentId));
             textRuns.push(new TextRun(" "));
             textRuns.push(new CommentRangeEnd(currentCommentId));
-            textRuns.push(new TextRun({
-              children: [new CommentReference(currentCommentId)]
-            }));
+            textRuns.push(new CommentReference(currentCommentId));
             currentCommentId++;
 
             i++; // Skip the next insert since we processed it
@@ -751,7 +743,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           });
 
           // Track change first, then comment anchor AFTER (not wrapping)
-          // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
+          // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
           textRuns.push(new DeletedTextRun({
             text: change.text,
             id: currentRevisionId++,
@@ -761,9 +753,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           textRuns.push(new CommentRangeStart(currentCommentId));
           textRuns.push(new TextRun(" "));
           textRuns.push(new CommentRangeEnd(currentCommentId));
-          textRuns.push(new TextRun({
-            children: [new CommentReference(currentCommentId)]
-          }));
+          textRuns.push(new CommentReference(currentCommentId));
           currentCommentId++;
         } else {
           // No comment - just track change
@@ -804,7 +794,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           });
 
           // Track change first, then comment anchor AFTER (not wrapping)
-          // v9.x syntax: CommentRangeStart/End take just ID, CommentReference wrapped in TextRun.children
+          // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
           textRuns.push(new InsertedTextRun({
             text: change.text,
             id: currentRevisionId++,
@@ -814,9 +804,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           textRuns.push(new CommentRangeStart(currentCommentId));
           textRuns.push(new TextRun(" "));
           textRuns.push(new CommentRangeEnd(currentCommentId));
-          textRuns.push(new TextRun({
-            children: [new CommentReference(currentCommentId)]
-          }));
+          textRuns.push(new CommentReference(currentCommentId));
           currentCommentId++;
         } else {
           // No comment - just track change
