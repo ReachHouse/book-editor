@@ -8,71 +8,6 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================================================
-// RATE LIMITING - Control API costs
-// ============================================================================
-
-const rateLimitStore = new Map();
-const RATE_LIMIT = {
-  windowMs: 60 * 60 * 1000, // 1 hour
-  maxRequests: 100, // Max 100 edit requests per hour per IP
-  maxDocumentsPerDay: 20 // Max 20 documents per day per IP
-};
-
-const dailyDocumentStore = new Map();
-
-function getRateLimitKey(req) {
-  return req.ip || req.connection.remoteAddress || 'unknown';
-}
-
-function checkRateLimit(req, res, next) {
-  const key = getRateLimitKey(req);
-  const now = Date.now();
-  
-  // Clean up old entries
-  if (rateLimitStore.has(key)) {
-    const data = rateLimitStore.get(key);
-    if (now - data.windowStart > RATE_LIMIT.windowMs) {
-      rateLimitStore.set(key, { windowStart: now, count: 0 });
-    }
-  } else {
-    rateLimitStore.set(key, { windowStart: now, count: 0 });
-  }
-  
-  const data = rateLimitStore.get(key);
-  data.count++;
-  
-  if (data.count > RATE_LIMIT.maxRequests) {
-    return res.status(429).json({ 
-      error: 'Rate limit exceeded. Please wait before making more requests.',
-      retryAfter: Math.ceil((data.windowStart + RATE_LIMIT.windowMs - now) / 1000)
-    });
-  }
-  
-  next();
-}
-
-function checkDailyDocumentLimit(req, res, next) {
-  const key = getRateLimitKey(req);
-  const today = new Date().toDateString();
-  const storeKey = `${key}-${today}`;
-  
-  if (!dailyDocumentStore.has(storeKey)) {
-    dailyDocumentStore.set(storeKey, 0);
-  }
-  
-  const count = dailyDocumentStore.get(storeKey);
-  
-  if (count >= RATE_LIMIT.maxDocumentsPerDay) {
-    return res.status(429).json({ 
-      error: `Daily limit of ${RATE_LIMIT.maxDocumentsPerDay} documents reached. Please try again tomorrow.`
-    });
-  }
-  
-  dailyDocumentStore.set(storeKey, count + 1);
-  next();
-}
-
-// ============================================================================
 // MIDDLEWARE
 // ============================================================================
 
@@ -123,11 +58,7 @@ app.get('/api/status', (req, res) => {
   const envIssues = validateEnvironment();
   res.json({
     status: envIssues.length === 0 ? 'ready' : 'configuration_needed',
-    apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,
-    rateLimits: {
-      requestsPerHour: RATE_LIMIT.maxRequests,
-      documentsPerDay: RATE_LIMIT.maxDocumentsPerDay
-    }
+    apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY
   });
 });
 
@@ -161,7 +92,7 @@ KEY RULES:
 
 CRITICAL: All changes must be highlighted/tracked.`;
 
-app.post('/api/edit-chunk', checkRateLimit, async (req, res) => {
+app.post('/api/edit-chunk', async (req, res) => {
   try {
     const { text, styleGuide, isFirst } = req.body;
     
@@ -224,7 +155,7 @@ Return ONLY the edited text with no preamble, no explanations, no comments - jus
 // STYLE GUIDE GENERATION ENDPOINT
 // ============================================================================
 
-app.post('/api/generate-style-guide', checkRateLimit, async (req, res) => {
+app.post('/api/generate-style-guide', async (req, res) => {
   try {
     const { text } = req.body;
     
@@ -265,7 +196,7 @@ app.post('/api/generate-style-guide', checkRateLimit, async (req, res) => {
 // DOCUMENT GENERATION ENDPOINT
 // ============================================================================
 
-app.post('/api/generate-docx', checkDailyDocumentLimit, async (req, res) => {
+app.post('/api/generate-docx', async (req, res) => {
   try {
     const { originalText, editedText, fileName } = req.body;
     
@@ -521,9 +452,6 @@ function computeLCSOptimized(arr1, arr2) {
   let prev = Array(n + 1).fill(0);
   let curr = Array(n + 1).fill(0);
   
-  // Store backtrack info differently
-  const backtrack = [];
-  
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
       if (arr1[i - 1] === arr2[j - 1]) {
@@ -604,9 +532,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`URL: http://localhost:${PORT}`);
   console.log('API Key loaded:', process.env.ANTHROPIC_API_KEY ? 'Yes' : 'NO - CHECK .env FILE');
   console.log('Track Changes: NATIVE WORD FORMAT');
-  console.log('Rate Limiting: ENABLED');
-  console.log(`  - ${RATE_LIMIT.maxRequests} requests per hour`);
-  console.log(`  - ${RATE_LIMIT.maxDocumentsPerDay} documents per day`);
   if (envIssues.length > 0) {
     console.log('WARNINGS:', envIssues.join(', '));
   }
