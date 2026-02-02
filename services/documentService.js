@@ -73,10 +73,8 @@ const AUTHOR = "AI Editor";
 // If document opens cleanly with this true, comments are the issue
 const DISABLE_COMMENTS = false;
 
-// Inline comments on track changes cause OOXML validation errors in Word.
-// Even anchoring comments after track changes (not wrapping) still fails.
-// Keep only summary comment - users can review track changes directly.
-const DISABLE_INLINE_COMMENTS = true;
+// Inline comments on track changes - testing with single-paragraph content
+const DISABLE_INLINE_COMMENTS = false;
 
 // =============================================================================
 // CHANGE STATISTICS TRACKING
@@ -215,16 +213,18 @@ function createSummaryComment(stats, timestamp) {
   lines.push("or reject individual edits.");
 
   // Return plain object - docx library creates Comment instances internally
-  // Filter out empty lines to avoid empty TextRuns which can cause OOXML issues
+  // Use a SINGLE paragraph - multiple paragraphs may cause blank comment issues
+  const commentText = lines.filter(line => line.length > 0).join(' | ');
+
   return {
     id: 0,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: lines
-      .filter(line => line.length > 0)
-      .map(line => new Paragraph({
-        children: [new TextRun(line)]
-      }))
+    children: [
+      new Paragraph({
+        children: [new TextRun(commentText)]
+      })
+    ]
   };
 }
 
@@ -282,16 +282,18 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
   }
 
   // Return plain object - docx library creates Comment instances internally
-  // Filter out empty lines to avoid empty TextRuns which can cause OOXML issues
+  // Use a SINGLE paragraph - multiple paragraphs may cause blank comment issues
+  const commentText = lines.filter(line => line.length > 0).join(' | ');
+
   return {
     id,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: lines
-      .filter(line => line.length > 0)
-      .map(line => new Paragraph({
-        children: [new TextRun(line)]
-      }))
+    children: [
+      new Paragraph({
+        children: [new TextRun(commentText)]
+      })
+    ]
   };
 }
 
