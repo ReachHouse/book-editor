@@ -312,7 +312,8 @@ function createDocumentWithTrackChanges(original, edited) {
   const timestamp = new Date().toISOString();
 
   // Build Word paragraphs from aligned pairs
-  const paragraphs = [];
+  // Store both paragraph and children array for later use
+  const paragraphData = []; // Array of { paragraph, children }
   let revisionId = 0;
   let commentId = 1; // Start at 1, reserve 0 for summary comment
 
@@ -325,32 +326,69 @@ function createDocumentWithTrackChanges(original, edited) {
       stats,
       comments
     );
-    paragraphs.push(result.paragraph);
+    paragraphData.push({
+      paragraph: result.paragraph,
+      children: result.children
+    });
     revisionId = result.nextRevisionId;
     commentId = result.nextCommentId;
   }
+
+  // Build final paragraphs array
+  const paragraphs = [];
 
   // Add summary comment to first paragraph if there are changes
   if (stats.totalInsertions > 0 || stats.totalDeletions > 0) {
     const summaryComment = createSummaryComment(stats, timestamp);
     comments.unshift(summaryComment); // Add at beginning
 
-    // Wrap first paragraph with summary comment reference
-    if (paragraphs.length > 0) {
-      const firstPara = paragraphs[0];
-      const children = firstPara.root && firstPara.root[1] && firstPara.root[1].root
-        ? [...firstPara.root[1].root]
-        : [];
+    // Build paragraphs, wrapping the first one with summary comment markers
+    for (let i = 0; i < paragraphData.length; i++) {
+      if (i === 0) {
+        // Wrap first paragraph with summary comment markers
+        const firstChildren = paragraphData[0].children;
 
-      // Create new paragraph with comment markers
-      paragraphs[0] = new Paragraph({
+        // Ensure we have actual content to wrap
+        if (firstChildren && firstChildren.length > 0) {
+          paragraphs.push(new Paragraph({
+            children: [
+              new CommentRangeStart({ id: 0 }),
+              ...firstChildren,
+              new CommentRangeEnd({ id: 0 }),
+              new CommentReference({ id: 0 })
+            ]
+          }));
+        } else {
+          // Fallback: create a minimal valid paragraph with placeholder text
+          paragraphs.push(new Paragraph({
+            children: [
+              new CommentRangeStart({ id: 0 }),
+              new TextRun({ text: ' ' }),
+              new CommentRangeEnd({ id: 0 }),
+              new CommentReference({ id: 0 })
+            ]
+          }));
+        }
+      } else {
+        paragraphs.push(paragraphData[i].paragraph);
+      }
+    }
+
+    // Handle edge case: no paragraphs but there were changes
+    if (paragraphData.length === 0) {
+      paragraphs.push(new Paragraph({
         children: [
           new CommentRangeStart({ id: 0 }),
-          ...getTextRunsFromParagraph(firstPara),
+          new TextRun({ text: 'Document edited.' }),
           new CommentRangeEnd({ id: 0 }),
           new CommentReference({ id: 0 })
         ]
-      });
+      }));
+    }
+  } else {
+    // No changes - use paragraphs as-is
+    for (const data of paragraphData) {
+      paragraphs.push(data.paragraph);
     }
   }
 
@@ -364,36 +402,6 @@ function createDocumentWithTrackChanges(original, edited) {
       children: paragraphs
     }]
   });
-}
-
-/**
- * Extract TextRun children from a Paragraph.
- * Helper function for re-wrapping paragraphs with comments.
- *
- * @param {Paragraph} para - Paragraph to extract from
- * @returns {Array} Array of TextRun-like objects
- */
-function getTextRunsFromParagraph(para) {
-  // The docx library stores children in a nested structure
-  // Try to extract them for re-wrapping
-  try {
-    if (para.root && Array.isArray(para.root)) {
-      for (const item of para.root) {
-        if (item && item.root && Array.isArray(item.root)) {
-          // Filter to get actual text runs
-          return item.root.filter(r =>
-            r && (r instanceof TextRun ||
-                  r instanceof InsertedTextRun ||
-                  r instanceof DeletedTextRun ||
-                  (r.constructor && r.constructor.name.includes('TextRun')))
-          );
-        }
-      }
-    }
-  } catch (e) {
-    // Fallback: return empty array
-  }
-  return [];
 }
 
 // =============================================================================
@@ -415,22 +423,23 @@ function getTextRunsFromParagraph(para) {
  * @param {string} timestamp - ISO timestamp for revisions
  * @param {Object} stats - Statistics tracking context
  * @param {Array} comments - Comments array to add to
- * @returns {Object} { paragraph: Paragraph, nextRevisionId: number, nextCommentId: number }
+ * @returns {Object} { paragraph: Paragraph, children: Array, nextRevisionId: number, nextCommentId: number }
  */
 function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, timestamp, stats, comments) {
   let currentRevisionId = startRevisionId;
   let currentCommentId = startCommentId;
 
   switch (aligned.type) {
-    case 'match':
+    case 'match': {
       // Paragraphs are identical - no Track Changes needed
+      const children = [new TextRun({ text: aligned.original })];
       return {
-        paragraph: new Paragraph({
-          children: [new TextRun({ text: aligned.original })]
-        }),
+        paragraph: new Paragraph({ children }),
+        children,
         nextRevisionId: currentRevisionId,
         nextCommentId: currentCommentId
       };
+    }
 
     case 'delete': {
       // Entire paragraph was removed
@@ -455,23 +464,22 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         wordCount
       });
 
-      const paragraph = new Paragraph({
-        children: [
-          new CommentRangeStart({ id: currentCommentId }),
-          new DeletedTextRun({
-            text: aligned.original,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: timestamp,
-          }),
-          new CommentRangeEnd({ id: currentCommentId }),
-          new CommentReference({ id: currentCommentId })
-        ]
-      });
+      const children = [
+        new CommentRangeStart({ id: currentCommentId }),
+        new DeletedTextRun({
+          text: aligned.original,
+          id: currentRevisionId++,
+          author: AUTHOR,
+          date: timestamp,
+        }),
+        new CommentRangeEnd({ id: currentCommentId }),
+        new CommentReference({ id: currentCommentId })
+      ];
       currentCommentId++;
 
       return {
-        paragraph,
+        paragraph: new Paragraph({ children }),
+        children,
         nextRevisionId: currentRevisionId,
         nextCommentId: currentCommentId
       };
@@ -500,23 +508,22 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         wordCount
       });
 
-      const paragraph = new Paragraph({
-        children: [
-          new CommentRangeStart({ id: currentCommentId }),
-          new InsertedTextRun({
-            text: aligned.edited,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: timestamp,
-          }),
-          new CommentRangeEnd({ id: currentCommentId }),
-          new CommentReference({ id: currentCommentId })
-        ]
-      });
+      const children = [
+        new CommentRangeStart({ id: currentCommentId }),
+        new InsertedTextRun({
+          text: aligned.edited,
+          id: currentRevisionId++,
+          author: AUTHOR,
+          date: timestamp,
+        }),
+        new CommentRangeEnd({ id: currentCommentId }),
+        new CommentReference({ id: currentCommentId })
+      ];
       currentCommentId++;
 
       return {
-        paragraph,
+        paragraph: new Paragraph({ children }),
+        children,
         nextRevisionId: currentRevisionId,
         nextCommentId: currentCommentId
       };
@@ -536,15 +543,16 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       );
     }
 
-    default:
+    default: {
       // Fallback - shouldn't happen, but handle gracefully
+      const children = [new TextRun({ text: aligned.original || aligned.edited || '' })];
       return {
-        paragraph: new Paragraph({
-          children: [new TextRun({ text: aligned.original || aligned.edited || '' })]
-        }),
+        paragraph: new Paragraph({ children }),
+        children,
         nextRevisionId: currentRevisionId,
         nextCommentId: currentCommentId
       };
+    }
   }
 }
 
@@ -746,6 +754,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
 
   return {
     paragraph: new Paragraph({ children: textRuns }),
+    children: textRuns,
     nextRevisionId: currentRevisionId,
     nextCommentId: currentCommentId
   };
