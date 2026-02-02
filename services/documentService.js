@@ -177,6 +177,16 @@ function createParagraphFromAlignment(aligned, startId, timestamp, author) {
 }
 
 /**
+ * Check if text contains only whitespace.
+ *
+ * @param {string} text - Text to check
+ * @returns {boolean} True if empty or whitespace-only
+ */
+function isWhitespaceOnly(text) {
+  return !text || text.trim().length === 0;
+}
+
+/**
  * Create a paragraph with word-level Track Changes.
  *
  * Called when a paragraph has been modified (not added/removed entirely).
@@ -197,6 +207,7 @@ function createTrackedParagraph(original, edited, startId, timestamp, author) {
   let currentId = startId;
 
   // Convert each change to appropriate TextRun
+  // Skip whitespace-only changes to avoid empty "Deleted:" entries in Word
   for (const change of changes) {
     switch (change.type) {
       case 'equal':
@@ -205,6 +216,12 @@ function createTrackedParagraph(original, edited, startId, timestamp, author) {
         break;
 
       case 'delete':
+        // Skip whitespace-only deletions - they create empty revision entries
+        if (isWhitespaceOnly(change.text)) {
+          // Still add the whitespace as regular text to preserve formatting
+          textRuns.push(new TextRun({ text: change.text }));
+          break;
+        }
         // Deleted text - red strikethrough
         textRuns.push(
           new DeletedTextRun({
@@ -217,6 +234,12 @@ function createTrackedParagraph(original, edited, startId, timestamp, author) {
         break;
 
       case 'insert':
+        // Skip whitespace-only insertions - they create empty revision entries
+        if (isWhitespaceOnly(change.text)) {
+          // Still add the whitespace as regular text to preserve formatting
+          textRuns.push(new TextRun({ text: change.text }));
+          break;
+        }
         // Inserted text - blue underline
         textRuns.push(
           new InsertedTextRun({

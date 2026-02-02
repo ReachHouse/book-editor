@@ -531,7 +531,8 @@ function computeWordDiff(original, edited) {
  * Merge consecutive changes of the same type.
  *
  * Combines adjacent delete/delete or insert/insert into single entries.
- * Produces cleaner output without affecting the meaning.
+ * Also merges small adjacent delete+insert pairs where only punctuation
+ * or minor formatting differs.
  *
  * @param {Array} changes - Array of changes
  * @returns {Array} Merged changes
@@ -543,7 +544,8 @@ function computeWordDiff(original, edited) {
 function mergeConsecutiveChanges(changes) {
   if (changes.length === 0) return changes;
 
-  const merged = [];
+  // First pass: merge same-type consecutive changes
+  const firstPass = [];
   let current = { ...changes[0] };
 
   for (let i = 1; i < changes.length; i++) {
@@ -552,13 +554,43 @@ function mergeConsecutiveChanges(changes) {
       current.text += changes[i].text;
     } else {
       // Different type - push current and start new
-      merged.push(current);
+      firstPass.push(current);
       current = { ...changes[i] };
     }
   }
-  merged.push(current);
+  firstPass.push(current);
 
-  return merged;
+  // Second pass: merge small delete+insert pairs that are essentially the same word
+  // This reduces noise from punctuation/case changes like "Why" -> "Why."
+  const secondPass = [];
+
+  for (let i = 0; i < firstPass.length; i++) {
+    const change = firstPass[i];
+    const nextChange = firstPass[i + 1];
+
+    // Check if this is a delete followed by insert (or vice versa)
+    if (nextChange &&
+        ((change.type === 'delete' && nextChange.type === 'insert') ||
+         (change.type === 'insert' && nextChange.type === 'delete'))) {
+
+      const text1 = change.text.trim().toLowerCase().replace(/[^\w\s]/g, '');
+      const text2 = nextChange.text.trim().toLowerCase().replace(/[^\w\s]/g, '');
+
+      // If normalized text is identical, it's just punctuation/case change
+      // Keep as separate changes but they'll be displayed together
+      if (text1 === text2 && text1.length > 0) {
+        // Keep both changes but ensure they stay together
+        secondPass.push(change);
+        secondPass.push(nextChange);
+        i++; // Skip next change as we processed it
+        continue;
+      }
+    }
+
+    secondPass.push(change);
+  }
+
+  return secondPass;
 }
 
 // =============================================================================
