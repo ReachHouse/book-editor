@@ -69,6 +69,10 @@ const SIGNIFICANT_CHANGE_THRESHOLD = 3;
 // Author name for all comments and revisions
 const AUTHOR = "AI Editor";
 
+// TEMPORARY: Set to true to disable all comments for debugging
+// If document opens cleanly with this true, comments are the issue
+const DISABLE_COMMENTS = true;
+
 // =============================================================================
 // CHANGE STATISTICS TRACKING
 // =============================================================================
@@ -206,13 +210,16 @@ function createSummaryComment(stats, timestamp) {
   lines.push("or reject individual edits.");
 
   // Return plain object - docx library creates Comment instances internally
+  // Filter out empty lines to avoid empty TextRuns which can cause OOXML issues
   return {
     id: 0,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: lines.map(line => new Paragraph({
-      children: [new TextRun(line)]
-    }))
+    children: lines
+      .filter(line => line.length > 0)
+      .map(line => new Paragraph({
+        children: [new TextRun(line)]
+      }))
   };
 }
 
@@ -270,13 +277,16 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
   }
 
   // Return plain object - docx library creates Comment instances internally
+  // Filter out empty lines to avoid empty TextRuns which can cause OOXML issues
   return {
     id,
     author: AUTHOR,
     date: new Date(timestamp),
-    children: lines.map(line => new Paragraph({
-      children: [new TextRun(line)]
-    }))
+    children: lines
+      .filter(line => line.length > 0)
+      .map(line => new Paragraph({
+        children: [new TextRun(line)]
+      }))
   };
 }
 
@@ -335,6 +345,20 @@ function createDocumentWithTrackChanges(original, edited) {
 
   // Build final paragraphs array
   const paragraphs = [];
+
+  // If comments are disabled, just add paragraphs without any comment markup
+  if (DISABLE_COMMENTS) {
+    for (const data of paragraphData) {
+      paragraphs.push(data.paragraph);
+    }
+
+    return new Document({
+      sections: [{
+        properties: {},
+        children: paragraphs
+      }]
+    });
+  }
 
   // Add summary comment as a SEPARATE paragraph if there are changes
   // IMPORTANT: We must NOT wrap content paragraphs with summary comment markers
@@ -429,16 +453,6 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       const wordCount = countWords(aligned.original);
       stats.wordsDeleted += wordCount;
 
-      // Add comment for paragraph deletion
-      const comment = createInlineComment(
-        currentCommentId,
-        'delete',
-        aligned.original,
-        null,
-        timestamp
-      );
-      comments.push(comment);
-
       stats.significantChanges.push({
         type: categorizeChange(aligned.original, null),
         description: 'Paragraph removed',
@@ -446,18 +460,42 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       });
 
       const dateObj = new Date(timestamp);
-      const children = [
-        new CommentRangeStart({ id: currentCommentId }),
-        new DeletedTextRun({
-          text: aligned.original,
-          id: currentRevisionId++,
-          author: AUTHOR,
-          date: dateObj,
-        }),
-        new CommentRangeEnd({ id: currentCommentId }),
-        new CommentReference({ id: currentCommentId })
-      ];
-      currentCommentId++;
+      let children;
+
+      if (DISABLE_COMMENTS) {
+        // No comment markers when disabled
+        children = [
+          new DeletedTextRun({
+            text: aligned.original,
+            id: currentRevisionId++,
+            author: AUTHOR,
+            date: dateObj,
+          })
+        ];
+      } else {
+        // Add comment for paragraph deletion
+        const comment = createInlineComment(
+          currentCommentId,
+          'delete',
+          aligned.original,
+          null,
+          timestamp
+        );
+        comments.push(comment);
+
+        children = [
+          new CommentRangeStart({ id: currentCommentId }),
+          new DeletedTextRun({
+            text: aligned.original,
+            id: currentRevisionId++,
+            author: AUTHOR,
+            date: dateObj,
+          }),
+          new CommentRangeEnd({ id: currentCommentId }),
+          new CommentReference({ id: currentCommentId })
+        ];
+        currentCommentId++;
+      }
 
       return {
         paragraph: new Paragraph({ children }),
@@ -474,16 +512,6 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       const wordCount = countWords(aligned.edited);
       stats.wordsInserted += wordCount;
 
-      // Add comment for paragraph insertion
-      const comment = createInlineComment(
-        currentCommentId,
-        'insert',
-        null,
-        aligned.edited,
-        timestamp
-      );
-      comments.push(comment);
-
       stats.significantChanges.push({
         type: categorizeChange(null, aligned.edited),
         description: 'Paragraph added',
@@ -491,18 +519,42 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       });
 
       const dateObj = new Date(timestamp);
-      const children = [
-        new CommentRangeStart({ id: currentCommentId }),
-        new InsertedTextRun({
-          text: aligned.edited,
-          id: currentRevisionId++,
-          author: AUTHOR,
-          date: dateObj,
-        }),
-        new CommentRangeEnd({ id: currentCommentId }),
-        new CommentReference({ id: currentCommentId })
-      ];
-      currentCommentId++;
+      let children;
+
+      if (DISABLE_COMMENTS) {
+        // No comment markers when disabled
+        children = [
+          new InsertedTextRun({
+            text: aligned.edited,
+            id: currentRevisionId++,
+            author: AUTHOR,
+            date: dateObj,
+          })
+        ];
+      } else {
+        // Add comment for paragraph insertion
+        const comment = createInlineComment(
+          currentCommentId,
+          'insert',
+          null,
+          aligned.edited,
+          timestamp
+        );
+        comments.push(comment);
+
+        children = [
+          new CommentRangeStart({ id: currentCommentId }),
+          new InsertedTextRun({
+            text: aligned.edited,
+            id: currentRevisionId++,
+            author: AUTHOR,
+            date: dateObj,
+          }),
+          new CommentRangeEnd({ id: currentCommentId }),
+          new CommentReference({ id: currentCommentId })
+        ];
+        currentCommentId++;
+      }
 
       return {
         paragraph: new Paragraph({ children }),
@@ -596,7 +648,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
         stats.totalDeletions++;
         stats.wordsDeleted += wordCount;
 
-        if (isSignificant) {
+        if (isSignificant && !DISABLE_COMMENTS) {
           // Check if next change is an insert (replacement pattern)
           const nextChange = changes[i + 1];
           const isReplacement = nextChange &&
@@ -646,7 +698,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             break;
           }
 
-          // Standalone significant deletion
+          // Standalone significant deletion with comment
           const comment = createInlineComment(
             currentCommentId,
             'delete',
@@ -673,7 +725,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           textRuns.push(new CommentReference({ id: currentCommentId }));
           currentCommentId++;
         } else {
-          // Non-significant deletion - no comment
+          // No comment - just track change
           textRuns.push(new DeletedTextRun({
             text: change.text,
             id: currentRevisionId++,
@@ -693,8 +745,8 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
         stats.totalInsertions++;
         stats.wordsInserted += wordCount;
 
-        if (isSignificant) {
-          // Significant standalone insertion
+        if (isSignificant && !DISABLE_COMMENTS) {
+          // Significant standalone insertion with comment
           const comment = createInlineComment(
             currentCommentId,
             'insert',
@@ -721,7 +773,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           textRuns.push(new CommentReference({ id: currentCommentId }));
           currentCommentId++;
         } else {
-          // Non-significant insertion - no comment
+          // No comment - just track change
           textRuns.push(new InsertedTextRun({
             text: change.text,
             id: currentRevisionId++,
