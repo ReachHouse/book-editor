@@ -337,53 +337,30 @@ function createDocumentWithTrackChanges(original, edited) {
   // Build final paragraphs array
   const paragraphs = [];
 
-  // Add summary comment to first paragraph if there are changes
+  // Add summary comment as a SEPARATE paragraph if there are changes
+  // IMPORTANT: We must NOT wrap content paragraphs with summary comment markers
+  // because content paragraphs may already have inline comment markers, and
+  // nested comment ranges violate OOXML spec (causes "unreadable content" in Word)
   if (stats.totalInsertions > 0 || stats.totalDeletions > 0) {
     const summaryComment = createSummaryComment(stats, timestamp);
     comments.unshift(summaryComment); // Add at beginning
 
-    // Build paragraphs, wrapping the first one with summary comment markers
-    for (let i = 0; i < paragraphData.length; i++) {
-      if (i === 0) {
-        // Wrap first paragraph with summary comment markers
-        const firstChildren = paragraphData[0].children;
+    // Create a dedicated summary paragraph with its own comment markers (no nesting)
+    paragraphs.push(new Paragraph({
+      children: [
+        new CommentRangeStart({ id: 0 }),
+        new TextRun({ text: 'AI Editor Summary', bold: true }),
+        new CommentRangeEnd({ id: 0 }),
+        new CommentReference({ id: 0 })
+      ]
+    }));
 
-        // Ensure we have actual content to wrap
-        if (firstChildren && firstChildren.length > 0) {
-          paragraphs.push(new Paragraph({
-            children: [
-              new CommentRangeStart({ id: 0 }),
-              ...firstChildren,
-              new CommentRangeEnd({ id: 0 }),
-              new CommentReference({ id: 0 })
-            ]
-          }));
-        } else {
-          // Fallback: create a minimal valid paragraph with placeholder text
-          paragraphs.push(new Paragraph({
-            children: [
-              new CommentRangeStart({ id: 0 }),
-              new TextRun({ text: ' ' }),
-              new CommentRangeEnd({ id: 0 }),
-              new CommentReference({ id: 0 })
-            ]
-          }));
-        }
-      } else {
-        paragraphs.push(paragraphData[i].paragraph);
-      }
-    }
+    // Add empty paragraph for visual separation
+    paragraphs.push(new Paragraph({ children: [] }));
 
-    // Handle edge case: no paragraphs but there were changes
-    if (paragraphData.length === 0) {
-      paragraphs.push(new Paragraph({
-        children: [
-          new CommentRangeStart({ id: 0 }),
-          new TextRun({ text: 'Document edited.' }),
-          new CommentRangeEnd({ id: 0 }),
-          new CommentReference({ id: 0 })
-        ]
-      }));
+    // Add ALL content paragraphs as-is (no wrapping - avoids nested comments)
+    for (const data of paragraphData) {
+      paragraphs.push(data.paragraph);
     }
   } else {
     // No changes - use paragraphs as-is
