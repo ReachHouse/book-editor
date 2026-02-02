@@ -7,19 +7,128 @@ const { Document, Packer, Paragraph, TextRun, InsertedTextRun, DeletedTextRun } 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// ============================================================================
+// RATE LIMITING - Control API costs
+// ============================================================================
+
+const rateLimitStore = new Map();
+const RATE_LIMIT = {
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 100, // Max 100 edit requests per hour per IP
+  maxDocumentsPerDay: 20 // Max 20 documents per day per IP
+};
+
+const dailyDocumentStore = new Map();
+
+function getRateLimitKey(req) {
+  return req.ip || req.connection.remoteAddress || 'unknown';
+}
+
+function checkRateLimit(req, res, next) {
+  const key = getRateLimitKey(req);
+  const now = Date.now();
+  
+  // Clean up old entries
+  if (rateLimitStore.has(key)) {
+    const data = rateLimitStore.get(key);
+    if (now - data.windowStart > RATE_LIMIT.windowMs) {
+      rateLimitStore.set(key, { windowStart: now, count: 0 });
+    }
+  } else {
+    rateLimitStore.set(key, { windowStart: now, count: 0 });
+  }
+  
+  const data = rateLimitStore.get(key);
+  data.count++;
+  
+  if (data.count > RATE_LIMIT.maxRequests) {
+    return res.status(429).json({ 
+      error: 'Rate limit exceeded. Please wait before making more requests.',
+      retryAfter: Math.ceil((data.windowStart + RATE_LIMIT.windowMs - now) / 1000)
+    });
+  }
+  
+  next();
+}
+
+function checkDailyDocumentLimit(req, res, next) {
+  const key = getRateLimitKey(req);
+  const today = new Date().toDateString();
+  const storeKey = `${key}-${today}`;
+  
+  if (!dailyDocumentStore.has(storeKey)) {
+    dailyDocumentStore.set(storeKey, 0);
+  }
+  
+  const count = dailyDocumentStore.get(storeKey);
+  
+  if (count >= RATE_LIMIT.maxDocumentsPerDay) {
+    return res.status(429).json({ 
+      error: `Daily limit of ${RATE_LIMIT.maxDocumentsPerDay} documents reached. Please try again tomorrow.`
+    });
+  }
+  
+  dailyDocumentStore.set(storeKey, count + 1);
+  next();
+}
+
+// ============================================================================
+// MIDDLEWARE
+// ============================================================================
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// Trust proxy for accurate IP detection behind Nginx
+app.set('trust proxy', 1);
+
 // Serve static frontend files in production
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ============================================================================
+// ENVIRONMENT VALIDATION
+// ============================================================================
+
+function validateEnvironment() {
+  const issues = [];
+  
+  if (!process.env.ANTHROPIC_API_KEY) {
+    issues.push('ANTHROPIC_API_KEY is not set');
+  } else if (!process.env.ANTHROPIC_API_KEY.startsWith('sk-ant-')) {
+    issues.push('ANTHROPIC_API_KEY appears to be invalid (should start with sk-ant-)');
+  }
+  
+  return issues;
+}
 
 // ============================================================================
 // HEALTH CHECK
 // ============================================================================
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Book Editor Backend is running' });
+  const envIssues = validateEnvironment();
+  res.json({ 
+    status: envIssues.length === 0 ? 'ok' : 'warning',
+    message: 'Book Editor Backend is running',
+    apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,
+    issues: envIssues.length > 0 ? envIssues : undefined
+  });
+});
+
+// ============================================================================
+// API STATUS - Check configuration without exposing secrets
+// ============================================================================
+
+app.get('/api/status', (req, res) => {
+  const envIssues = validateEnvironment();
+  res.json({
+    status: envIssues.length === 0 ? 'ready' : 'configuration_needed',
+    apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,
+    rateLimits: {
+      requestsPerHour: RATE_LIMIT.maxRequests,
+      documentsPerDay: RATE_LIMIT.maxDocumentsPerDay
+    }
+  });
 });
 
 // ============================================================================
@@ -52,7 +161,7 @@ KEY RULES:
 
 CRITICAL: All changes must be highlighted/tracked.`;
 
-app.post('/api/edit-chunk', async (req, res) => {
+app.post('/api/edit-chunk', checkRateLimit, async (req, res) => {
   try {
     const { text, styleGuide, isFirst } = req.body;
     
@@ -61,7 +170,9 @@ app.post('/api/edit-chunk', async (req, res) => {
     }
     
     if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({ error: 'API key not configured' });
+      return res.status(500).json({ 
+        error: 'API key not configured. Please set ANTHROPIC_API_KEY environment variable.' 
+      });
     }
     
     const systemPrompt = `You are a professional book editor for Reach Publishers. You MUST follow the Reach Publishers House Style Guide strictly and without exception.
@@ -113,9 +224,13 @@ Return ONLY the edited text with no preamble, no explanations, no comments - jus
 // STYLE GUIDE GENERATION ENDPOINT
 // ============================================================================
 
-app.post('/api/generate-style-guide', async (req, res) => {
+app.post('/api/generate-style-guide', checkRateLimit, async (req, res) => {
   try {
     const { text } = req.body;
+    
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.json({ styleGuide: 'Professional, clear, and engaging style following Reach Publishers standards.' });
+    }
     
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -150,7 +265,7 @@ app.post('/api/generate-style-guide', async (req, res) => {
 // DOCUMENT GENERATION ENDPOINT
 // ============================================================================
 
-app.post('/api/generate-docx', async (req, res) => {
+app.post('/api/generate-docx', checkDailyDocumentLimit, async (req, res) => {
   try {
     const { originalText, editedText, fileName } = req.body;
     
@@ -188,6 +303,7 @@ function createDocumentWithTrackChanges(original, edited) {
   
   // Track revision ID for unique IDs
   let revisionId = 0;
+  const timestamp = new Date().toISOString();
   
   for (let i = 0; i < maxParas; i++) {
     const origPara = originalParas[i] || '';
@@ -206,7 +322,7 @@ function createDocumentWithTrackChanges(original, edited) {
             text: editPara,
             id: revisionId++,
             author: "AI Editor",
-            date: new Date().toISOString(),
+            date: timestamp,
           })
         ]
       }));
@@ -218,13 +334,13 @@ function createDocumentWithTrackChanges(original, edited) {
             text: origPara,
             id: revisionId++,
             author: "AI Editor",
-            date: new Date().toISOString(),
+            date: timestamp,
           })
         ]
       }));
     } else {
       // Paragraph has changes - do word-level diff
-      const trackedPara = createTrackedParagraph(origPara, editPara, revisionId);
+      const trackedPara = createTrackedParagraph(origPara, editPara, revisionId, timestamp);
       revisionId = trackedPara.nextId;
       paragraphs.push(trackedPara.paragraph);
     }
@@ -238,7 +354,7 @@ function createDocumentWithTrackChanges(original, edited) {
   });
 }
 
-function createTrackedParagraph(original, edited, startId) {
+function createTrackedParagraph(original, edited, startId, timestamp) {
   const changes = computeWordDiff(original, edited);
   const textRuns = [];
   let currentId = startId;
@@ -252,7 +368,7 @@ function createTrackedParagraph(original, edited, startId) {
           text: change.text,
           id: currentId++,
           author: "AI Editor",
-          date: new Date().toISOString(),
+          date: timestamp,
         })
       );
     } else if (change.type === 'insert') {
@@ -261,7 +377,7 @@ function createTrackedParagraph(original, edited, startId) {
           text: change.text,
           id: currentId++,
           author: "AI Editor",
-          date: new Date().toISOString(),
+          date: timestamp,
         })
       );
     }
@@ -275,6 +391,7 @@ function createTrackedParagraph(original, edited, startId) {
 
 // ============================================================================
 // IMPROVED WORD DIFF ALGORITHM
+// Shows deletions immediately followed by insertions for clearer replacements
 // ============================================================================
 
 function computeWordDiff(original, edited) {
@@ -294,16 +411,26 @@ function computeWordDiff(original, edited) {
     if (lcsIndex < lcs.length) {
       const lcsItem = lcs[lcsIndex];
       
-      // Add deletions (tokens in original but not in LCS)
+      // Collect deletions and insertions before this LCS point
+      const deletions = [];
+      const insertions = [];
+      
       while (origIndex < lcsItem.origIndex) {
-        changes.push({ type: 'delete', text: originalTokens[origIndex] });
+        deletions.push(originalTokens[origIndex]);
         origIndex++;
       }
       
-      // Add insertions (tokens in edited but not in LCS)
       while (editIndex < lcsItem.editIndex) {
-        changes.push({ type: 'insert', text: editedTokens[editIndex] });
+        insertions.push(editedTokens[editIndex]);
         editIndex++;
+      }
+      
+      // Add deletions first, then insertions (shows as replacement in Word)
+      if (deletions.length > 0) {
+        changes.push({ type: 'delete', text: deletions.join('') });
+      }
+      if (insertions.length > 0) {
+        changes.push({ type: 'insert', text: insertions.join('') });
       }
       
       // Add the matching token
@@ -313,13 +440,23 @@ function computeWordDiff(original, edited) {
       lcsIndex++;
     } else {
       // No more LCS items - remaining are deletions/insertions
+      const deletions = [];
+      const insertions = [];
+      
       while (origIndex < originalTokens.length) {
-        changes.push({ type: 'delete', text: originalTokens[origIndex] });
+        deletions.push(originalTokens[origIndex]);
         origIndex++;
       }
       while (editIndex < editedTokens.length) {
-        changes.push({ type: 'insert', text: editedTokens[editIndex] });
+        insertions.push(editedTokens[editIndex]);
         editIndex++;
+      }
+      
+      if (deletions.length > 0) {
+        changes.push({ type: 'delete', text: deletions.join('') });
+      }
+      if (insertions.length > 0) {
+        changes.push({ type: 'insert', text: insertions.join('') });
       }
     }
   }
@@ -336,6 +473,11 @@ function tokenize(text) {
 function computeLCS(arr1, arr2) {
   const m = arr1.length;
   const n = arr2.length;
+  
+  // For very large arrays, use a more memory-efficient approach
+  if (m * n > 10000000) {
+    return computeLCSOptimized(arr1, arr2);
+  }
   
   // Create DP table
   const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
@@ -364,6 +506,58 @@ function computeLCS(arr1, arr2) {
       i--;
     } else {
       j--;
+    }
+  }
+  
+  return lcs;
+}
+
+// Memory-optimized LCS for very large documents
+function computeLCSOptimized(arr1, arr2) {
+  const m = arr1.length;
+  const n = arr2.length;
+  
+  // Use only two rows instead of full matrix
+  let prev = Array(n + 1).fill(0);
+  let curr = Array(n + 1).fill(0);
+  
+  // Store backtrack info differently
+  const backtrack = [];
+  
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (arr1[i - 1] === arr2[j - 1]) {
+        curr[j] = prev[j - 1] + 1;
+      } else {
+        curr[j] = Math.max(prev[j], curr[j - 1]);
+      }
+    }
+    [prev, curr] = [curr, prev];
+    curr.fill(0);
+  }
+  
+  // Simplified backtrack - find matching elements
+  const lcs = [];
+  let i = 0, j = 0;
+  
+  while (i < m && j < n) {
+    if (arr1[i] === arr2[j]) {
+      lcs.push({ origIndex: i, editIndex: j, value: arr1[i] });
+      i++;
+      j++;
+    } else {
+      // Greedy approach - try to find next match
+      let foundInOrig = arr1.indexOf(arr2[j], i);
+      let foundInEdit = arr2.indexOf(arr1[i], j);
+      
+      if (foundInOrig === -1) foundInOrig = m;
+      if (foundInEdit === -1) foundInEdit = n;
+      
+      if (foundInOrig - i <= foundInEdit - j) {
+        i++;
+      } else {
+        j++;
+      }
     }
   }
   
@@ -401,6 +595,8 @@ app.get('*', (req, res) => {
 // START SERVER
 // ============================================================================
 
+const envIssues = validateEnvironment();
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log('==================================================');
   console.log('Book Editor Server is running');
@@ -408,5 +604,11 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`URL: http://localhost:${PORT}`);
   console.log('API Key loaded:', process.env.ANTHROPIC_API_KEY ? 'Yes' : 'NO - CHECK .env FILE');
   console.log('Track Changes: NATIVE WORD FORMAT');
+  console.log('Rate Limiting: ENABLED');
+  console.log(`  - ${RATE_LIMIT.maxRequests} requests per hour`);
+  console.log(`  - ${RATE_LIMIT.maxDocumentsPerDay} documents per day`);
+  if (envIssues.length > 0) {
+    console.log('WARNINGS:', envIssues.join(', '));
+  }
   console.log('==================================================');
 });
