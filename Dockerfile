@@ -22,8 +22,11 @@ COPY package.json ./
 # Install backend dependencies
 RUN npm install
 
-# Copy backend server
+# Copy backend server and modules
 COPY server.js ./
+COPY routes/ ./routes/
+COPY services/ ./services/
+COPY config/ ./config/
 
 # Create public directory and copy built frontend
 RUN mkdir -p public
