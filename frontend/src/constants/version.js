@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.3.0 [Feature]  - 2026-02-02: Add Word comments - summary & inline change explanations
  * v1.2.1 [Bugfix]   - 2026-02-02: Fix empty Track Changes entries, improve change merging
  * v1.2.0 [Security] - 2026-02-02: Security hardening, bug fixes, code quality improvements
  * v1.1.1 [Docs]     - 2026-02-02: Comprehensive documentation across entire codebase
@@ -67,13 +68,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.2.1';
+export const VERSION = '1.3.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Bugfix';
+export const VERSION_TAG = 'Feature';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
