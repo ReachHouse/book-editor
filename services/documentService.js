@@ -55,8 +55,7 @@ const {
   DeletedTextRun,
   CommentRangeStart,
   CommentRangeEnd,
-  CommentReference,
-  Comment
+  CommentReference
 } = require('docx');
 const { alignParagraphs, computeWordDiff } = require('./diffService');
 
@@ -206,15 +205,15 @@ function createSummaryComment(stats, timestamp) {
   lines.push("Track Changes feature to accept");
   lines.push("or reject individual edits.");
 
-  // Return Comment instance (required by docx library)
-  return new Comment({
+  // Return plain object - docx library creates Comment instances internally
+  return {
     id: 0,
     author: AUTHOR,
     date: new Date(timestamp),
     children: lines.map(line => new Paragraph({
       children: [new TextRun(line)]
     }))
-  });
+  };
 }
 
 /**
@@ -270,15 +269,15 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
       lines.push("Edit made for improvement.");
   }
 
-  // Return Comment instance (required by docx library)
-  return new Comment({
+  // Return plain object - docx library creates Comment instances internally
+  return {
     id,
     author: AUTHOR,
     date: new Date(timestamp),
     children: lines.map(line => new Paragraph({
       children: [new TextRun(line)]
     }))
-  });
+  };
 }
 
 // =============================================================================

@@ -50,7 +50,8 @@
  *
  * VERSION HISTORY:
  * ----------------
- * v1.3.3 [Bugfix]   - 2026-02-03: Fix DOCX comments - use Comment class, fix dates, remove unicode
+ * v1.3.4 [Bugfix]   - 2026-02-03: Fix comment creation - use plain objects, not Comment class
+ * v1.3.3 [Bugfix]   - 2026-02-03: Fix DOCX comments - fix dates, remove unicode
  * v1.3.2 [Bugfix]   - 2026-02-02: Fix nested comment ranges causing Word "unreadable content"
  * v1.3.1 [Bugfix]   - 2026-02-03: Fix Word "unreadable content" error in comment feature
  * v1.3.0 [Feature]  - 2026-02-02: Add Word comments - summary & inline change explanations
@@ -71,7 +72,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.3.3';
+export const VERSION = '1.3.4';
 
 /**
  * Tag describing the type of changes in this version
