@@ -1,10 +1,93 @@
+# =============================================================================
+# DOCKER COMPOSE CONFIGURATION
+# =============================================================================
+#
+# Orchestrates the Reach Publishers Book Editor application.
+# This is the recommended way to run the application in production.
+#
+# USAGE:
+# ------
+# Build and start:
+#   export ANTHROPIC_API_KEY=sk-ant-api03-xxx
+#   docker compose up --build -d
+#
+# View logs:
+#   docker compose logs -f
+#
+# Stop:
+#   docker compose down
+#
+# Rebuild after code changes:
+#   docker compose build && docker compose up -d
+#
+# ENVIRONMENT VARIABLES:
+# ----------------------
+# ANTHROPIC_API_KEY: Required - Your Anthropic API key (starts with sk-ant-)
+#                    Set before running: export ANTHROPIC_API_KEY=sk-ant-xxx
+#                    If not set, the server will start but editing will fail.
+#
+# NODE_ENV: production (set in compose file)
+# PORT: 3001 (internal port, set in compose file)
+#
+# PORT MAPPING:
+# -------------
+# External: 3002 (access the app at http://localhost:3002 or http://your-vps-ip:3002)
+# Internal: 3001 (inside the container)
+#
+# The mapping "3002:3001" means:
+# - Host port 3002 → Container port 3001
+# - Access the app via port 3002 on the host machine
+#
+# HEALTH CHECK:
+# -------------
+# After starting, verify the app is running:
+#   curl http://localhost:3002/health
+#
+# Expected response:
+#   {"status":"ok","message":"Book Editor Backend is running","apiKeyConfigured":true}
+#
+# If apiKeyConfigured is false, check your ANTHROPIC_API_KEY environment variable.
+#
+# RESTART POLICY:
+# ---------------
+# "unless-stopped" means the container will automatically restart:
+# - After a crash
+# - After Docker daemon restart
+# - After server reboot
+# But NOT if you manually stop it with "docker compose down"
+#
+# HOSTINGER VPS DEPLOYMENT:
+# -------------------------
+# 1. SSH into your VPS
+# 2. cd /home/user/book-editor
+# 3. export ANTHROPIC_API_KEY=sk-ant-api03-xxx
+# 4. docker compose build
+# 5. docker compose up -d
+# 6. Test: curl http://localhost:3002/health
+#
+# To make the API key persist across reboots, add to ~/.bashrc:
+#   export ANTHROPIC_API_KEY=sk-ant-api03-xxx
+#
+# =============================================================================
+
 services:
+  # Main application service
   book-editor:
+    # Build from the Dockerfile in current directory
     build: .
+
+    # Port mapping: external:internal
+    # Access at http://localhost:3002 (or your server IP)
     ports:
       - "3002:3001"
+
+    # Environment variables passed to the container
     environment:
       - NODE_ENV=production
       - PORT=3001
+      # API key from host environment (required for Claude API)
+      # The :- syntax means "use empty string if not set"
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+    # Restart policy: always restart unless manually stopped
     restart: unless-stopped
