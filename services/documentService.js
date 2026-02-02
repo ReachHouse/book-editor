@@ -71,7 +71,11 @@ const AUTHOR = "AI Editor";
 
 // TEMPORARY: Set to true to disable all comments for debugging
 // If document opens cleanly with this true, comments are the issue
-const DISABLE_COMMENTS = true;
+const DISABLE_COMMENTS = false;
+
+// TEMPORARY: Set to true to disable only inline comments (keep summary comment)
+// This helps identify if inline comments on track changes are the specific issue
+const DISABLE_INLINE_COMMENTS = true;
 
 // =============================================================================
 // CHANGE STATISTICS TRACKING
@@ -462,7 +466,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       const dateObj = new Date(timestamp);
       let children;
 
-      if (DISABLE_COMMENTS) {
+      if (DISABLE_COMMENTS || DISABLE_INLINE_COMMENTS) {
         // No comment markers when disabled
         children = [
           new DeletedTextRun({
@@ -521,7 +525,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       const dateObj = new Date(timestamp);
       let children;
 
-      if (DISABLE_COMMENTS) {
+      if (DISABLE_COMMENTS || DISABLE_INLINE_COMMENTS) {
         // No comment markers when disabled
         children = [
           new InsertedTextRun({
@@ -648,7 +652,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
         stats.totalDeletions++;
         stats.wordsDeleted += wordCount;
 
-        if (isSignificant && !DISABLE_COMMENTS) {
+        if (isSignificant && !DISABLE_COMMENTS && !DISABLE_INLINE_COMMENTS) {
           // Check if next change is an insert (replacement pattern)
           const nextChange = changes[i + 1];
           const isReplacement = nextChange &&
@@ -745,7 +749,7 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
         stats.totalInsertions++;
         stats.wordsInserted += wordCount;
 
-        if (isSignificant && !DISABLE_COMMENTS) {
+        if (isSignificant && !DISABLE_COMMENTS && !DISABLE_INLINE_COMMENTS) {
           // Significant standalone insertion with comment
           const comment = createInlineComment(
             currentCommentId,
