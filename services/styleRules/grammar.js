@@ -60,9 +60,17 @@ module.exports = [
     detect: (original, edited) => {
       if (!original || !edited) return false;
       // Check for capitalization of race/ethnicity terms
-      const lowercase = /\b(black|white|coloured|african|indian|asian)\s+(people|community|man|woman|men|women|person|persons|population)\b/i;
-      const capitalized = /\b(Black|White|Coloured|African|Indian|Asian)\s+(people|community|man|woman|men|women|person|persons|population)\b/;
-      return lowercase.test(original) && capitalized.test(edited);
+      // Must verify original has ACTUAL lowercase (case-sensitive check)
+      const lowercasePattern = /\b(black|white|coloured|african|indian|asian)\s+(people|community|man|woman|men|women|person|persons|population)\b/;
+      const capitalizedPattern = /\b(Black|White|Coloured|African|Indian|Asian)\s+(people|community|man|woman|men|women|person|persons|population)\b/;
+
+      // Original must have lowercase version (not already capitalized)
+      const hasLowercase = lowercasePattern.test(original);
+      const alreadyCapitalized = capitalizedPattern.test(original);
+      const editedHasCapitalized = capitalizedPattern.test(edited);
+
+      // Only detect if original had lowercase AND edited has capitalized
+      return hasLowercase && !alreadyCapitalized && editedHasCapitalized;
     },
     explanation: 'Capitalized race/ethnicity terms as proper nouns per style guide.',
     rule: 'Capitalize race/ethnicity: Black, White, Coloured (SA context)'
@@ -89,15 +97,27 @@ module.exports = [
       if (!original || !edited) return false;
       // Family terms as names (direct address or standing alone as subject)
       // "Can Dad come?" vs "my dad is here"
-      // Looking for lowercase -> uppercase when used as name
+      // Also: "said dad" → "said Dad" (dialogue attribution)
       const familyTerms = ['mom', 'mum', 'dad', 'mother', 'father', 'grandma', 'grandpa', 'grandmother', 'grandfather', 'granny', 'aunt', 'uncle'];
 
       for (const term of familyTerms) {
-        // Pattern: at start of sentence, after punctuation, or direct address
+        const capitalizedTerm = term.charAt(0).toUpperCase() + term.slice(1);
+
+        // Pattern 1: at start of sentence, after punctuation, or direct address
         const asNameLower = new RegExp(`(^|[.!?]\\s+|,\\s*)${term}\\b`, 'i');
-        const asNameUpper = new RegExp(`(^|[.!?]\\s+|,\\s*)${term.charAt(0).toUpperCase() + term.slice(1)}\\b`);
+        const asNameUpper = new RegExp(`(^|[.!?]\\s+|,\\s*)${capitalizedTerm}\\b`);
 
         if (asNameLower.test(original) && asNameUpper.test(edited)) {
+          return true;
+        }
+
+        // Pattern 2: after dialogue verbs - "said dad" → "said Dad"
+        // Use case-sensitive match for the family term to distinguish lowercase from uppercase
+        const afterVerbLower = new RegExp(`(?:said|asked|told|called|shouted|whispered|replied|answered|cried|exclaimed)\\s+${term}\\b`);
+        const afterVerbUpper = new RegExp(`(?:said|asked|told|called|shouted|whispered|replied|answered|cried|exclaimed)\\s+${capitalizedTerm}\\b`);
+
+        // Check original has lowercase after verb and edited has uppercase
+        if (afterVerbLower.test(original) && !afterVerbLower.test(edited) && afterVerbUpper.test(edited)) {
           return true;
         }
       }

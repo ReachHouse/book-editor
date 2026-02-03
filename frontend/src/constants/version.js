@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.9.0 [Bugfix]   - 2026-02-03: Fix 8 style rule detection issues in modularized styleRules
  * v1.8.3 [Feature]  - 2026-02-03: Add localStorage warning, Oxford comma rule, em-dash/en-dash rule (31 rules)
  * v1.8.2 [Bugfix]   - 2026-02-03: Fix minor issues - quotes regex, revision IDs, speaker detection, homophone rules
  * v1.8.1 [Bugfix]   - 2026-02-03: Fix italics rendering - integrate parsing into document generation pipeline
@@ -84,13 +85,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.8.3';
+export const VERSION = '1.9.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Feature';
+export const VERSION_TAG = 'Bugfix';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

@@ -25,15 +25,26 @@ module.exports = [
     detect: (original, edited) => {
       if (!original || !edited) return false;
       // Compound adjectives before nouns should be hyphenated
-      // e.g., "five year old" → "five-year-old"
-      const numberWords = ['two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
-      const dimensions = ['year', 'month', 'week', 'day', 'hour', 'minute', 'foot', 'inch', 'mile', 'pound', 'dollar'];
+      // e.g., "five year old" → "five-year-old", "five foot tall" → "five-foot-tall"
+      const numberWords = ['two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'twenty', 'thirty', 'forty', 'fifty'];
+      const dimensions = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second', 'foot', 'inch', 'mile', 'meter', 'metre', 'pound', 'dollar', 'story', 'storey'];
+      const endings = ['old', 'tall', 'long', 'wide', 'high', 'deep', 'thick', 'walk', 'drive', 'ride', 'run', 'wait'];
 
       for (const num of numberWords) {
         for (const dim of dimensions) {
-          const unhyphenated = new RegExp(`\\b${num}\\s+${dim}\\s+old\\b`, 'i');
-          const hyphenated = new RegExp(`\\b${num}-${dim}-old\\b`, 'i');
-          if (unhyphenated.test(original) && hyphenated.test(edited)) {
+          // Pattern 1: num-dim-ending (e.g., five-year-old, five-foot-tall)
+          for (const ending of endings) {
+            const unhyphenated = new RegExp(`\\b${num}\\s+${dim}\\s+${ending}\\b`, 'i');
+            const hyphenated = new RegExp(`\\b${num}-${dim}-${ending}\\b`, 'i');
+            if (unhyphenated.test(original) && hyphenated.test(edited)) {
+              return true;
+            }
+          }
+
+          // Pattern 2: num-dim without ending (e.g., "five foot" → "five-foot" as standalone)
+          const unhyphenatedSimple = new RegExp(`\\b${num}\\s+${dim}\\b`, 'i');
+          const hyphenatedSimple = new RegExp(`\\b${num}-${dim}\\b`, 'i');
+          if (unhyphenatedSimple.test(original) && hyphenatedSimple.test(edited) && !unhyphenatedSimple.test(edited)) {
             return true;
           }
         }
@@ -41,7 +52,7 @@ module.exports = [
       return false;
     },
     explanation: 'Added hyphens to compound adjective before noun.',
-    rule: 'Hyphenate compound adjectives: five-year-old child'
+    rule: 'Hyphenate compound adjectives: five-year-old child, five-foot-tall'
   },
   {
     id: 'time-format',
@@ -50,12 +61,18 @@ module.exports = [
     detect: (original, edited) => {
       if (!original || !edited) return false;
       // 24-hour or military time to 12-hour format
-      const militaryTime = /\b([01]?[0-9]|2[0-3]):([0-5][0-9])\b/;
+      // Supports: HH:MM (16:00), HHhMM (16h00), HHMM (1600)
+      const militaryTime = /\b([01]?[0-9]|2[0-3])[:h]([0-5][0-9])\b/;
+      const militaryNoSep = /\b([01][0-9]|2[0-3])([0-5][0-9])\b/; // 1600, 0830
       const standardTime = /\b(1[0-2]|[1-9])\s*(am|pm|a\.m\.|p\.m\.)/i;
-      return militaryTime.test(original) && standardTime.test(edited);
+
+      const origHasMilitary = militaryTime.test(original) || militaryNoSep.test(original);
+      const editHasStandard = standardTime.test(edited);
+
+      return origHasMilitary && editHasStandard;
     },
     explanation: 'Changed to 12-hour time format.',
-    rule: 'Time: use 12-hour format with am/pm'
+    rule: 'Time: use 12-hour format with am/pm (not 16h00 or 16:00)'
   },
   {
     id: 'word-simplification',

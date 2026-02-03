@@ -29,9 +29,18 @@ module.exports = [
       if (!original || !edited) return false;
       // Detect addition of comma before dialogue tag
       // "Hello" he said → "Hello," he said
-      const withoutComma = /"[^"]+"\s+(he|she|they|I|we|it)\s+(said|asked|replied|answered|whispered|shouted)/i;
+      // Pattern WITHOUT comma: quote ends with letter/word then quote mark (no comma)
+      const withoutComma = /"[^"]+[a-zA-Z]"\s+(he|she|they|I|we|it)\s+(said|asked|replied|answered|whispered|shouted)/i;
+      // Pattern WITH comma: quote ends with comma then quote mark
       const withComma = /"[^"]+,"\s+(he|she|they|I|we|it)\s+(said|asked|replied|answered|whispered|shouted)/i;
-      return withoutComma.test(original) && withComma.test(edited);
+
+      // Original must have dialogue WITHOUT comma, edited must have dialogue WITH comma
+      const origHasWithoutComma = withoutComma.test(original);
+      const origHasWithComma = withComma.test(original);
+      const editHasWithComma = withComma.test(edited);
+
+      // Only detect if original lacked comma and edited has comma
+      return origHasWithoutComma && !origHasWithComma && editHasWithComma;
     },
     explanation: 'Added comma inside closing quote before dialogue tag.',
     rule: 'Dialogue: comma before tag inside quotes - "Hello," she said'

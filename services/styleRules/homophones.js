@@ -17,9 +17,9 @@ module.exports = [
       const verbContextPractice = /\b(to|will|must|should|can|could|would|might|may)\s+practice\b/gi;
       const verbContextPractise = /\b(to|will|must|should|can|could|would|might|may)\s+practise\b/gi;
 
-      // Count noun contexts (after "the", "a", "his", "her", etc.)
-      const nounContextPractise = /\b(the|a|an|his|her|their|my|your|our)\s+practise\b/gi;
-      const nounContextPractice = /\b(the|a|an|his|her|their|my|your|our)\s+practice\b/gi;
+      // Count noun contexts (after articles, possessives, or prepositions)
+      const nounContextPractise = /\b(the|a|an|his|her|their|my|your|our|in|into|with|for|of|this|that)\s+practise\b/gi;
+      const nounContextPractice = /\b(the|a|an|his|her|their|my|your|our|in|into|with|for|of|this|that)\s+practice\b/gi;
 
       const origVerbWrong = (original.match(verbContextPractice) || []).length;
       const editVerbCorrect = (edited.match(verbContextPractise) || []).length;

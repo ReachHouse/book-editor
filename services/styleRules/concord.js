@@ -11,16 +11,29 @@ module.exports = [
     detect: (original, edited) => {
       if (!original || !edited) return false;
       // Detect correction of pronoun shifts
-      // e.g., "One should do their best" → "One should do one's best"
-      // or "If you want to succeed, one must work hard" → "If you want to succeed, you must work hard"
+      // e.g., "When one is challenged, we tend to react" → "When one is challenged, one tends to react"
+      // or "One should do their best" → "One should do one's best"
 
-      // Pattern: "one" followed later by "we/our/us" or "you/your"
+      // Pattern: "one" followed later by "we/our/us" or "you/your" (inconsistent)
       const oneWithWe = /\bone\b[^.!?]*\b(we|our|us)\b/i;
       const oneWithYou = /\bone\b[^.!?]*\b(you|your)\b/i;
-      const oneWithOne = /\bone\b[^.!?]*\bone's\b/i;
 
-      // If original has inconsistent pronouns and edited fixes them
-      if ((oneWithWe.test(original) || oneWithYou.test(original)) && oneWithOne.test(edited)) {
+      // Check for consistency in edited: "one" followed by "one's" or another "one"
+      const oneWithOnes = /\bone\b[^.!?]*\bone's\b/i;
+      const multipleOnes = /\bone\b[^.!?]*\bone\b/i; // "one" appears twice in same sentence
+
+      // Count "one" occurrences to detect increase in consistency
+      const countOne = (str) => (str.match(/\bone\b/gi) || []).length;
+      const origOneCount = countOne(original);
+      const editOneCount = countOne(edited);
+
+      // If original has inconsistent pronouns (one + we/you)
+      const origInconsistent = oneWithWe.test(original) || oneWithYou.test(original);
+
+      // And edited has consistent "one" usage (one's, or more "one" occurrences)
+      const editConsistent = oneWithOnes.test(edited) || multipleOnes.test(edited) || editOneCount > origOneCount;
+
+      if (origInconsistent && editConsistent) {
         return true;
       }
 

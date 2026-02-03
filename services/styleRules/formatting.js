@@ -43,22 +43,23 @@ module.exports = [
     detect: (original, edited) => {
       if (!original || !edited) return false;
       // Detect italicization of book/publication titles
-      // Look for title-case phrases that got wrapped in asterisks
+      // Look for multi-word phrases that got wrapped in asterisks
 
-      // Pattern: Multiple capitalized words → *Multiple Capitalized Words*
-      const titlePattern = /\b([A-Z][a-z]+(?:\s+(?:the|a|an|of|in|on|at|to|for|and|but|or|nor)\s+)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
-      const italicsTitlePattern = /\*([A-Z][a-z]+(?:\s+(?:the|a|an|of|in|on|at|to|for|and|but|or|nor)\s+)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\*/g;
+      // Find all italicized phrases in edited (asterisk-wrapped)
+      const italicsMatches = edited.match(/\*([^*]+)\*/g) || [];
 
-      const origTitles = (original.match(titlePattern) || []).length;
-      const editItalicsTitles = (edited.match(italicsTitlePattern) || []).length;
+      for (const match of italicsMatches) {
+        // Extract the text inside asterisks
+        const title = match.slice(1, -1);
 
-      // If we have title patterns in original and italicized titles in edited
-      if (origTitles > 0 && editItalicsTitles > 0) {
-        // Check if a specific title was italicized
-        const origMatches = original.match(titlePattern) || [];
-        for (const title of origMatches) {
-          const italicsVersion = `*${title}*`;
-          if (edited.includes(italicsVersion) && !original.includes(italicsVersion)) {
+        // Skip single words (likely not titles) and very long phrases
+        if (!title.includes(' ') || title.length > 100) continue;
+
+        // Check if this text exists in original WITHOUT asterisks
+        // and is now italicized in edited
+        if (original.includes(title) && !original.includes(match)) {
+          // Check if it looks like a title (starts with capital, has multiple words)
+          if (/^[A-Z]/.test(title) && title.split(/\s+/).length >= 2) {
             return true;
           }
         }
