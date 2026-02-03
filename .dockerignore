@@ -1,0 +1,47 @@
+# Dependencies - installed during build
+node_modules
+frontend/node_modules
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# Tests
+__tests__
+*.test.js
+*.spec.js
+coverage
+.nyc_output
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts (frontend builds in Docker)
+frontend/dist
+
+# Development files
+.eslintrc*
+.prettierrc*
+jest.config.js
+babel.config.js

@@ -38,6 +38,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 
@@ -66,6 +67,11 @@ const PORT = process.env.PORT || 3001;
 // MIDDLEWARE STACK
 // =============================================================================
 
+// Proxy Trust: Enable accurate client IP detection when behind reverse proxy
+// MUST be set before rate limiter for correct IP-based limiting
+// Required for Hostinger/Nginx deployment to log correct client IPs
+app.set('trust proxy', 1);
+
 // CORS: Configure allowed origins based on environment
 // In production, restricts to specific domains; in development, allows localhost
 const corsOptions = {
@@ -77,6 +83,9 @@ const corsOptions = {
   maxAge: 86400 // Cache preflight for 24 hours
 };
 app.use(cors(corsOptions));
+
+// Compression: Reduce response size for faster transfers
+app.use(compression());
 
 // Rate Limiting: Protect against API abuse and quota exhaustion
 // Limits each IP to 100 requests per 15 minutes for API endpoints
@@ -103,10 +112,6 @@ app.use((req, res, next) => {
 // JSON Parser: Accept large payloads for manuscript processing
 // 50MB limit accommodates large documents with full text content
 app.use(express.json({ limit: '50mb' }));
-
-// Proxy Trust: Enable accurate client IP detection when behind reverse proxy
-// Required for Hostinger/Nginx deployment to log correct client IPs
-app.set('trust proxy', 1);
 
 // Static Files: Serve the built React frontend from /public
 // The Dockerfile copies the Vite build output here during container build

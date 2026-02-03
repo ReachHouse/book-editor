@@ -25,7 +25,7 @@ const {
   DISABLE_INLINE_COMMENTS,
   HIGHLIGHT_INSERTIONS
 } = require('./constants');
-const { countWords, isWhitespaceOnly } = require('./utils');
+const { countWords, isWhitespaceOnly, createStatsContext } = require('./utils');
 const { categorizeChange } = require('./categorization');
 const { createInlineComment } = require('./comments');
 const { createHighlightedInsertedRuns } = require('./formatting');
@@ -398,7 +398,6 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
  * @returns {Object} { paragraph, nextId }
  */
 function createTrackedParagraph(original, edited, startId, timestamp, author) {
-  const { createStatsContext } = require('./utils');
   const stats = createStatsContext();
   const comments = [];
   const result = createTrackedParagraphWithComments(
