@@ -58,6 +58,7 @@ const {
   CommentReference
 } = require('docx');
 const { alignParagraphs, computeWordDiff } = require('./diffService');
+const { STYLE_RULES, detectStyleViolations } = require('./styleRules');
 
 // =============================================================================
 // CONSTANTS
@@ -95,7 +96,8 @@ function createStatsContext() {
     paragraphsModified: 0,
     wordsInserted: 0,
     wordsDeleted: 0,
-    significantChanges: [] // Array of { type, description, wordCount }
+    significantChanges: [], // Array of { type, description, wordCount }
+    styleRulesApplied: new Set() // Track which style guide rules were triggered
   };
 }
 
@@ -112,39 +114,69 @@ function countWords(text) {
 
 /**
  * Categorize a change based on its content.
- * Attempts to identify the type of edit (grammar, style, clarity, etc.)
+ * First checks for specific style guide rule violations,
+ * then falls back to generic categorization.
  *
  * @param {string} original - Original text
  * @param {string} edited - Edited text
- * @returns {string} Category description
+ * @returns {Object} { category, rule, explanation, isStyleRule, ruleId }
  */
 function categorizeChange(original, edited) {
-  if (!original && edited) return "Addition";
-  if (original && !edited) return "Removal";
+  // Handle basic cases
+  if (!original && edited) {
+    return { category: "Addition", rule: null, explanation: "New content added.", isStyleRule: false, ruleId: null };
+  }
+  if (original && !edited) {
+    return { category: "Removal", rule: null, explanation: "Content removed for clarity or concision.", isStyleRule: false, ruleId: null };
+  }
 
+  // Check for style guide rule violations first
+  for (const rule of STYLE_RULES) {
+    try {
+      if (rule.detect(original, edited)) {
+        return {
+          category: rule.name,
+          rule: rule.rule,
+          explanation: rule.explanation,
+          isStyleRule: true,
+          ruleId: rule.id
+        };
+      }
+    } catch (error) {
+      // Skip rule if detection fails
+    }
+  }
+
+  // Fall back to generic categorization
   const origLower = (original || '').toLowerCase();
   const editLower = (edited || '').toLowerCase();
 
   // Check for punctuation-only changes
   const origNoPunct = origLower.replace(/[^\w\s]/g, '');
   const editNoPunct = editLower.replace(/[^\w\s]/g, '');
-  if (origNoPunct === editNoPunct) return "Punctuation";
+  if (origNoPunct === editNoPunct) {
+    return { category: "Punctuation", rule: null, explanation: "Punctuation adjusted for clarity.", isStyleRule: false, ruleId: null };
+  }
 
   // Check for case-only changes
-  if (origLower === editLower) return "Capitalization";
+  if (origLower === editLower) {
+    return { category: "Capitalization", rule: null, explanation: "Capitalization corrected.", isStyleRule: false, ruleId: null };
+  }
 
   // Check for common grammar patterns
   const grammarPatterns = [
-    { pattern: /\b(is|are|was|were|be|been|being)\b/, name: "Verb tense" },
-    { pattern: /\b(a|an|the)\b/, name: "Article" },
-    { pattern: /\b(who|whom|whose|which|that)\b/, name: "Pronoun/relative clause" },
-    { pattern: /\b(very|really|quite|rather)\b/, name: "Intensifier" },
+    { pattern: /\b(is|are|was|were|be|been|being)\b/, name: "Verb tense", explanation: "Verb tense adjusted for consistency." },
+    { pattern: /\b(a|an|the)\b/, name: "Article", explanation: "Article usage corrected." },
+    { pattern: /\b(who|whom|whose|which|that)\b/, name: "Pronoun/relative clause", explanation: "Relative pronoun corrected for proper reference." },
+    { pattern: /\b(very|really|quite|rather)\b/, name: "Intensifier", explanation: "Intensifier removed or modified for stronger prose." },
   ];
 
-  for (const { pattern, name } of grammarPatterns) {
+  for (const { pattern, name, explanation } of grammarPatterns) {
     const origMatch = pattern.test(origLower);
     const editMatch = pattern.test(editLower);
-    if (origMatch !== editMatch) return name + " adjustment";
+    if (origMatch !== editMatch) {
+      return { category: name + " adjustment", rule: null, explanation, isStyleRule: false, ruleId: null };
+    }
   }
 
   // Check for word replacement (similar length = likely style change)
@@ -152,12 +184,20 @@ function categorizeChange(original, edited) {
   const editWords = countWords(edited);
   const wordDiff = Math.abs(origWords - editWords);
 
-  if (wordDiff === 0) return "Word choice";
-  if (wordDiff <= 2) return "Clarity improvement";
-  if (editWords > origWords) return "Expansion for clarity";
-  if (editWords < origWords) return "Concision improvement";
+  if (wordDiff === 0) {
+    return { category: "Word choice", rule: null, explanation: "Word choice refined for clarity or style.", isStyleRule: false, ruleId: null };
+  }
+  if (wordDiff <= 2) {
+    return { category: "Clarity improvement", rule: null, explanation: "Phrasing adjusted for better clarity.", isStyleRule: false, ruleId: null };
+  }
+  if (editWords > origWords) {
+    return { category: "Expansion for clarity", rule: null, explanation: "Text expanded to improve understanding.", isStyleRule: false, ruleId: null };
+  }
+  if (editWords < origWords) {
+    return { category: "Concision improvement", rule: null, explanation: "Text condensed for tighter prose.", isStyleRule: false, ruleId: null };
+  }
 
-  return "Style refinement";
+  return { category: "Style refinement", rule: null, explanation: "Style adjusted per house guidelines.", isStyleRule: false, ruleId: null };
 }
 
 // =============================================================================
@@ -193,6 +233,18 @@ function createSummaryComment(stats, timestamp) {
     `- Words inserted: ${stats.wordsInserted}`,
     `- Words deleted: ${stats.wordsDeleted}`,
   ];
+
+  // Add style rules applied section if any
+  if (stats.styleRulesApplied && stats.styleRulesApplied.size > 0) {
+    lines.push("");
+    lines.push("STYLE RULES APPLIED:");
+    for (const ruleId of stats.styleRulesApplied) {
+      const rule = STYLE_RULES.find(r => r.id === ruleId);
+      if (rule) {
+        lines.push(`- ${rule.name}`);
+      }
+    }
+  }
 
   // Add significant changes summary if any
   if (stats.significantChanges.length > 0) {
@@ -234,55 +286,74 @@ function createSummaryComment(stats, timestamp) {
 
 /**
  * Create an inline comment for a significant change.
+ * Enhanced to show before/after text and style rule references.
  *
  * @param {number} id - Comment ID
  * @param {string} changeType - Type of change (delete, insert, change)
  * @param {string} original - Original text (if applicable)
  * @param {string} edited - Edited text (if applicable)
  * @param {string} timestamp - ISO timestamp
- * @returns {Comment} Comment instance
+ * @returns {Object} Comment options object
  */
 function createInlineComment(id, changeType, original, edited, timestamp) {
-  const category = categorizeChange(original, edited);
+  const categoryInfo = categorizeChange(original, edited);
   const lines = [];
+
+  // Helper to truncate long text for display
+  const truncate = (text, maxLen = 50) => {
+    if (!text) return '';
+    if (text.length <= maxLen) return text;
+    return text.substring(0, maxLen) + '...';
+  };
 
   switch (changeType) {
     case 'delete':
-      lines.push(`REMOVED: ${category}`);
+      lines.push(`REMOVED: ${categoryInfo.category}`);
       lines.push("");
-      lines.push("This content was removed to improve");
-      lines.push("clarity, flow, or concision.");
-      if (original && countWords(original) > 10) {
+      lines.push(categoryInfo.explanation);
+      if (original && countWords(original) > 3) {
         lines.push("");
-        lines.push(`Removed ${countWords(original)} words.`);
+        lines.push(`Text removed (${countWords(original)} words):`);
+        lines.push(`"${truncate(original, 80)}"`);
       }
       break;
 
     case 'insert':
-      lines.push(`ADDED: ${category}`);
+      lines.push(`ADDED: ${categoryInfo.category}`);
       lines.push("");
-      lines.push("This content was added to enhance");
-      lines.push("clarity or provide better flow.");
-      if (edited && countWords(edited) > 10) {
+      lines.push(categoryInfo.explanation);
+      if (edited && countWords(edited) > 3) {
         lines.push("");
-        lines.push(`Added ${countWords(edited)} words.`);
+        lines.push(`Text added (${countWords(edited)} words):`);
+        lines.push(`"${truncate(edited, 80)}"`);
       }
       break;
 
     case 'change':
-      lines.push(`MODIFIED: ${category}`);
+      lines.push(`MODIFIED: ${categoryInfo.category}`);
       lines.push("");
-      const origWords = countWords(original);
-      const editWords = countWords(edited);
-      if (origWords !== editWords) {
-        lines.push(`Changed from ${origWords} to ${editWords} words.`);
-      } else {
-        lines.push("Word choice or phrasing refined.");
+      lines.push(categoryInfo.explanation);
+      lines.push("");
+      // Show before/after for modifications
+      if (original && edited) {
+        lines.push("BEFORE:");
+        lines.push(`"${truncate(original, 60)}"`);
+        lines.push("");
+        lines.push("AFTER:");
+        lines.push(`"${truncate(edited, 60)}"`);
       }
       break;
 
     default:
       lines.push("Edit made for improvement.");
+  }
+
+  // Add style guide reference for style rule violations
+  if (categoryInfo.isStyleRule && categoryInfo.rule) {
+    lines.push("");
+    lines.push("---");
+    lines.push("STYLE GUIDE:");
+    lines.push(categoryInfo.rule);
   }
 
   // Build comment content - v9.x: use exact syntax from official demo
@@ -469,8 +540,12 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       const wordCount = countWords(aligned.original);
       stats.wordsDeleted += wordCount;
 
+      const deleteCategory = categorizeChange(aligned.original, null);
+      if (deleteCategory.ruleId) {
+        stats.styleRulesApplied.add(deleteCategory.ruleId);
+      }
       stats.significantChanges.push({
-        type: categorizeChange(aligned.original, null),
+        type: deleteCategory.category,
         description: 'Paragraph removed',
         wordCount
       });
@@ -532,8 +607,12 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       const wordCount = countWords(aligned.edited);
       stats.wordsInserted += wordCount;
 
+      const insertCategory = categorizeChange(null, aligned.edited);
+      if (insertCategory.ruleId) {
+        stats.styleRulesApplied.add(insertCategory.ruleId);
+      }
       stats.significantChanges.push({
-        type: categorizeChange(null, aligned.edited),
+        type: insertCategory.category,
         description: 'Paragraph added',
         wordCount
       });
@@ -690,8 +769,12 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             );
             comments.push(comment);
 
+            const replaceCategory = categorizeChange(change.text, nextChange.text);
+            if (replaceCategory.ruleId) {
+              stats.styleRulesApplied.add(replaceCategory.ruleId);
+            }
             stats.significantChanges.push({
-              type: categorizeChange(change.text, nextChange.text),
+              type: replaceCategory.category,
               description: 'Text replaced',
               wordCount: wordCount + countWords(nextChange.text)
             });
@@ -736,8 +819,12 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           );
           comments.push(comment);
 
+          const delCategory = categorizeChange(change.text, null);
+          if (delCategory.ruleId) {
+            stats.styleRulesApplied.add(delCategory.ruleId);
+          }
           stats.significantChanges.push({
-            type: categorizeChange(change.text, null),
+            type: delCategory.category,
             description: 'Text removed',
             wordCount
           });
@@ -787,8 +874,12 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           );
           comments.push(comment);
 
+          const addCategory = categorizeChange(null, change.text);
+          if (addCategory.ruleId) {
+            stats.styleRulesApplied.add(addCategory.ruleId);
+          }
           stats.significantChanges.push({
-            type: categorizeChange(null, change.text),
+            type: addCategory.category,
             description: 'Text added',
             wordCount
           });
