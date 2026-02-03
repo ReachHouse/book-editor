@@ -138,8 +138,8 @@ async function makeAnthropicRequest(body) {
     const data = await response.json();
 
     // Validate response structure
-    if (!data.content || !data.content[0]) {
-      throw new Error('Invalid API response: missing content');
+    if (!data.content || !data.content[0] || typeof data.content[0].text !== 'string') {
+      throw new Error('Invalid API response: missing or malformed content');
     }
 
     return data;

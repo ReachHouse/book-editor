@@ -126,8 +126,9 @@ router.post('/api/edit-chunk', async (req, res) => {
     res.json({ editedText });
 
   } catch (error) {
-    console.error('Edit chunk error:', error.message);
-    res.status(500).json({ error: error.message });
+    console.error('Edit chunk error:', error);
+    // Return generic message to client, log full error server-side
+    res.status(500).json({ error: 'Failed to process text. Please try again.' });
   }
 });
 
@@ -245,8 +246,9 @@ router.post('/api/generate-docx', async (req, res) => {
     console.log('Document generated successfully:', outputFileName);
 
   } catch (error) {
-    console.error('Document generation error:', error.message);
-    res.status(500).json({ error: error.message });
+    console.error('Document generation error:', error);
+    // Return generic message to client, log full error server-side
+    res.status(500).json({ error: 'Failed to generate document. Please try again.' });
   }
 });
 

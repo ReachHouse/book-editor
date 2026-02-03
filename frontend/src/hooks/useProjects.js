@@ -159,11 +159,21 @@ export function useProjects() {
 
   // Initialize storage service and load projects on mount
   useEffect(() => {
+    let mounted = true;
+
     const initAndLoad = async () => {
       await storageService.init();
-      await loadProjects();
+      // Only update state if component is still mounted
+      if (mounted) {
+        await loadProjects();
+      }
     };
     initAndLoad();
+
+    // Cleanup: prevent state updates after unmount
+    return () => {
+      mounted = false;
+    };
   }, [loadProjects]);
 
   return {
