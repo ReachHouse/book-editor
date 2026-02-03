@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.13.0 [Feature]  - 2026-02-03: Add frontend component tests (48 tests for 7 components)
  * v1.12.0 [Refactor] - 2026-02-03: Split documentService.js into modular structure (7 modules)
  * v1.11.0 [Feature]  - 2026-02-03: Docker memory limits, ARIA labels for accessibility, deployment rollback
  * v1.10.0 [Refactor] - 2026-02-03: Code quality improvements, input validation, deployment hardening
@@ -89,13 +90,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.12.0';
+export const VERSION = '1.13.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Refactor';
+export const VERSION_TAG = 'Feature';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
