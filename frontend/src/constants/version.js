@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.8.2 [Bugfix]   - 2026-02-03: Fix minor issues - quotes regex, revision IDs, speaker detection, homophone rules
  * v1.8.1 [Bugfix]   - 2026-02-03: Fix italics rendering - integrate parsing into document generation pipeline
  * v1.8.0 [Feature]  - 2026-02-03: Italics support, concord detection, dialogue structure rules (29 total rules)
  * v1.7.0 [Feature]  - 2026-02-03: Full style guide coverage, formatting revision tracking, proper noun & word simplification rules
@@ -82,7 +83,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.8.1';
+export const VERSION = '1.8.2';
 
 /**
  * Tag describing the type of changes in this version

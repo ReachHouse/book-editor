@@ -419,8 +419,9 @@ function createHighlightedInsertedRun(text, revisionId, dateObj) {
     highlight: INSERTION_HIGHLIGHT_COLOR,
     // Track the highlight as a formatting revision
     // Empty revision = "no formatting before" → Word sees this as adding highlight
+    // Use even/odd separation: insertions get even IDs, formatting revisions get odd IDs
     revision: {
-      id: revisionId + 1000, // Use offset to avoid ID collision with insertion
+      id: revisionId * 2 + 1, // Odd IDs for formatting to avoid collision with insertion IDs
       author: AUTHOR,
       date: dateObj,
     }
@@ -561,8 +562,9 @@ function createInsertedRunWithOptions(text, revisionId, dateObj, italics) {
 
   if (HIGHLIGHT_INSERTIONS) {
     options.highlight = INSERTION_HIGHLIGHT_COLOR;
+    // Use even/odd separation: insertions get even IDs, formatting revisions get odd IDs
     options.revision = {
-      id: revisionId + 1000,
+      id: revisionId * 2 + 1,
       author: AUTHOR,
       date: dateObj,
     };

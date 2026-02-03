@@ -239,7 +239,8 @@ const STYLE_RULES = [
     detect: (original, edited) => {
       if (!original || !edited) return false;
       // Detect change from single to double quotes for dialogue
-      const singleQuotes = /'[^']+'/;
+      // Use context-aware pattern to avoid matching apostrophes in contractions
+      const singleQuotes = /(?:^|[\s(])'[^']+'(?:[\s,.!?;:)]|$)/;
       const doubleQuotes = /"[^"]+"/;
       const origHasSingle = singleQuotes.test(original);
       const editHasDouble = doubleQuotes.test(edited);
@@ -308,11 +309,9 @@ const STYLE_RULES = [
       const editThere = thereCount(edited);
       const editTheir = theirCount(edited);
       const editTheyre = theyreCount(edited);
-      // Total should be same but distribution changed
-      const origTotal = origThere + origTheir + origTheyre;
-      const editTotal = editThere + editTheir + editTheyre;
-      return origTotal === editTotal &&
-             (origThere !== editThere || origTheir !== editTheir || origTheyre !== editTheyre);
+      // Check if any correction was made (distribution changed)
+      // Removed total equality requirement to detect corrections that also add/remove words
+      return (origThere !== editThere || origTheir !== editTheir || origTheyre !== editTheyre);
     },
     explanation: 'Corrected there/their/they\'re. there = location, their = possessive, they\'re = they are.',
     rule: 'there (location) vs their (possessive) vs they\'re (they are)'
@@ -330,10 +329,9 @@ const STYLE_RULES = [
       const origThan = thanCount(original);
       const editThen = thenCount(edited);
       const editThan = thanCount(edited);
-      // Total should be same but distribution changed
-      const origTotal = origThen + origThan;
-      const editTotal = editThen + editThan;
-      return origTotal === editTotal && (origThen !== editThen || origThan !== editThan);
+      // Check if any correction was made (distribution changed)
+      // Removed total equality requirement to detect corrections that also add/remove words
+      return (origThen !== editThen || origThan !== editThan);
     },
     explanation: 'Corrected then/than. then = time/sequence, than = comparison.',
     rule: 'then (time/sequence) vs than (comparison)'
@@ -351,10 +349,9 @@ const STYLE_RULES = [
       const origTo = toCount(original);
       const editToo = tooCount(edited);
       const editTo = toCount(edited);
-      // Total should be same but distribution changed
-      const origTotal = origToo + origTo;
-      const editTotal = editToo + editTo;
-      return origTotal === editTotal && (origToo !== editToo || origTo !== editTo);
+      // Check if any correction was made (distribution changed)
+      // Removed total equality requirement to detect corrections that also add/remove words
+      return (origToo !== editToo || origTo !== editTo);
     },
     explanation: 'Corrected too/to. too = also or excessive, to = direction or infinitive.',
     rule: 'too (also/excessive) vs to (direction/infinitive)'
@@ -688,8 +685,10 @@ const STYLE_RULES = [
           const speaker2 = origSpeakers[4].toLowerCase();
           if (speaker1 !== speaker2) {
             // Different speakers - should be on different lines
-            // Check if edited has them separated (either by newline or not together)
-            if (!twoSpeakersOneLine.test(edited) || edited.includes('\n')) {
+            // Check if edited has them separated - verify NEW newlines were added
+            const origNewlineCount = (original.match(/\n/g) || []).length;
+            const editNewlineCount = (edited.match(/\n/g) || []).length;
+            if (!twoSpeakersOneLine.test(edited) || editNewlineCount > origNewlineCount) {
               return true;
             }
           }
