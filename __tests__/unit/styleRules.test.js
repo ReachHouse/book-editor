@@ -311,12 +311,118 @@ describe('getStyleRuleById', () => {
 });
 
 // =============================================================================
+// PRACTICE/PRACTISE (British English)
+// =============================================================================
+
+describe('Practice/Practise Rule', () => {
+  const rule = getStyleRuleById('practice-practise');
+
+  test('detects practice (verb) to practise correction', () => {
+    expect(rule.detect('I need to practice more', 'I need to practise more')).toBe(true);
+    expect(rule.detect('You should practice daily', 'You should practise daily')).toBe(true);
+    expect(rule.detect('They will practice tomorrow', 'They will practise tomorrow')).toBe(true);
+  });
+
+  test('detects practise (noun) to practice correction', () => {
+    expect(rule.detect('the practise of medicine', 'the practice of medicine')).toBe(true);
+    expect(rule.detect('my practise session', 'my practice session')).toBe(true);
+    expect(rule.detect('in practise', 'in practice')).toBe(true);
+  });
+
+  test('returns false when already correct', () => {
+    expect(rule.detect('to practise', 'to practise')).toBe(false);
+    expect(rule.detect('the practice', 'the practice')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'practise')).toBe(false);
+    expect(rule.detect('practice', null)).toBe(false);
+  });
+});
+
+// =============================================================================
+// HOMOPHONES
+// =============================================================================
+
+describe('There/Their/They\'re Rule', () => {
+  const rule = getStyleRuleById('there-their-theyre');
+
+  test('detects there to their correction', () => {
+    expect(rule.detect('there house is big', 'their house is big')).toBe(true);
+  });
+
+  test('detects their to there correction', () => {
+    expect(rule.detect('go over their', 'go over there')).toBe(true);
+  });
+
+  test('detects there to they\'re correction', () => {
+    expect(rule.detect('there coming today', 'they\'re coming today')).toBe(true);
+  });
+
+  test('returns false when no change', () => {
+    expect(rule.detect('their house', 'their house')).toBe(false);
+    expect(rule.detect('they\'re coming', 'they\'re coming')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'their')).toBe(false);
+    expect(rule.detect('there', null)).toBe(false);
+  });
+});
+
+describe('Then/Than Rule', () => {
+  const rule = getStyleRuleById('then-than');
+
+  test('detects then to than correction (comparison)', () => {
+    expect(rule.detect('bigger then me', 'bigger than me')).toBe(true);
+    expect(rule.detect('more then enough', 'more than enough')).toBe(true);
+  });
+
+  test('detects than to then correction (sequence)', () => {
+    expect(rule.detect('first this, than that', 'first this, then that')).toBe(true);
+  });
+
+  test('returns false when no change', () => {
+    expect(rule.detect('bigger than me', 'bigger than me')).toBe(false);
+    expect(rule.detect('then we went', 'then we went')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'than')).toBe(false);
+    expect(rule.detect('then', null)).toBe(false);
+  });
+});
+
+describe('Too/To Rule', () => {
+  const rule = getStyleRuleById('too-to');
+
+  test('detects to to too correction (also)', () => {
+    expect(rule.detect('me to', 'me too')).toBe(true);
+    expect(rule.detect('I want to go to', 'I want to go too')).toBe(true);
+  });
+
+  test('detects too to to correction (direction)', () => {
+    expect(rule.detect('going too the store', 'going to the store')).toBe(true);
+  });
+
+  test('returns false when no change', () => {
+    expect(rule.detect('me too', 'me too')).toBe(false);
+    expect(rule.detect('going to the store', 'going to the store')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'too')).toBe(false);
+    expect(rule.detect('to', null)).toBe(false);
+  });
+});
+
+// =============================================================================
 // STYLE_RULES Array
 // =============================================================================
 
 describe('STYLE_RULES', () => {
   test('contains expected number of rules', () => {
-    expect(STYLE_RULES.length).toBeGreaterThanOrEqual(15);
+    expect(STYLE_RULES.length).toBeGreaterThanOrEqual(19);
   });
 
   test('all rules have required properties', () => {

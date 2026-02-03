@@ -262,6 +262,102 @@ const STYLE_RULES = [
     },
     explanation: 'Added comma before dialogue tag per style guide.',
     rule: 'Comma before dialogue tag: "No," she said.'
+  },
+
+  // ===========================================================================
+  // PRACTICE/PRACTISE (British English)
+  // ===========================================================================
+  {
+    id: 'practice-practise',
+    name: 'Practice/Practise',
+    category: 'Spelling',
+    detect: (original, edited) => {
+      if (!original || !edited) return false;
+      // In British English: practice = noun, practise = verb
+      // Detect correction in either direction
+      const practiceAsVerb = /\b(to|will|must|should|can|could|would|might|shall)\s+practice\b/i;
+      const practiseAsNoun = /\b(the|a|my|your|his|her|their|its|our|in|during|for)\s+practise\b/i;
+      // Check if original had wrong usage and edited has correct
+      const origWrongVerb = practiceAsVerb.test(original);
+      const editCorrectVerb = /\b(to|will|must|should|can|could|would|might|shall)\s+practise\b/i.test(edited);
+      const origWrongNoun = practiseAsNoun.test(original);
+      const editCorrectNoun = /\b(the|a|my|your|his|her|their|its|our|in|during|for)\s+practice\b/i.test(edited);
+      return (origWrongVerb && editCorrectVerb) || (origWrongNoun && editCorrectNoun);
+    },
+    explanation: 'British English: practice = noun, practise = verb.',
+    rule: 'Practice (noun) vs practise (verb) - British English spelling'
+  },
+
+  // ===========================================================================
+  // HOMOPHONES
+  // ===========================================================================
+  {
+    id: 'there-their-theyre',
+    name: 'There/Their/They\'re',
+    category: 'Grammar',
+    detect: (original, edited) => {
+      if (!original || !edited) return false;
+      // Detect any change between there/their/they're
+      const thereCount = (str) => (str.match(/\bthere\b/gi) || []).length;
+      const theirCount = (str) => (str.match(/\btheir\b/gi) || []).length;
+      const theyreCount = (str) => (str.match(/\bthey're\b/gi) || []).length;
+      // If counts changed, a correction was made
+      const origThere = thereCount(original);
+      const origTheir = theirCount(original);
+      const origTheyre = theyreCount(original);
+      const editThere = thereCount(edited);
+      const editTheir = theirCount(edited);
+      const editTheyre = theyreCount(edited);
+      // Total should be same but distribution changed
+      const origTotal = origThere + origTheir + origTheyre;
+      const editTotal = editThere + editTheir + editTheyre;
+      return origTotal === editTotal &&
+             (origThere !== editThere || origTheir !== editTheir || origTheyre !== editTheyre);
+    },
+    explanation: 'Corrected there/their/they\'re. there = location, their = possessive, they\'re = they are.',
+    rule: 'there (location) vs their (possessive) vs they\'re (they are)'
+  },
+  {
+    id: 'then-than',
+    name: 'Then/Than',
+    category: 'Grammar',
+    detect: (original, edited) => {
+      if (!original || !edited) return false;
+      // Detect then/than corrections
+      const thenCount = (str) => (str.match(/\bthen\b/gi) || []).length;
+      const thanCount = (str) => (str.match(/\bthan\b/gi) || []).length;
+      const origThen = thenCount(original);
+      const origThan = thanCount(original);
+      const editThen = thenCount(edited);
+      const editThan = thanCount(edited);
+      // Total should be same but distribution changed
+      const origTotal = origThen + origThan;
+      const editTotal = editThen + editThan;
+      return origTotal === editTotal && (origThen !== editThen || origThan !== editThan);
+    },
+    explanation: 'Corrected then/than. then = time/sequence, than = comparison.',
+    rule: 'then (time/sequence) vs than (comparison)'
+  },
+  {
+    id: 'too-to',
+    name: 'Too/To',
+    category: 'Grammar',
+    detect: (original, edited) => {
+      if (!original || !edited) return false;
+      // Detect too/to corrections
+      const tooCount = (str) => (str.match(/\btoo\b/gi) || []).length;
+      const toCount = (str) => (str.match(/\bto\b/gi) || []).length;
+      const origToo = tooCount(original);
+      const origTo = toCount(original);
+      const editToo = tooCount(edited);
+      const editTo = toCount(edited);
+      // Total should be same but distribution changed
+      const origTotal = origToo + origTo;
+      const editTotal = editToo + editTo;
+      return origTotal === editTotal && (origToo !== editToo || origTo !== editTo);
+    },
+    explanation: 'Corrected too/to. too = also or excessive, to = direction or infinitive.',
+    rule: 'too (also/excessive) vs to (direction/infinitive)'
   }
 ];
 

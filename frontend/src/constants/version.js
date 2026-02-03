@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.6.0 [Feature]  - 2026-02-03: Yellow highlighting on insertions, homophones & practice/practise rules
  * v1.5.0 [Feature]  - 2026-02-03: Enhanced comments with style rule detection, before/after text
  * v1.4.1 [Config]   - 2026-02-03: Add Jest test infrastructure with 90 tests for services and API
  * v1.4.0 [Feature]  - 2026-02-02: Upgrade docx library 8.2.0 -> 9.5.1, use official demo syntax
@@ -78,7 +79,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.5.0';
+export const VERSION = '1.6.0';
 
 /**
  * Tag describing the type of changes in this version

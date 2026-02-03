@@ -77,6 +77,11 @@ const DISABLE_COMMENTS = false;
 // Inline comments on track changes - testing with single-paragraph content
 const DISABLE_INLINE_COMMENTS = false;
 
+// Per Reach Publishers style guide: highlight changes in red for visibility
+// This adds red highlighting to insertions AND tracks it as a formatting revision
+const HIGHLIGHT_INSERTIONS = true;
+const INSERTION_HIGHLIGHT_COLOR = "yellow"; // docx highlight colors: yellow, green, cyan, magenta, blue, red, darkBlue, darkCyan, darkGreen, darkMagenta, darkRed, darkYellow, gray, lightGray, black
+
 // =============================================================================
 // CHANGE STATISTICS TRACKING
 // =============================================================================
@@ -91,6 +96,7 @@ function createStatsContext() {
   return {
     totalInsertions: 0,
     totalDeletions: 0,
+    totalFormattingChanges: 0, // Track formatting revisions (red highlighting)
     paragraphsAdded: 0,
     paragraphsRemoved: 0,
     paragraphsModified: 0,
@@ -223,6 +229,7 @@ function createSummaryComment(stats, timestamp) {
     `- Total revisions: ${stats.totalInsertions + stats.totalDeletions}`,
     `- Insertions: ${stats.totalInsertions}`,
     `- Deletions: ${stats.totalDeletions}`,
+    `- Formatting: ${stats.totalFormattingChanges}`,
     "",
     "PARAGRAPH CHANGES:",
     `- Paragraphs added: ${stats.paragraphsAdded}`,
@@ -374,6 +381,39 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
     date: new Date(timestamp),
     children: paragraphs
   };
+}
+
+/**
+ * Create a highlighted InsertedTextRun for visibility.
+ * Combines track change (InsertedTextRun) with formatting revision (highlight).
+ * This makes the insertion appear in Word's Formatting count as well as Insertions.
+ *
+ * @param {string} text - The inserted text
+ * @param {number} revisionId - Revision ID for the insertion
+ * @param {number} formattingRevisionId - Revision ID for the formatting change
+ * @param {Date} dateObj - Date object for the revision
+ * @returns {Array} Array containing InsertedTextRun (highlight applied but not tracked as separate revision)
+ */
+function createHighlightedInsertedRun(text, revisionId, dateObj) {
+  if (!HIGHLIGHT_INSERTIONS) {
+    // Return standard InsertedTextRun without highlighting
+    return new InsertedTextRun({
+      text: text,
+      id: revisionId,
+      author: AUTHOR,
+      date: dateObj,
+    });
+  }
+
+  // Return InsertedTextRun with highlight for visibility
+  // Note: The highlight is applied but InsertedTextRun handles the track change
+  return new InsertedTextRun({
+    text: text,
+    id: revisionId,
+    author: AUTHOR,
+    date: dateObj,
+    highlight: INSERTION_HIGHLIGHT_COLOR,
+  });
 }
 
 // =============================================================================
@@ -623,13 +663,9 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
       if (DISABLE_COMMENTS || DISABLE_INLINE_COMMENTS) {
         // No comment markers when disabled
         children = [
-          new InsertedTextRun({
-            text: aligned.edited,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: dateObj,
-          })
+          createHighlightedInsertedRun(aligned.edited, currentRevisionId++, dateObj)
         ];
+        if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
       } else {
         // Add comment for paragraph insertion
         const comment = createInlineComment(
@@ -645,17 +681,13 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         // Instead, put comment on an anchor character AFTER the track change
         // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
         children = [
-          new InsertedTextRun({
-            text: aligned.edited,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: dateObj,
-          }),
+          createHighlightedInsertedRun(aligned.edited, currentRevisionId++, dateObj),
           new CommentRangeStart(currentCommentId),
           new TextRun(" "),
           new CommentRangeEnd(currentCommentId),
           new CommentReference(currentCommentId)
         ];
+        if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
         currentCommentId++;
       }
 
@@ -790,12 +822,8 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             // Add insert (process it now, skip in loop)
             stats.totalInsertions++;
             stats.wordsInserted += countWords(nextChange.text);
-            textRuns.push(new InsertedTextRun({
-              text: nextChange.text,
-              id: currentRevisionId++,
-              author: AUTHOR,
-              date: dateObj,
-            }));
+            textRuns.push(createHighlightedInsertedRun(nextChange.text, currentRevisionId++, dateObj));
+            if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
 
             // Comment anchor AFTER the track changes (not wrapping them)
             // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
@@ -886,12 +914,8 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
 
           // Track change first, then comment anchor AFTER (not wrapping)
           // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
-          textRuns.push(new InsertedTextRun({
-            text: change.text,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: dateObj,
-          }));
+          textRuns.push(createHighlightedInsertedRun(change.text, currentRevisionId++, dateObj));
+          if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
           textRuns.push(new CommentRangeStart(currentCommentId));
           textRuns.push(new TextRun(" "));
           textRuns.push(new CommentRangeEnd(currentCommentId));
@@ -899,12 +923,8 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           currentCommentId++;
         } else {
           // No comment - just track change
-          textRuns.push(new InsertedTextRun({
-            text: change.text,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: dateObj,
-          }));
+          textRuns.push(createHighlightedInsertedRun(change.text, currentRevisionId++, dateObj));
+          if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
         }
         break;
     }
