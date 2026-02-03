@@ -490,12 +490,170 @@ describe('Word Simplification Rule', () => {
 });
 
 // =============================================================================
+// ITALICS FORMATTING
+// =============================================================================
+
+describe('Italics for Foreign Words Rule', () => {
+  const rule = getStyleRuleById('italics-foreign-words');
+
+  test('detects foreign phrase italicization', () => {
+    expect(rule.detect('This is a bona fide offer', 'This is a *bona fide* offer')).toBe(true);
+    expect(rule.detect('The status quo must change', 'The *status quo* must change')).toBe(true);
+    expect(rule.detect('It happened de facto', 'It happened *de facto*')).toBe(true);
+  });
+
+  test('detects South African terms italicization', () => {
+    expect(rule.detect('The ubuntu philosophy', 'The *ubuntu* philosophy')).toBe(true);
+    expect(rule.detect('We had a braai', 'We had a *braai*')).toBe(true);
+  });
+
+  test('returns false when already italicized', () => {
+    expect(rule.detect('*status quo*', '*status quo*')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, '*bona fide*')).toBe(false);
+    expect(rule.detect('bona fide', null)).toBe(false);
+  });
+});
+
+describe('Italics for Book Titles Rule', () => {
+  const rule = getStyleRuleById('italics-book-titles');
+
+  test('detects book title italicization', () => {
+    expect(rule.detect('I read The Great Gatsby', 'I read *The Great Gatsby*')).toBe(true);
+    expect(rule.detect('the book called Pride and Prejudice', 'the book called *Pride and Prejudice*')).toBe(true);
+  });
+
+  test('returns false when already italicized', () => {
+    expect(rule.detect('*The Great Gatsby*', '*The Great Gatsby*')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, '*Title*')).toBe(false);
+  });
+});
+
+describe('Italics for Internal Thought Rule', () => {
+  const rule = getStyleRuleById('italics-internal-thought');
+
+  test('detects thought italicization', () => {
+    expect(rule.detect('She thought, This is strange.', 'She thought, *This is strange.*')).toBe(true);
+    expect(rule.detect('He wondered, What should I do?', 'He wondered, *What should I do?*')).toBe(true);
+  });
+
+  test('returns false when no thought marker', () => {
+    expect(rule.detect('This is text', 'This is text')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'thought')).toBe(false);
+  });
+});
+
+// =============================================================================
+// CONCORD (SUBJECT-VERB AGREEMENT)
+// =============================================================================
+
+describe('Concord: Pronoun Consistency Rule', () => {
+  const rule = getStyleRuleById('concord-pronoun-shift');
+
+  test('detects one/we correction', () => {
+    expect(rule.detect('When one is challenged, we tend to react', 'When one is challenged, one tends to react')).toBe(true);
+  });
+
+  test('returns false when already consistent', () => {
+    expect(rule.detect('When one is challenged, one reacts', 'When one is challenged, one reacts')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'one')).toBe(false);
+  });
+});
+
+describe('Concord: Subject-Verb Agreement Rule', () => {
+  const rule = getStyleRuleById('concord-subject-verb');
+
+  test('detects they was → they were correction', () => {
+    expect(rule.detect('They was happy', 'They were happy')).toBe(true);
+  });
+
+  test('detects he don\'t → he doesn\'t correction', () => {
+    expect(rule.detect('He don\'t know', 'He doesn\'t know')).toBe(true);
+  });
+
+  test('detects you was → you were correction', () => {
+    expect(rule.detect('You was there', 'You were there')).toBe(true);
+  });
+
+  test('detects everyone are → everyone is correction', () => {
+    expect(rule.detect('Everyone are invited', 'Everyone is invited')).toBe(true);
+  });
+
+  test('returns false when already correct', () => {
+    expect(rule.detect('They were happy', 'They were happy')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'were')).toBe(false);
+  });
+});
+
+describe('Concord: Neither/Nor Agreement Rule', () => {
+  const rule = getStyleRuleById('concord-neither-nor');
+
+  test('detects neither/nor verb agreement', () => {
+    expect(rule.detect('Neither John nor she are coming', 'Neither John nor she is coming')).toBe(true);
+  });
+
+  test('returns false when already correct', () => {
+    expect(rule.detect('Neither John nor she is coming', 'Neither John nor she is coming')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'neither')).toBe(false);
+  });
+});
+
+// =============================================================================
+// DIALOGUE STRUCTURE
+// =============================================================================
+
+describe('New Speaker New Line Rule', () => {
+  const rule = getStyleRuleById('dialogue-new-speaker-line');
+
+  test('detects two speakers on same line', () => {
+    const original = '"Hello," said John. "Hi there," said Mary.';
+    const edited = '"Hello," said John.\n"Hi there," said Mary.';
+    expect(rule.detect(original, edited)).toBe(true);
+  });
+
+  test('returns false when same speaker', () => {
+    const text = '"Hello," said John. "How are you?" said John.';
+    expect(rule.detect(text, text)).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'dialogue')).toBe(false);
+  });
+});
+
+describe('Speaker Continuation Format Rule', () => {
+  const rule = getStyleRuleById('dialogue-speaker-continuation');
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'dialogue')).toBe(false);
+    expect(rule.detect('text', null)).toBe(false);
+  });
+});
+
+// =============================================================================
 // STYLE_RULES Array
 // =============================================================================
 
 describe('STYLE_RULES', () => {
   test('contains expected number of rules', () => {
-    expect(STYLE_RULES.length).toBeGreaterThanOrEqual(21);
+    expect(STYLE_RULES.length).toBeGreaterThanOrEqual(29);
   });
 
   test('all rules have required properties', () => {
