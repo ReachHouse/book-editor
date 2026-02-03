@@ -15,6 +15,9 @@ const { AUTHOR } = require('./constants');
 const { countWords } = require('./utils');
 const { categorizeChange } = require('./categorization');
 
+// Pre-build Map for O(1) style rule lookup by ID
+const STYLE_RULES_BY_ID = new Map(STYLE_RULES.map(r => [r.id, r]));
+
 /**
  * Create a summary comment options object for the document.
  * Note: Returns options object, not Comment instance (docx library creates Comment internally)
@@ -51,7 +54,7 @@ function createSummaryComment(stats, timestamp) {
     lines.push("");
     lines.push("STYLE RULES APPLIED:");
     for (const ruleId of stats.styleRulesApplied) {
-      const rule = STYLE_RULES.find(r => r.id === ruleId);
+      const rule = STYLE_RULES_BY_ID.get(ruleId);
       if (rule) {
         lines.push(`- ${rule.name}`);
       }

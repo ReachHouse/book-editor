@@ -12,6 +12,14 @@
 const { STYLE_RULES } = require('../styleRules');
 const { countWords } = require('./utils');
 
+// Grammar patterns for generic categorization (module-level for performance)
+const GRAMMAR_PATTERNS = [
+  { pattern: /\b(is|are|was|were|be|been|being)\b/, name: "Verb tense", explanation: "Verb tense adjusted for consistency." },
+  { pattern: /\b(a|an|the)\b/, name: "Article", explanation: "Article usage corrected." },
+  { pattern: /\b(who|whom|whose|which|that)\b/, name: "Pronoun/relative clause", explanation: "Relative pronoun corrected for proper reference." },
+  { pattern: /\b(very|really|quite|rather)\b/, name: "Intensifier", explanation: "Intensifier removed or modified for stronger prose." },
+];
+
 /**
  * Categorize a change based on its content.
  * First checks for specific style guide rule violations,
@@ -88,14 +96,7 @@ function categorizeChange(original, edited) {
   }
 
   // Check for common grammar patterns
-  const grammarPatterns = [
-    { pattern: /\b(is|are|was|were|be|been|being)\b/, name: "Verb tense", explanation: "Verb tense adjusted for consistency." },
-    { pattern: /\b(a|an|the)\b/, name: "Article", explanation: "Article usage corrected." },
-    { pattern: /\b(who|whom|whose|which|that)\b/, name: "Pronoun/relative clause", explanation: "Relative pronoun corrected for proper reference." },
-    { pattern: /\b(very|really|quite|rather)\b/, name: "Intensifier", explanation: "Intensifier removed or modified for stronger prose." },
-  ];
-
-  for (const { pattern, name, explanation } of grammarPatterns) {
+  for (const { pattern, name, explanation } of GRAMMAR_PATTERNS) {
     const origMatch = pattern.test(origLower);
     const editMatch = pattern.test(editLower);
     if (origMatch !== editMatch) {
