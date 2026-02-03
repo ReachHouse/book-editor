@@ -817,9 +817,10 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
 
       if (DISABLE_COMMENTS || DISABLE_INLINE_COMMENTS) {
         // No comment markers when disabled
-        children = [
-          createHighlightedInsertedRun(aligned.edited, currentRevisionId++, dateObj)
-        ];
+        // Use italics-aware version to properly render *italic* markers
+        const insertResult = createHighlightedInsertedRuns(aligned.edited, currentRevisionId, dateObj);
+        children = insertResult.runs;
+        currentRevisionId = insertResult.nextRevisionId;
         if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
       } else {
         // Add comment for paragraph insertion
@@ -835,13 +836,16 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         // IMPORTANT: Comment markers must NOT wrap track change elements (causes OOXML error)
         // Instead, put comment on an anchor character AFTER the track change
         // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
+        // Use italics-aware version to properly render *italic* markers
+        const insertResult = createHighlightedInsertedRuns(aligned.edited, currentRevisionId, dateObj);
         children = [
-          createHighlightedInsertedRun(aligned.edited, currentRevisionId++, dateObj),
+          ...insertResult.runs,
           new CommentRangeStart(currentCommentId),
           new TextRun(" "),
           new CommentRangeEnd(currentCommentId),
           new CommentReference(currentCommentId)
         ];
+        currentRevisionId = insertResult.nextRevisionId;
         if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
         currentCommentId++;
       }
@@ -975,9 +979,12 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             }));
 
             // Add insert (process it now, skip in loop)
+            // Use italics-aware version to properly render *italic* markers
             stats.totalInsertions++;
             stats.wordsInserted += countWords(nextChange.text);
-            textRuns.push(createHighlightedInsertedRun(nextChange.text, currentRevisionId++, dateObj));
+            const replaceInsertResult = createHighlightedInsertedRuns(nextChange.text, currentRevisionId, dateObj);
+            textRuns.push(...replaceInsertResult.runs);
+            currentRevisionId = replaceInsertResult.nextRevisionId;
             if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
 
             // Comment anchor AFTER the track changes (not wrapping them)
@@ -1069,7 +1076,10 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
 
           // Track change first, then comment anchor AFTER (not wrapping)
           // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
-          textRuns.push(createHighlightedInsertedRun(change.text, currentRevisionId++, dateObj));
+          // Use italics-aware version to properly render *italic* markers
+          const sigInsertResult = createHighlightedInsertedRuns(change.text, currentRevisionId, dateObj);
+          textRuns.push(...sigInsertResult.runs);
+          currentRevisionId = sigInsertResult.nextRevisionId;
           if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
           textRuns.push(new CommentRangeStart(currentCommentId));
           textRuns.push(new TextRun(" "));
@@ -1078,7 +1088,10 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           currentCommentId++;
         } else {
           // No comment - just track change
-          textRuns.push(createHighlightedInsertedRun(change.text, currentRevisionId++, dateObj));
+          // Use italics-aware version to properly render *italic* markers
+          const insertResult = createHighlightedInsertedRuns(change.text, currentRevisionId, dateObj);
+          textRuns.push(...insertResult.runs);
+          currentRevisionId = insertResult.nextRevisionId;
           if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
         }
         break;

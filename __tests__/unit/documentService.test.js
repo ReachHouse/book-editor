@@ -149,6 +149,38 @@ She had always been cautious, perhaps overly so. But now everything had shifted.
       expect(buffer.length).toBeGreaterThan(1000);
     });
   });
+
+  describe('italics rendering (v1.8.1 fix)', () => {
+    test('handles text with *italics* markers without throwing', async () => {
+      const original = 'The status quo must change.';
+      const edited = 'The *status quo* must change.';
+
+      await expect(generateDocxBuffer(original, edited)).resolves.not.toThrow();
+    });
+
+    test('handles multiple *italic* sections', async () => {
+      const original = 'She thought, This is strange. The ubuntu philosophy guides us.';
+      const edited = 'She thought, *This is strange.* The *ubuntu* philosophy guides us.';
+
+      const buffer = await generateDocxBuffer(original, edited);
+      expect(Buffer.isBuffer(buffer)).toBe(true);
+      expect(buffer.length).toBeGreaterThan(0);
+    });
+
+    test('handles book titles in italics', async () => {
+      const original = 'I read The Great Gatsby last summer.';
+      const edited = 'I read *The Great Gatsby* last summer.';
+
+      await expect(generateDocxBuffer(original, edited)).resolves.not.toThrow();
+    });
+
+    test('handles mixed italics and non-italics insertions', async () => {
+      const original = 'The old text here.';
+      const edited = 'The *new italicized* text and normal text here.';
+
+      await expect(generateDocxBuffer(original, edited)).resolves.not.toThrow();
+    });
+  });
 });
 
 // =============================================================================
