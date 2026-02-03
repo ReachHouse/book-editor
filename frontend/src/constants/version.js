@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.10.0 [Refactor] - 2026-02-03: Code quality improvements, input validation, deployment hardening
  * v1.9.1 [Security] - 2026-02-03: Add rate limiting, fix error leakage, improve stability
  * v1.9.0 [Bugfix]   - 2026-02-03: Fix 8 style rule detection issues in modularized styleRules
  * v1.8.3 [Feature]  - 2026-02-03: Add localStorage warning, Oxford comma rule, em-dash/en-dash rule (31 rules)
@@ -86,13 +87,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.9.1';
+export const VERSION = '1.10.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Security';
+export const VERSION_TAG = 'Refactor';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

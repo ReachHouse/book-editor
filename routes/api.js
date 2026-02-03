@@ -40,6 +40,11 @@ const { generateDocxBuffer } = require('../services/documentService');
 // =============================================================================
 
 /**
+ * Maximum text length for API requests (500,000 characters ≈ 100,000 words)
+ */
+const MAX_TEXT_LENGTH = 500000;
+
+/**
  * Sanitize filename for Content-Disposition header.
  * Prevents HTTP Header Injection attacks by removing control characters.
  *
@@ -59,13 +64,14 @@ function sanitizeFileName(fileName) {
 }
 
 /**
- * Validate that a value is a non-empty string.
+ * Validate that a value is a non-empty string within length limits.
  *
  * @param {*} value - Value to check
  * @param {string} fieldName - Name of field for error message
+ * @param {number} maxLength - Maximum allowed length (default: MAX_TEXT_LENGTH)
  * @returns {string|null} Error message if invalid, null if valid
  */
-function validateTextField(value, fieldName) {
+function validateTextField(value, fieldName, maxLength = MAX_TEXT_LENGTH) {
   if (value === undefined || value === null) {
     return `${fieldName} is required`;
   }
@@ -74,6 +80,9 @@ function validateTextField(value, fieldName) {
   }
   if (!value.trim()) {
     return `${fieldName} cannot be empty`;
+  }
+  if (value.length > maxLength) {
+    return `${fieldName} too long (max ${maxLength.toLocaleString()} characters)`;
   }
   return null;
 }
