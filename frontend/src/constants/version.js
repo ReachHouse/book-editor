@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.4.1 [Config]   - 2026-02-03: Add Jest test infrastructure with 90 tests for services and API
  * v1.4.0 [Feature]  - 2026-02-02: Upgrade docx library 8.2.0 -> 9.5.1, use official demo syntax
  * v1.3.7 [Bugfix]   - 2026-02-02: Fix comment content - single paragraph, v8.2.0 compatible syntax
  * v1.3.6 [Bugfix]   - 2026-02-02: Fix comment syntax per docx demo (IDs, TextRun.children wrapper)
@@ -76,18 +77,18 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.4.0';
+export const VERSION = '1.4.1';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Feature';
+export const VERSION_TAG = 'Config';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
  */
-export const VERSION_DATE = '2026-02-02';
+export const VERSION_DATE = '2026-02-03';
 
 /**
  * Combined display string shown in the UI footer
