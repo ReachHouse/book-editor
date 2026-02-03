@@ -77,6 +77,11 @@ const DISABLE_COMMENTS = false;
 // Inline comments on track changes - testing with single-paragraph content
 const DISABLE_INLINE_COMMENTS = false;
 
+// Per Reach Publishers style guide: highlight changes in red for visibility
+// This adds red highlighting to insertions AND tracks it as a formatting revision
+const HIGHLIGHT_INSERTIONS = true;
+const INSERTION_HIGHLIGHT_COLOR = "yellow"; // docx highlight colors: yellow, green, cyan, magenta, blue, red, darkBlue, darkCyan, darkGreen, darkMagenta, darkRed, darkYellow, gray, lightGray, black
+
 // =============================================================================
 // CHANGE STATISTICS TRACKING
 // =============================================================================
@@ -91,6 +96,7 @@ function createStatsContext() {
   return {
     totalInsertions: 0,
     totalDeletions: 0,
+    totalFormattingChanges: 0, // Track formatting revisions (red highlighting)
     paragraphsAdded: 0,
     paragraphsRemoved: 0,
     paragraphsModified: 0,
@@ -223,6 +229,7 @@ function createSummaryComment(stats, timestamp) {
     `- Total revisions: ${stats.totalInsertions + stats.totalDeletions}`,
     `- Insertions: ${stats.totalInsertions}`,
     `- Deletions: ${stats.totalDeletions}`,
+    `- Formatting: ${stats.totalFormattingChanges}`,
     "",
     "PARAGRAPH CHANGES:",
     `- Paragraphs added: ${stats.paragraphsAdded}`,
@@ -374,6 +381,196 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
     date: new Date(timestamp),
     children: paragraphs
   };
+}
+
+/**
+ * Create a highlighted InsertedTextRun for visibility.
+ * Combines track change (InsertedTextRun) with formatting revision (highlight).
+ * This makes the insertion appear in Word's Formatting count as well as Insertions.
+ *
+ * The `revision` property tracks formatting changes (rPrChange in OOXML).
+ * It records the OLD state before the change, so an empty revision means
+ * "previously had no special formatting" → now has highlight.
+ *
+ * @param {string} text - The inserted text
+ * @param {number} revisionId - Revision ID for the insertion
+ * @param {Date} dateObj - Date object for the revision
+ * @returns {InsertedTextRun} InsertedTextRun with highlight and formatting revision tracked
+ */
+function createHighlightedInsertedRun(text, revisionId, dateObj) {
+  if (!HIGHLIGHT_INSERTIONS) {
+    // Return standard InsertedTextRun without highlighting
+    return new InsertedTextRun({
+      text: text,
+      id: revisionId,
+      author: AUTHOR,
+      date: dateObj,
+    });
+  }
+
+  // Return InsertedTextRun with highlight AND formatting revision tracking
+  // The revision property creates rPrChange element in OOXML which tracks formatting changes
+  // This makes Word show the change in both Insertions AND Formatting counts
+  return new InsertedTextRun({
+    text: text,
+    id: revisionId,
+    author: AUTHOR,
+    date: dateObj,
+    highlight: INSERTION_HIGHLIGHT_COLOR,
+    // Track the highlight as a formatting revision
+    // Empty revision = "no formatting before" → Word sees this as adding highlight
+    // Use even/odd separation: insertions get even IDs, formatting revisions get odd IDs
+    revision: {
+      id: revisionId * 2 + 1, // Odd IDs for formatting to avoid collision with insertion IDs
+      author: AUTHOR,
+      date: dateObj,
+    }
+  });
+}
+
+/**
+ * Parse text for markdown-style *italics* and return array of TextRuns.
+ * Converts *text* markers to actual Word italics formatting.
+ *
+ * @param {string} text - Text that may contain *italic* markers
+ * @param {Object} baseOptions - Base options for TextRun (e.g., highlight, revision)
+ * @returns {Array<TextRun>} Array of TextRuns with appropriate formatting
+ */
+function parseItalicsToTextRuns(text, baseOptions = {}) {
+  if (!text) return [];
+
+  const runs = [];
+  // Pattern to match *italic text* (non-greedy)
+  const italicPattern = /\*([^*]+)\*/g;
+
+  let lastIndex = 0;
+  let match;
+
+  while ((match = italicPattern.exec(text)) !== null) {
+    // Add text before the italic marker
+    if (match.index > lastIndex) {
+      const beforeText = text.substring(lastIndex, match.index);
+      if (beforeText) {
+        runs.push(new TextRun({ text: beforeText, ...baseOptions }));
+      }
+    }
+
+    // Add the italic text (without the * markers)
+    const italicText = match[1];
+    runs.push(new TextRun({
+      text: italicText,
+      italics: true,
+      ...baseOptions
+    }));
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last italic marker
+  if (lastIndex < text.length) {
+    const remainingText = text.substring(lastIndex);
+    if (remainingText) {
+      runs.push(new TextRun({ text: remainingText, ...baseOptions }));
+    }
+  }
+
+  // If no italics found, return single TextRun
+  if (runs.length === 0) {
+    runs.push(new TextRun({ text: text, ...baseOptions }));
+  }
+
+  return runs;
+}
+
+/**
+ * Create highlighted inserted text runs, supporting *italics* markers.
+ * Returns array of InsertedTextRun objects with proper formatting.
+ *
+ * @param {string} text - Text to insert (may contain *italic* markers)
+ * @param {number} revisionId - Starting revision ID
+ * @param {Date} dateObj - Date for the revision
+ * @returns {Object} { runs: Array<InsertedTextRun>, nextRevisionId: number }
+ */
+function createHighlightedInsertedRuns(text, revisionId, dateObj) {
+  if (!text) return { runs: [], nextRevisionId: revisionId };
+
+  // Check for *italics* markers
+  const hasItalics = /\*[^*]+\*/.test(text);
+
+  if (!hasItalics) {
+    // No italics - return single run using existing function
+    return {
+      runs: [createHighlightedInsertedRun(text, revisionId, dateObj)],
+      nextRevisionId: revisionId + 1
+    };
+  }
+
+  // Parse text for italics and create multiple InsertedTextRuns
+  const runs = [];
+  const italicPattern = /\*([^*]+)\*/g;
+  let lastIndex = 0;
+  let match;
+  let currentRevId = revisionId;
+
+  while ((match = italicPattern.exec(text)) !== null) {
+    // Add text before the italic marker
+    if (match.index > lastIndex) {
+      const beforeText = text.substring(lastIndex, match.index);
+      if (beforeText) {
+        runs.push(createInsertedRunWithOptions(beforeText, currentRevId++, dateObj, false));
+      }
+    }
+
+    // Add the italic text (without the * markers)
+    const italicText = match[1];
+    runs.push(createInsertedRunWithOptions(italicText, currentRevId++, dateObj, true));
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last italic marker
+  if (lastIndex < text.length) {
+    const remainingText = text.substring(lastIndex);
+    if (remainingText) {
+      runs.push(createInsertedRunWithOptions(remainingText, currentRevId++, dateObj, false));
+    }
+  }
+
+  return { runs, nextRevisionId: currentRevId };
+}
+
+/**
+ * Helper to create an InsertedTextRun with optional italics.
+ *
+ * @param {string} text - Text content
+ * @param {number} revisionId - Revision ID
+ * @param {Date} dateObj - Date object
+ * @param {boolean} italics - Whether to apply italics
+ * @returns {InsertedTextRun} The created run
+ */
+function createInsertedRunWithOptions(text, revisionId, dateObj, italics) {
+  const options = {
+    text: text,
+    id: revisionId,
+    author: AUTHOR,
+    date: dateObj,
+  };
+
+  if (italics) {
+    options.italics = true;
+  }
+
+  if (HIGHLIGHT_INSERTIONS) {
+    options.highlight = INSERTION_HIGHLIGHT_COLOR;
+    // Use even/odd separation: insertions get even IDs, formatting revisions get odd IDs
+    options.revision = {
+      id: revisionId * 2 + 1,
+      author: AUTHOR,
+      date: dateObj,
+    };
+  }
+
+  return new InsertedTextRun(options);
 }
 
 // =============================================================================
@@ -622,14 +819,11 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
 
       if (DISABLE_COMMENTS || DISABLE_INLINE_COMMENTS) {
         // No comment markers when disabled
-        children = [
-          new InsertedTextRun({
-            text: aligned.edited,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: dateObj,
-          })
-        ];
+        // Use italics-aware version to properly render *italic* markers
+        const insertResult = createHighlightedInsertedRuns(aligned.edited, currentRevisionId, dateObj);
+        children = insertResult.runs;
+        currentRevisionId = insertResult.nextRevisionId;
+        if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
       } else {
         // Add comment for paragraph insertion
         const comment = createInlineComment(
@@ -644,18 +838,17 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         // IMPORTANT: Comment markers must NOT wrap track change elements (causes OOXML error)
         // Instead, put comment on an anchor character AFTER the track change
         // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
+        // Use italics-aware version to properly render *italic* markers
+        const insertResult = createHighlightedInsertedRuns(aligned.edited, currentRevisionId, dateObj);
         children = [
-          new InsertedTextRun({
-            text: aligned.edited,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: dateObj,
-          }),
+          ...insertResult.runs,
           new CommentRangeStart(currentCommentId),
           new TextRun(" "),
           new CommentRangeEnd(currentCommentId),
           new CommentReference(currentCommentId)
         ];
+        currentRevisionId = insertResult.nextRevisionId;
+        if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
         currentCommentId++;
       }
 
@@ -788,14 +981,13 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             }));
 
             // Add insert (process it now, skip in loop)
+            // Use italics-aware version to properly render *italic* markers
             stats.totalInsertions++;
             stats.wordsInserted += countWords(nextChange.text);
-            textRuns.push(new InsertedTextRun({
-              text: nextChange.text,
-              id: currentRevisionId++,
-              author: AUTHOR,
-              date: dateObj,
-            }));
+            const replaceInsertResult = createHighlightedInsertedRuns(nextChange.text, currentRevisionId, dateObj);
+            textRuns.push(...replaceInsertResult.runs);
+            currentRevisionId = replaceInsertResult.nextRevisionId;
+            if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
 
             // Comment anchor AFTER the track changes (not wrapping them)
             // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
@@ -886,12 +1078,11 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
 
           // Track change first, then comment anchor AFTER (not wrapping)
           // v9.5.1: CommentReference is a ParagraphChild (direct child of Paragraph, NOT wrapped in TextRun)
-          textRuns.push(new InsertedTextRun({
-            text: change.text,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: dateObj,
-          }));
+          // Use italics-aware version to properly render *italic* markers
+          const sigInsertResult = createHighlightedInsertedRuns(change.text, currentRevisionId, dateObj);
+          textRuns.push(...sigInsertResult.runs);
+          currentRevisionId = sigInsertResult.nextRevisionId;
+          if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
           textRuns.push(new CommentRangeStart(currentCommentId));
           textRuns.push(new TextRun(" "));
           textRuns.push(new CommentRangeEnd(currentCommentId));
@@ -899,12 +1090,11 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           currentCommentId++;
         } else {
           // No comment - just track change
-          textRuns.push(new InsertedTextRun({
-            text: change.text,
-            id: currentRevisionId++,
-            author: AUTHOR,
-            date: dateObj,
-          }));
+          // Use italics-aware version to properly render *italic* markers
+          const insertResult = createHighlightedInsertedRuns(change.text, currentRevisionId, dateObj);
+          textRuns.push(...insertResult.runs);
+          currentRevisionId = insertResult.nextRevisionId;
+          if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
         }
         break;
     }
