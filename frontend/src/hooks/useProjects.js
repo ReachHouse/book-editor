@@ -3,8 +3,8 @@
  * USE PROJECTS HOOK
  * =============================================================================
  *
- * Custom React hook for managing book editing projects in localStorage.
- * Provides CRUD operations for saving, loading, resuming, and deleting projects.
+ * Custom React hook for managing book editing projects.
+ * Uses IndexedDB for storage (50MB+ capacity) with localStorage fallback.
  *
  * PURPOSE:
  * --------
@@ -12,12 +12,15 @@
  * - Allow users to resume interrupted edits
  * - Store completed projects for later download
  *
- * STORAGE FORMAT:
- * ---------------
- * Projects are stored in localStorage with keys prefixed by 'book_'.
- * Example: 'book_1707134400000' where the number is the project ID (timestamp).
+ * STORAGE:
+ * --------
+ * Primary: IndexedDB (50MB+ capacity, async, better for large documents)
+ * Fallback: localStorage (5-10MB capacity, if IndexedDB unavailable)
  *
- * Each project is stored as a JSON string containing:
+ * Automatic migration from localStorage to IndexedDB on first use.
+ *
+ * PROJECT STRUCTURE:
+ * ------------------
  * {
  *   id: string,              - Unique identifier (timestamp string)
  *   fileName: string,        - Original file name
@@ -45,96 +48,16 @@
  *     saveProject,      // Function to save/update a project
  *     deleteProject,    // Function to delete by ID
  *     getProject,       // Function to get a single project by ID
- *     projectExists     // Function to check if project exists
+ *     projectExists,    // Function to check if project exists
+ *     storageInfo       // Storage usage info { usedMB, limitMB, percentUsed, isWarning, storageType }
  *   } = useProjects();
  * }
- *
- * STORAGE LIMITATIONS:
- * --------------------
- * localStorage typically has a 5-10 MB limit per origin.
- * Large documents (100k+ words) may approach this limit.
- * If quota is exceeded, saveProject will throw an error.
- *
- * TODO: Consider using IndexedDB for larger storage capacity.
  *
  * =============================================================================
  */
 
 import { useState, useEffect, useCallback } from 'react';
-
-/**
- * Prefix for all project keys in localStorage.
- * Used to identify and filter project data from other stored items.
- */
-const STORAGE_PREFIX = 'book_';
-
-/**
- * Check if an error is a QuotaExceededError.
- * Different browsers use different names for this error.
- *
- * @param {Error} err - The error to check
- * @returns {boolean} True if it's a quota exceeded error
- */
-function isQuotaExceededError(err) {
-  return (
-    err instanceof DOMException && (
-      // Firefox
-      err.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
-      // Most browsers
-      err.name === 'QuotaExceededError' ||
-      // Safari
-      err.code === 22
-    )
-  );
-}
-
-/**
- * Estimate current localStorage usage in bytes.
- *
- * @returns {number} Estimated bytes used
- */
-function getStorageUsage() {
-  let total = 0;
-  for (const key of Object.keys(localStorage)) {
-    if (key.startsWith(STORAGE_PREFIX)) {
-      const value = localStorage.getItem(key);
-      if (value) {
-        // UTF-16: 2 bytes per character
-        total += (key.length + value.length) * 2;
-      }
-    }
-  }
-  return total;
-}
-
-/**
- * Estimated localStorage limit in bytes.
- * Most browsers allow 5-10 MB. We use 5 MB as a conservative estimate.
- */
-const STORAGE_LIMIT_BYTES = 5 * 1024 * 1024; // 5 MB
-
-/**
- * Warning threshold - alert users at this percentage of capacity.
- */
-const STORAGE_WARNING_THRESHOLD = 0.8; // 80%
-
-/**
- * Get storage usage information.
- *
- * @returns {Object} { usedBytes, limitBytes, percentUsed, isWarning }
- */
-function getStorageInfo() {
-  const usedBytes = getStorageUsage();
-  const percentUsed = usedBytes / STORAGE_LIMIT_BYTES;
-  return {
-    usedBytes,
-    limitBytes: STORAGE_LIMIT_BYTES,
-    usedMB: (usedBytes / 1024 / 1024).toFixed(2),
-    limitMB: (STORAGE_LIMIT_BYTES / 1024 / 1024).toFixed(0),
-    percentUsed: Math.round(percentUsed * 100),
-    isWarning: percentUsed >= STORAGE_WARNING_THRESHOLD
-  };
-}
+import { storageService } from '../services/storageService';
 
 /**
  * Custom hook for managing book editing projects.
@@ -145,43 +68,31 @@ export function useProjects() {
   // State: array of saved projects
   const [savedProjects, setSavedProjects] = useState([]);
 
-  // State: true while loading from localStorage
+  // State: true while loading from storage
   const [loading, setLoading] = useState(true);
 
   // State: storage usage information
-  const [storageInfo, setStorageInfo] = useState(getStorageInfo());
+  const [storageInfo, setStorageInfo] = useState({
+    usedMB: '0.00',
+    limitMB: '50',
+    percentUsed: 0,
+    isWarning: false,
+    storageType: 'loading...'
+  });
 
   /**
-   * Load all saved projects from localStorage.
-   *
-   * Iterates through all localStorage keys, finds those with our prefix,
-   * parses the JSON data, and sorts by timestamp (newest first).
+   * Load all saved projects from storage.
+   * Updates both the project list and storage info.
    *
    * @returns {Promise<void>}
    */
   const loadProjects = useCallback(async () => {
     try {
-      // Find all keys that start with our prefix
-      const keys = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX));
-      const projects = [];
+      const projects = await storageService.getAllProjects();
+      setSavedProjects(projects);
 
-      // Parse each project
-      for (const key of keys) {
-        try {
-          const data = localStorage.getItem(key);
-          if (data) {
-            projects.push(JSON.parse(data));
-          }
-        } catch (err) {
-          // Log but don't fail - one corrupted project shouldn't break everything
-          console.error('Error loading project:', key, err);
-        }
-      }
-
-      // Sort by timestamp, newest first
-      setSavedProjects(projects.sort((a, b) => b.timestamp - a.timestamp));
-      // Update storage info after loading
-      setStorageInfo(getStorageInfo());
+      const info = await storageService.getStorageInfo();
+      setStorageInfo(info);
     } catch (err) {
       console.error('Error loading saved projects:', err);
     } finally {
@@ -190,88 +101,30 @@ export function useProjects() {
   }, []);
 
   /**
-   * Save or update a project in localStorage.
+   * Save or update a project.
    *
-   * The project is identified by its ID - if a project with the same ID
-   * already exists, it will be overwritten.
-   *
-   * Handles QuotaExceededError by attempting to free space via deleting
-   * old completed projects before reporting failure.
-   *
-   * @param {Object} projectData - Project data to save
-   * @throws {Error} If localStorage quota exceeded and cannot free space
+   * @param {Object} projectData - Project data to save (must have 'id' field)
+   * @throws {Error} If storage quota exceeded
    */
   const saveProject = useCallback(async (projectData) => {
-    const key = `${STORAGE_PREFIX}${projectData.id}`;
-    const jsonData = JSON.stringify(projectData);
-
-    const attemptSave = () => {
-      localStorage.setItem(key, jsonData);
-    };
-
     try {
-      attemptSave();
+      await storageService.saveProject(projectData);
       await loadProjects();
     } catch (err) {
-      if (isQuotaExceededError(err)) {
-        console.warn('localStorage quota exceeded, attempting to free space...');
-        const usageBytes = getStorageUsage();
-        console.warn(`Current usage: ${(usageBytes / 1024 / 1024).toFixed(2)} MB`);
-
-        // Try to free space by deleting oldest completed projects (not the current one)
-        const keys = Object.keys(localStorage)
-          .filter(k => k.startsWith(STORAGE_PREFIX) && k !== key);
-
-        // Sort by timestamp (oldest first) and filter to completed projects
-        const oldProjects = keys
-          .map(k => {
-            try {
-              return { key: k, data: JSON.parse(localStorage.getItem(k) || '{}') };
-            } catch {
-              return null;
-            }
-          })
-          .filter(p => p && p.data.isComplete)
-          .sort((a, b) => (a.data.timestamp || 0) - (b.data.timestamp || 0));
-
-        // Delete oldest completed projects until we have space or run out
-        for (const project of oldProjects) {
-          console.warn(`Deleting old project to free space: ${project.data.fileName}`);
-          localStorage.removeItem(project.key);
-
-          try {
-            attemptSave();
-            console.warn('Successfully saved after freeing space');
-            await loadProjects();
-            return;
-          } catch (retryErr) {
-            if (!isQuotaExceededError(retryErr)) {
-              throw retryErr;
-            }
-            // Still not enough space, continue deleting
-          }
-        }
-
-        // Could not free enough space
-        throw new Error(
-          'Storage full. Unable to save progress. Please delete some old projects and try again.'
-        );
-      }
-
       console.error('Failed to save project:', err);
       throw err;
     }
   }, [loadProjects]);
 
   /**
-   * Delete a project from localStorage by ID.
+   * Delete a project by ID.
    *
    * @param {string} projectId - The ID of the project to delete
    * @throws {Error} If deletion fails
    */
   const deleteProject = useCallback(async (projectId) => {
     try {
-      localStorage.removeItem(`${STORAGE_PREFIX}${projectId}`);
+      await storageService.deleteProject(projectId);
       await loadProjects();
     } catch (err) {
       console.error('Failed to delete project:', err);
@@ -283,12 +136,11 @@ export function useProjects() {
    * Get a specific project by ID.
    *
    * @param {string} projectId - The ID of the project to retrieve
-   * @returns {Object|null} The project data, or null if not found
+   * @returns {Promise<Object|null>} The project data, or null if not found
    */
-  const getProject = useCallback((projectId) => {
+  const getProject = useCallback(async (projectId) => {
     try {
-      const data = localStorage.getItem(`${STORAGE_PREFIX}${projectId}`);
-      return data ? JSON.parse(data) : null;
+      return await storageService.getProject(projectId);
     } catch (err) {
       console.error('Error getting project:', err);
       return null;
@@ -299,15 +151,19 @@ export function useProjects() {
    * Check if a project exists in storage.
    *
    * @param {string} projectId - The ID to check
-   * @returns {boolean} True if the project exists
+   * @returns {Promise<boolean>} True if the project exists
    */
-  const projectExists = useCallback((projectId) => {
-    return localStorage.getItem(`${STORAGE_PREFIX}${projectId}`) !== null;
+  const projectExists = useCallback(async (projectId) => {
+    return await storageService.projectExists(projectId);
   }, []);
 
-  // Load projects when the hook is first used
+  // Initialize storage service and load projects on mount
   useEffect(() => {
-    loadProjects();
+    const initAndLoad = async () => {
+      await storageService.init();
+      await loadProjects();
+    };
+    initAndLoad();
   }, [loadProjects]);
 
   return {
@@ -316,9 +172,9 @@ export function useProjects() {
     loadProjects,     // Reload the project list
     saveProject,      // Save or update a project
     deleteProject,    // Delete a project by ID
-    getProject,       // Get a single project by ID
-    projectExists,    // Check if a project exists
-    storageInfo       // Storage usage info { usedMB, limitMB, percentUsed, isWarning }
+    getProject,       // Get a single project by ID (now async)
+    projectExists,    // Check if a project exists (now async)
+    storageInfo       // Storage usage info { usedMB, limitMB, percentUsed, isWarning, storageType }
   };
 }
 
