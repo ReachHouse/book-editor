@@ -201,6 +201,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
             disabled={isDownloading}
             className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-semibold p-3 rounded-lg transition-all hover:scale-105 shadow-lg"
             title="Download Word document with Track Changes"
+            aria-label="Download Word document with Track Changes"
           >
             {isDownloading ? (
               <Loader className="w-5 h-5 animate-spin" />
@@ -216,6 +217,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
             onClick={() => onResume(project)}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold p-3 rounded-lg transition-all hover:scale-105 shadow-lg"
             title="Resume editing from where you left off"
+            aria-label="Resume editing from where you left off"
           >
             <Play className="w-5 h-5" />
           </button>
@@ -226,6 +228,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
           onClick={() => onDelete(project.id)}
           className="bg-red-600 hover:bg-red-700 text-white font-semibold p-3 rounded-lg transition-all hover:scale-105 shadow-lg"
           title="Delete from storage"
+          aria-label="Delete from storage"
         >
           <Trash2 className="w-5 h-5" />
         </button>

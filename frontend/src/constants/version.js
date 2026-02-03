@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.11.0 [Feature]  - 2026-02-03: Docker memory limits, ARIA labels for accessibility, deployment rollback
  * v1.10.0 [Refactor] - 2026-02-03: Code quality improvements, input validation, deployment hardening
  * v1.9.1 [Security] - 2026-02-03: Add rate limiting, fix error leakage, improve stability
  * v1.9.0 [Bugfix]   - 2026-02-03: Fix 8 style rule detection issues in modularized styleRules
@@ -87,13 +88,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.10.0';
+export const VERSION = '1.11.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Refactor';
+export const VERSION_TAG = 'Feature';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
