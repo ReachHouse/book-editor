@@ -33,7 +33,7 @@
 const express = require('express');
 const router = express.Router();
 const { editChunk, generateStyleGuide } = require('../services/anthropicService');
-const { generateDocxBuffer } = require('../services/documentService');
+const { generateDocxBuffer } = require('../services/document');
 
 // =============================================================================
 // INPUT VALIDATION HELPERS
