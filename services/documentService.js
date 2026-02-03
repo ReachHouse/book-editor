@@ -388,11 +388,14 @@ function createInlineComment(id, changeType, original, edited, timestamp) {
  * Combines track change (InsertedTextRun) with formatting revision (highlight).
  * This makes the insertion appear in Word's Formatting count as well as Insertions.
  *
+ * The `revision` property tracks formatting changes (rPrChange in OOXML).
+ * It records the OLD state before the change, so an empty revision means
+ * "previously had no special formatting" → now has highlight.
+ *
  * @param {string} text - The inserted text
  * @param {number} revisionId - Revision ID for the insertion
- * @param {number} formattingRevisionId - Revision ID for the formatting change
  * @param {Date} dateObj - Date object for the revision
- * @returns {Array} Array containing InsertedTextRun (highlight applied but not tracked as separate revision)
+ * @returns {InsertedTextRun} InsertedTextRun with highlight and formatting revision tracked
  */
 function createHighlightedInsertedRun(text, revisionId, dateObj) {
   if (!HIGHLIGHT_INSERTIONS) {
@@ -405,14 +408,22 @@ function createHighlightedInsertedRun(text, revisionId, dateObj) {
     });
   }
 
-  // Return InsertedTextRun with highlight for visibility
-  // Note: The highlight is applied but InsertedTextRun handles the track change
+  // Return InsertedTextRun with highlight AND formatting revision tracking
+  // The revision property creates rPrChange element in OOXML which tracks formatting changes
+  // This makes Word show the change in both Insertions AND Formatting counts
   return new InsertedTextRun({
     text: text,
     id: revisionId,
     author: AUTHOR,
     date: dateObj,
     highlight: INSERTION_HIGHLIGHT_COLOR,
+    // Track the highlight as a formatting revision
+    // Empty revision = "no formatting before" → Word sees this as adding highlight
+    revision: {
+      id: revisionId + 1000, // Use offset to avoid ID collision with insertion
+      author: AUTHOR,
+      date: dateObj,
+    }
   });
 }
 

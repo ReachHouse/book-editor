@@ -417,12 +417,85 @@ describe('Too/To Rule', () => {
 });
 
 // =============================================================================
+// PROPER NOUN CAPITALIZATION
+// =============================================================================
+
+describe('Proper Noun (Family Terms) Rule', () => {
+  const rule = getStyleRuleById('proper-noun-family');
+
+  test('detects lowercase family term as name → capitalized', () => {
+    expect(rule.detect('said dad', 'said Dad')).toBe(true);
+    expect(rule.detect('asked mom', 'asked Mom')).toBe(true);
+    expect(rule.detect('told father', 'told Father')).toBe(true);
+  });
+
+  test('detects direct address capitalization', () => {
+    expect(rule.detect('Yes, dad', 'Yes, Dad')).toBe(true);
+    expect(rule.detect('No, mom', 'No, Mom')).toBe(true);
+  });
+
+  test('detects subject capitalization', () => {
+    expect(rule.detect('dad is coming', 'Dad is coming')).toBe(true);
+    expect(rule.detect('mom said yes', 'Mom said yes')).toBe(true);
+  });
+
+  test('returns false when already correct', () => {
+    expect(rule.detect('said Dad', 'said Dad')).toBe(false);
+    expect(rule.detect('my dad is here', 'my dad is here')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'Dad')).toBe(false);
+    expect(rule.detect('dad', null)).toBe(false);
+  });
+});
+
+// =============================================================================
+// WORD SIMPLIFICATION
+// =============================================================================
+
+describe('Word Simplification Rule', () => {
+  const rule = getStyleRuleById('word-simplification');
+
+  test('detects utilize → use', () => {
+    expect(rule.detect('We utilize this tool', 'We use this tool')).toBe(true);
+  });
+
+  test('detects commence → begin/start', () => {
+    expect(rule.detect('Let us commence', 'Let us begin')).toBe(true);
+    expect(rule.detect('The meeting will commence', 'The meeting will start')).toBe(true);
+  });
+
+  test('detects subsequently → later/then', () => {
+    expect(rule.detect('Subsequently, he left', 'Later, he left')).toBe(true);
+  });
+
+  test('detects whilst → while', () => {
+    expect(rule.detect('whilst walking', 'while walking')).toBe(true);
+  });
+
+  test('detects amongst → among', () => {
+    expect(rule.detect('amongst friends', 'among friends')).toBe(true);
+  });
+
+  test('returns false when no simplification', () => {
+    expect(rule.detect('use this', 'use this')).toBe(false);
+    expect(rule.detect('hello world', 'hello world')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'use')).toBe(false);
+    expect(rule.detect('utilize', null)).toBe(false);
+  });
+});
+
+// =============================================================================
 // STYLE_RULES Array
 // =============================================================================
 
 describe('STYLE_RULES', () => {
   test('contains expected number of rules', () => {
-    expect(STYLE_RULES.length).toBeGreaterThanOrEqual(19);
+    expect(STYLE_RULES.length).toBeGreaterThanOrEqual(21);
   });
 
   test('all rules have required properties', () => {

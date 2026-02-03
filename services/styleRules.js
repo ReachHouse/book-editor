@@ -358,6 +358,105 @@ const STYLE_RULES = [
     },
     explanation: 'Corrected too/to. too = also or excessive, to = direction or infinitive.',
     rule: 'too (also/excessive) vs to (direction/infinitive)'
+  },
+
+  // ===========================================================================
+  // PROPER NOUN CAPITALIZATION
+  // ===========================================================================
+  {
+    id: 'proper-noun-family',
+    name: 'Proper Noun (Family Terms)',
+    category: 'Capitalization',
+    detect: (original, edited) => {
+      if (!original || !edited) return false;
+      // Rule: "Can Dad come?" (used as name) vs "my dad is here" (generic)
+      // Detect when lowercase family term used as name is capitalized
+      // or when capitalized generic usage is lowercased
+
+      // Pattern 1: Lowercase used as proper noun → should be capitalized
+      // e.g., "said dad" → "said Dad", "asked mom" → "asked Mom"
+      const lowercaseAsName = /\b(said|asked|called|told|answered|replied|cried|shouted|whispered)\s+(dad|mom|mum|mother|father|grandma|grandpa|gran|granny|nana|papa)\b/i;
+      const capitalizedAsName = /\b(said|asked|called|told|answered|replied|cried|shouted|whispered)\s+(Dad|Mom|Mum|Mother|Father|Grandma|Grandpa|Gran|Granny|Nana|Papa)\b/;
+
+      // Pattern 2: Direct address - "Yes, dad" → "Yes, Dad"
+      const lowercaseDirectAddress = /,\s+(dad|mom|mum|mother|father|grandma|grandpa|gran|granny|nana|papa)\b/i;
+      const capitalizedDirectAddress = /,\s+(Dad|Mom|Mum|Mother|Father|Grandma|Grandpa|Gran|Granny|Nana|Papa)\b/;
+
+      // Pattern 3: Subject of sentence without possessive
+      const lowercaseSubject = /\b(dad|mom|mum|mother|father|grandma|grandpa)\s+(is|was|will|would|can|could|has|had|said|went|came)\b/i;
+      const capitalizedSubject = /\b(Dad|Mom|Mum|Mother|Father|Grandma|Grandpa)\s+(is|was|will|would|can|could|has|had|said|went|came)\b/;
+
+      // Check if original has lowercase and edited has capitalized (or vice versa for corrections)
+      const origLowerName = lowercaseAsName.test(original) && !capitalizedAsName.test(original);
+      const editCapName = capitalizedAsName.test(edited);
+
+      const origLowerDirect = lowercaseDirectAddress.test(original) && !capitalizedDirectAddress.test(original);
+      const editCapDirect = capitalizedDirectAddress.test(edited);
+
+      const origLowerSubject = lowercaseSubject.test(original) && !capitalizedSubject.test(original);
+      const editCapSubject = capitalizedSubject.test(edited);
+
+      return (origLowerName && editCapName) ||
+             (origLowerDirect && editCapDirect) ||
+             (origLowerSubject && editCapSubject);
+    },
+    explanation: 'Family terms capitalized when used as names/proper nouns, lowercase when generic.',
+    rule: 'Proper nouns: "Can Dad come?" vs "my dad is here"'
+  },
+
+  // ===========================================================================
+  // WORD SIMPLIFICATION
+  // ===========================================================================
+  {
+    id: 'word-simplification',
+    name: 'Word Simplification',
+    category: 'Style',
+    detect: (original, edited) => {
+      if (!original || !edited) return false;
+      // Detect replacement of difficult/uncommon words with simpler alternatives
+      const complexWords = {
+        'utilize': 'use',
+        'utilise': 'use',
+        'commence': 'begin|start',
+        'terminate': 'end|stop',
+        'endeavour': 'try',
+        'endeavor': 'try',
+        'ascertain': 'find out|learn',
+        'subsequently': 'later|then',
+        'approximately': 'about|around',
+        'sufficient': 'enough',
+        'insufficient': 'not enough',
+        'facilitate': 'help|make easier',
+        'implement': 'do|carry out',
+        'demonstrate': 'show',
+        'regarding': 'about',
+        'concerning': 'about',
+        'prior to': 'before',
+        'subsequent to': 'after',
+        'in order to': 'to',
+        'due to the fact that': 'because',
+        'at this point in time': 'now',
+        'in the event that': 'if',
+        'notwithstanding': 'despite',
+        'aforementioned': 'this|that|these',
+        'heretofore': 'until now',
+        'hitherto': 'until now',
+        'whilst': 'while',
+        'amongst': 'among',
+        'amidst': 'amid'
+      };
+
+      for (const [complex, simple] of Object.entries(complexWords)) {
+        const complexRegex = new RegExp(`\\b${complex}\\b`, 'i');
+        const simpleRegex = new RegExp(`\\b(${simple})\\b`, 'i');
+        if (complexRegex.test(original) && simpleRegex.test(edited) && !complexRegex.test(edited)) {
+          return true;
+        }
+      }
+      return false;
+    },
+    explanation: 'Replaced complex/uncommon word with simpler alternative for clarity.',
+    rule: 'Replace difficult/uncommon words with simpler alternatives'
   }
 ];
 
