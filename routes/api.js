@@ -33,11 +33,16 @@
 const express = require('express');
 const router = express.Router();
 const { editChunk, generateStyleGuide } = require('../services/anthropicService');
-const { generateDocxBuffer } = require('../services/documentService');
+const { generateDocxBuffer } = require('../services/document');
 
 // =============================================================================
 // INPUT VALIDATION HELPERS
 // =============================================================================
+
+/**
+ * Maximum text length for API requests (500,000 characters ≈ 100,000 words)
+ */
+const MAX_TEXT_LENGTH = 500000;
 
 /**
  * Sanitize filename for Content-Disposition header.
@@ -59,13 +64,14 @@ function sanitizeFileName(fileName) {
 }
 
 /**
- * Validate that a value is a non-empty string.
+ * Validate that a value is a non-empty string within length limits.
  *
  * @param {*} value - Value to check
  * @param {string} fieldName - Name of field for error message
+ * @param {number} maxLength - Maximum allowed length (default: MAX_TEXT_LENGTH)
  * @returns {string|null} Error message if invalid, null if valid
  */
-function validateTextField(value, fieldName) {
+function validateTextField(value, fieldName, maxLength = MAX_TEXT_LENGTH) {
   if (value === undefined || value === null) {
     return `${fieldName} is required`;
   }
@@ -74,6 +80,9 @@ function validateTextField(value, fieldName) {
   }
   if (!value.trim()) {
     return `${fieldName} cannot be empty`;
+  }
+  if (value.length > maxLength) {
+    return `${fieldName} too long (max ${maxLength.toLocaleString()} characters)`;
   }
   return null;
 }
@@ -126,8 +135,9 @@ router.post('/api/edit-chunk', async (req, res) => {
     res.json({ editedText });
 
   } catch (error) {
-    console.error('Edit chunk error:', error.message);
-    res.status(500).json({ error: error.message });
+    console.error('Edit chunk error:', error);
+    // Return generic message to client, log full error server-side
+    res.status(500).json({ error: 'Failed to process text. Please try again.' });
   }
 });
 
@@ -245,8 +255,9 @@ router.post('/api/generate-docx', async (req, res) => {
     console.log('Document generated successfully:', outputFileName);
 
   } catch (error) {
-    console.error('Document generation error:', error.message);
-    res.status(500).json({ error: error.message });
+    console.error('Document generation error:', error);
+    // Return generic message to client, log full error server-side
+    res.status(500).json({ error: 'Failed to generate document. Please try again.' });
   }
 });
 

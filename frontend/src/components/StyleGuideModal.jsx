@@ -95,6 +95,7 @@ function StyleGuideModal({ isOpen, onClose }) {
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-white transition-colors p-1 hover:bg-gray-700 rounded"
+              aria-label="Close style guide"
             >
               <X className="w-5 h-5" />
             </button>

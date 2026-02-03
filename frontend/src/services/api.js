@@ -117,8 +117,14 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
 
     // Handle HTTP errors
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Server error');
+      let errorMessage = `Server error (${response.status})`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        // Response wasn't JSON, use default message
+      }
+      throw new Error(errorMessage);
     }
 
     // Parse and return the edited text
@@ -215,8 +221,14 @@ export async function downloadDocument(content) {
 
   // Handle errors
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Server failed to generate document');
+    let errorMessage = `Server failed to generate document (${response.status})`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch {
+      // Response wasn't JSON, use default message
+    }
+    throw new Error(errorMessage);
   }
 
   // Get the binary data as a blob

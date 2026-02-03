@@ -9,7 +9,7 @@ const {
   createDocumentWithTrackChanges,
   createTrackedParagraph,
   generateDocxBuffer
-} = require('../../services/documentService');
+} = require('../../services/document');
 
 // =============================================================================
 // generateDocxBuffer Tests (Main API)

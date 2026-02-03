@@ -39,6 +39,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 
 // -----------------------------------------------------------------------------
 // Route Imports
@@ -76,6 +77,17 @@ const corsOptions = {
   maxAge: 86400 // Cache preflight for 24 hours
 };
 app.use(cors(corsOptions));
+
+// Rate Limiting: Protect against API abuse and quota exhaustion
+// Limits each IP to 100 requests per 15 minutes for API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false // Disable `X-RateLimit-*` headers
+});
+app.use('/api/', apiLimiter);
 
 // Request Timeout: Prevent indefinite hangs (5 minutes for large documents)
 const REQUEST_TIMEOUT_MS = 5 * 60 * 1000;

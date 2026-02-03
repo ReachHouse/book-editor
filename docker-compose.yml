@@ -91,3 +91,10 @@ services:
 
     # Restart policy: always restart unless manually stopped
     restart: unless-stopped
+
+    # Resource limits to prevent runaway memory usage
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'

@@ -648,12 +648,68 @@ describe('Speaker Continuation Format Rule', () => {
 });
 
 // =============================================================================
+// OXFORD COMMA
+// =============================================================================
+
+describe('Oxford Comma Rule', () => {
+  const rule = getStyleRuleById('oxford-comma');
+
+  test('detects Oxford comma addition', () => {
+    expect(rule.detect('apples, oranges and bananas', 'apples, oranges, and bananas')).toBe(true);
+    expect(rule.detect('red, white and blue', 'red, white, and blue')).toBe(true);
+  });
+
+  test('detects Oxford comma with "or"', () => {
+    expect(rule.detect('cats, dogs or birds', 'cats, dogs, or birds')).toBe(true);
+  });
+
+  test('returns false when no change', () => {
+    expect(rule.detect('apples, oranges, and bananas', 'apples, oranges, and bananas')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'text')).toBe(false);
+    expect(rule.detect('text', null)).toBe(false);
+  });
+});
+
+// =============================================================================
+// EM-DASH / EN-DASH
+// =============================================================================
+
+describe('Em-dash/En-dash Rule', () => {
+  const rule = getStyleRuleById('em-dash-en-dash');
+
+  test('detects double hyphen to em-dash conversion', () => {
+    expect(rule.detect('Hello -- world', 'Hello — world')).toBe(true);
+  });
+
+  test('detects spaced hyphen to em-dash conversion', () => {
+    expect(rule.detect('Hello - world', 'Hello — world')).toBe(true);
+  });
+
+  test('detects en-dash addition for ranges', () => {
+    expect(rule.detect('pages 1-10', 'pages 1–10')).toBe(true);
+    expect(rule.detect('2020-2025', '2020–2025')).toBe(true);
+  });
+
+  test('returns false when no change', () => {
+    expect(rule.detect('Hello — world', 'Hello — world')).toBe(false);
+  });
+
+  test('handles null/undefined gracefully', () => {
+    expect(rule.detect(null, 'text')).toBe(false);
+    expect(rule.detect('text', null)).toBe(false);
+  });
+});
+
+// =============================================================================
 // STYLE_RULES Array
 // =============================================================================
 
 describe('STYLE_RULES', () => {
   test('contains expected number of rules', () => {
-    expect(STYLE_RULES.length).toBeGreaterThanOrEqual(29);
+    expect(STYLE_RULES.length).toBeGreaterThanOrEqual(31);
   });
 
   test('all rules have required properties', () => {

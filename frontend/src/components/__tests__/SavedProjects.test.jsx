@@ -1,0 +1,196 @@
+/**
+ * SavedProjects Component Tests
+ */
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import SavedProjects from '../SavedProjects';
+
+describe('SavedProjects', () => {
+  const mockOnDownload = jest.fn();
+  const mockOnResume = jest.fn();
+  const mockOnDelete = jest.fn();
+
+  const completedProject = {
+    id: '1',
+    fileName: 'completed-book.docx',
+    timestamp: Date.now(),
+    chunksCompleted: 10,
+    totalChunks: 10,
+    isComplete: true,
+    originalText: 'Original text',
+    fullEditedText: 'Edited text'
+  };
+
+  const inProgressProject = {
+    id: '2',
+    fileName: 'in-progress-book.docx',
+    timestamp: Date.now(),
+    chunksCompleted: 5,
+    totalChunks: 10,
+    isComplete: false,
+    originalText: 'Original text'
+  };
+
+  beforeEach(() => {
+    mockOnDownload.mockClear();
+    mockOnResume.mockClear();
+    mockOnDelete.mockClear();
+  });
+
+  test('returns null when no projects exist', () => {
+    const { container } = render(
+      <SavedProjects
+        projects={[]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  test('renders header when projects exist', () => {
+    render(
+      <SavedProjects
+        projects={[completedProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    expect(screen.getByText('Previously Edited Books')).toBeInTheDocument();
+  });
+
+  test('displays completed project filename', () => {
+    render(
+      <SavedProjects
+        projects={[completedProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    expect(screen.getByText('completed-book.docx')).toBeInTheDocument();
+  });
+
+  test('displays in-progress project with progress', () => {
+    render(
+      <SavedProjects
+        projects={[inProgressProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    expect(screen.getByText(/In progress: 5\/10 sections/)).toBeInTheDocument();
+  });
+
+  test('shows download button for completed projects', () => {
+    render(
+      <SavedProjects
+        projects={[completedProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    const downloadButton = screen.getByLabelText('Download Word document with Track Changes');
+    expect(downloadButton).toBeInTheDocument();
+  });
+
+  test('shows resume button for in-progress projects', () => {
+    render(
+      <SavedProjects
+        projects={[inProgressProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    const resumeButton = screen.getByLabelText('Resume editing from where you left off');
+    expect(resumeButton).toBeInTheDocument();
+  });
+
+  test('shows delete button for all projects', () => {
+    render(
+      <SavedProjects
+        projects={[completedProject, inProgressProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    const deleteButtons = screen.getAllByLabelText('Delete from storage');
+    expect(deleteButtons).toHaveLength(2);
+  });
+
+  test('calls onDelete when delete button is clicked', () => {
+    render(
+      <SavedProjects
+        projects={[completedProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    const deleteButton = screen.getByLabelText('Delete from storage');
+    fireEvent.click(deleteButton);
+
+    expect(mockOnDelete).toHaveBeenCalledWith('1');
+  });
+
+  test('calls onResume when resume button is clicked', () => {
+    render(
+      <SavedProjects
+        projects={[inProgressProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    const resumeButton = screen.getByLabelText('Resume editing from where you left off');
+    fireEvent.click(resumeButton);
+
+    expect(mockOnResume).toHaveBeenCalledWith(inProgressProject);
+  });
+
+  test('displays storage warning when provided', () => {
+    const storageInfo = {
+      isWarning: true,
+      usedMB: '4.5',
+      limitMB: '5',
+      percentUsed: '90'
+    };
+
+    render(
+      <SavedProjects
+        projects={[completedProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+        storageInfo={storageInfo}
+      />
+    );
+
+    expect(screen.getByText('Storage Nearly Full')).toBeInTheDocument();
+  });
+});

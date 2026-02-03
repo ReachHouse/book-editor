@@ -90,7 +90,7 @@ function DebugLog({ logs, title = 'Debug Log', showPulse = false }) {
       {/* Log Entries */}
       {logs.map((log, index) => (
         <div
-          key={index}
+          key={`${log.timestamp}-${index}`}
           className={`text-xs mb-2 font-mono ${
             log.type === 'error' ? 'text-red-400' : 'text-gray-300'
           }`}

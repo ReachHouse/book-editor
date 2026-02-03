@@ -284,6 +284,7 @@ function App() {
 
       const fullEditedText = editedChunks.join('\n\n');
       const docContent = {
+        projectId,
         original: originalText,
         edited: fullEditedText,
         fileName: formatFileName(resumeProject ? resumeProject.fileName : file.name)
@@ -358,7 +359,7 @@ function App() {
     await deleteProject(projectId);
 
     // Clear current content if we deleted the active project
-    if (editedContent && editedContent.fileName === projectId) {
+    if (editedContent && editedContent.projectId === projectId) {
       setEditedContent(null);
       setCompleted(false);
     }

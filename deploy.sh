@@ -34,10 +34,16 @@
 # WHAT THIS SCRIPT DOES:
 # ----------------------
 # 1. Pulls latest code from GitHub (main branch)
-# 2. Stops the running container
-# 3. Rebuilds the Docker image
-# 4. Starts the container
-# 5. Shows container logs
+# 2. Tags current image as "previous" for rollback
+# 3. Stops the running container
+# 4. Rebuilds the Docker image
+# 5. Starts the container and shows logs
+#
+# ROLLBACK:
+# ---------
+# If a deployment fails, restore the previous version:
+#   docker tag book-editor:previous book-editor:latest
+#   docker compose up -d
 #
 # =============================================================================
 
@@ -90,18 +96,23 @@ git reset --hard origin/main
 echo -e "      Current version: $(grep -oP "VERSION = '\K[^']+" frontend/src/constants/version.js 2>/dev/null || echo 'unknown')"
 echo ""
 
-# Step 2: Stop existing container
-echo -e "${GREEN}[2/4] Stopping existing container...${NC}"
+# Step 2: Tag previous image for rollback
+echo -e "${GREEN}[2/5] Tagging previous image for rollback...${NC}"
+docker tag book-editor:latest book-editor:previous 2>/dev/null || echo "      (No previous image to tag)"
+echo ""
+
+# Step 3: Stop existing container
+echo -e "${GREEN}[3/5] Stopping existing container...${NC}"
 docker compose down 2>/dev/null || true
 echo ""
 
-# Step 3: Build new image
-echo -e "${GREEN}[3/4] Building Docker image (this may take a minute)...${NC}"
+# Step 4: Build new image
+echo -e "${GREEN}[4/5] Building Docker image (this may take a minute)...${NC}"
 docker compose build --no-cache
 echo ""
 
-# Step 4: Start container
-echo -e "${GREEN}[4/4] Starting container...${NC}"
+# Step 5: Start container
+echo -e "${GREEN}[5/5] Starting container...${NC}"
 docker compose up -d
 echo ""
 
@@ -128,6 +139,7 @@ echo "Useful commands:"
 echo "  View logs:     docker compose logs -f"
 echo "  Stop:          docker compose down"
 echo "  Restart:       docker compose restart"
+echo "  Rollback:      docker tag book-editor:previous book-editor:latest && docker compose up -d"
 echo ""
 
 # Show recent logs
