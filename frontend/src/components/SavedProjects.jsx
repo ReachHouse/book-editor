@@ -71,7 +71,7 @@
  */
 
 import React from 'react';
-import { Clock, Download, Play, Trash2, Loader } from 'lucide-react';
+import { Clock, Download, Play, Trash2, Loader, AlertTriangle } from 'lucide-react';
 import { formatFileName } from '../utils/documentUtils';
 
 /**
@@ -83,13 +83,15 @@ import { formatFileName } from '../utils/documentUtils';
  * @param {function} props.onResume - Resume incomplete project
  * @param {function} props.onDelete - Delete project by ID
  * @param {boolean} props.isDownloading - Show loading state on download buttons
+ * @param {Object} props.storageInfo - Storage usage info from useProjects hook
  */
 function SavedProjects({
   projects,
   onDownload,
   onResume,
   onDelete,
-  isDownloading
+  isDownloading,
+  storageInfo
 }) {
   // Don't render anything if no projects exist
   if (!projects || projects.length === 0) return null;
@@ -106,6 +108,20 @@ function SavedProjects({
       <p className="text-gray-400 text-sm mb-6">
         Edited books are auto-saved. Download completed books or resume incomplete ones.
       </p>
+
+      {/* Storage Warning Banner */}
+      {storageInfo && storageInfo.isWarning && (
+        <div className="bg-yellow-900/50 border border-yellow-600 rounded-lg p-4 mb-6 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-yellow-200 font-semibold">Storage Nearly Full</p>
+            <p className="text-yellow-300/80 text-sm mt-1">
+              Using {storageInfo.usedMB} MB of {storageInfo.limitMB} MB ({storageInfo.percentUsed}%).
+              Delete old projects to free up space.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Project List */}
       <div className="space-y-4">

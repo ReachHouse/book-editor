@@ -742,6 +742,85 @@ const STYLE_RULES = [
     },
     explanation: 'Reformatted speaker continuation for clarity.',
     rule: 'Direct dialogue: speaker continuation formatting'
+  },
+  // =============================================================================
+  // OXFORD COMMA (SERIAL COMMA)
+  // =============================================================================
+  {
+    id: 'oxford-comma',
+    name: 'Oxford Comma (Serial Comma)',
+    category: 'Punctuation',
+    detect: (original, edited) => {
+      if (!original || !edited) return false;
+      // Detect addition of Oxford comma before "and" or "or" in a list
+      // Pattern: "A, B and C" → "A, B, and C"
+      // Pattern: "A, B or C" → "A, B, or C"
+
+      // Count serial comma patterns (comma before and/or in lists)
+      const oxfordPattern = /,\s+\w+,\s+(?:and|or)\s+\w+/gi;
+      const noOxfordPattern = /,\s+\w+\s+(?:and|or)\s+\w+/gi;
+
+      const origOxford = (original.match(oxfordPattern) || []).length;
+      const editOxford = (edited.match(oxfordPattern) || []).length;
+      const origNoOxford = (original.match(noOxfordPattern) || []).length;
+      const editNoOxford = (edited.match(noOxfordPattern) || []).length;
+
+      // Oxford comma added: more Oxford patterns in edited, fewer non-Oxford patterns
+      if (editOxford > origOxford && editNoOxford < origNoOxford) {
+        return true;
+      }
+
+      return false;
+    },
+    explanation: 'Added Oxford comma (serial comma) before the final item in a list for clarity.',
+    rule: 'Use the Oxford comma (serial comma) before "and" or "or" in lists of three or more items.'
+  },
+  // =============================================================================
+  // EM-DASH / EN-DASH
+  // =============================================================================
+  {
+    id: 'em-dash-en-dash',
+    name: 'Em-dash/En-dash Usage',
+    category: 'Punctuation',
+    detect: (original, edited) => {
+      if (!original || !edited) return false;
+      // Detect conversion of hyphens to em-dashes or en-dashes
+      // Hyphens surrounded by spaces " - " → em-dash " — " or "—"
+      // Hyphens in ranges "1-10" → en-dash "1–10"
+
+      // Count em-dashes (—) and en-dashes (–)
+      const emDashCount = (str) => (str.match(/—/g) || []).length;
+      const enDashCount = (str) => (str.match(/–/g) || []).length;
+
+      // Count double hyphens that should be em-dashes
+      const doubleHyphenCount = (str) => (str.match(/--/g) || []).length;
+
+      // Count spaced hyphens that should be em-dashes
+      const spacedHyphenCount = (str) => (str.match(/\s+-\s+/g) || []).length;
+
+      const origEmDash = emDashCount(original);
+      const editEmDash = emDashCount(edited);
+      const origEnDash = enDashCount(original);
+      const editEnDash = enDashCount(edited);
+      const origDoubleHyphen = doubleHyphenCount(original);
+      const editDoubleHyphen = doubleHyphenCount(edited);
+      const origSpacedHyphen = spacedHyphenCount(original);
+      const editSpacedHyphen = spacedHyphenCount(edited);
+
+      // Em-dash added: more em-dashes, fewer double/spaced hyphens
+      if (editEmDash > origEmDash && (editDoubleHyphen < origDoubleHyphen || editSpacedHyphen < origSpacedHyphen)) {
+        return true;
+      }
+
+      // En-dash added: more en-dashes in edited
+      if (editEnDash > origEnDash) {
+        return true;
+      }
+
+      return false;
+    },
+    explanation: 'Corrected dash usage: em-dash (—) for breaks in thought, en-dash (–) for ranges.',
+    rule: 'Use em-dash (—) for parenthetical breaks; en-dash (–) for number ranges and connections.'
   }
 ];
 

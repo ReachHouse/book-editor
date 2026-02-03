@@ -108,6 +108,35 @@ function getStorageUsage() {
 }
 
 /**
+ * Estimated localStorage limit in bytes.
+ * Most browsers allow 5-10 MB. We use 5 MB as a conservative estimate.
+ */
+const STORAGE_LIMIT_BYTES = 5 * 1024 * 1024; // 5 MB
+
+/**
+ * Warning threshold - alert users at this percentage of capacity.
+ */
+const STORAGE_WARNING_THRESHOLD = 0.8; // 80%
+
+/**
+ * Get storage usage information.
+ *
+ * @returns {Object} { usedBytes, limitBytes, percentUsed, isWarning }
+ */
+function getStorageInfo() {
+  const usedBytes = getStorageUsage();
+  const percentUsed = usedBytes / STORAGE_LIMIT_BYTES;
+  return {
+    usedBytes,
+    limitBytes: STORAGE_LIMIT_BYTES,
+    usedMB: (usedBytes / 1024 / 1024).toFixed(2),
+    limitMB: (STORAGE_LIMIT_BYTES / 1024 / 1024).toFixed(0),
+    percentUsed: Math.round(percentUsed * 100),
+    isWarning: percentUsed >= STORAGE_WARNING_THRESHOLD
+  };
+}
+
+/**
  * Custom hook for managing book editing projects.
  *
  * @returns {Object} Project management functions and state
@@ -118,6 +147,9 @@ export function useProjects() {
 
   // State: true while loading from localStorage
   const [loading, setLoading] = useState(true);
+
+  // State: storage usage information
+  const [storageInfo, setStorageInfo] = useState(getStorageInfo());
 
   /**
    * Load all saved projects from localStorage.
@@ -148,6 +180,8 @@ export function useProjects() {
 
       // Sort by timestamp, newest first
       setSavedProjects(projects.sort((a, b) => b.timestamp - a.timestamp));
+      // Update storage info after loading
+      setStorageInfo(getStorageInfo());
     } catch (err) {
       console.error('Error loading saved projects:', err);
     } finally {
@@ -283,7 +317,8 @@ export function useProjects() {
     saveProject,      // Save or update a project
     deleteProject,    // Delete a project by ID
     getProject,       // Get a single project by ID
-    projectExists     // Check if a project exists
+    projectExists,    // Check if a project exists
+    storageInfo       // Storage usage info { usedMB, limitMB, percentUsed, isWarning }
   };
 }
 
