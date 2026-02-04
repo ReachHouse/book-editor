@@ -22,8 +22,7 @@ const {
   AUTHOR,
   SIGNIFICANT_CHANGE_THRESHOLD,
   DISABLE_COMMENTS,
-  DISABLE_INLINE_COMMENTS,
-  HIGHLIGHT_INSERTIONS
+  DISABLE_INLINE_COMMENTS
 } = require('./constants');
 const { countWords, isWhitespaceOnly, createStatsContext } = require('./utils');
 const { categorizeChange } = require('./categorization');
@@ -146,7 +145,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
         const insertResult = createHighlightedInsertedRuns(aligned.edited, currentRevisionId, dateObj);
         children = insertResult.runs;
         currentRevisionId = insertResult.nextRevisionId;
-        if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
+
       } else {
         const comment = createInlineComment(
           currentCommentId,
@@ -166,7 +165,7 @@ function createParagraphFromAlignment(aligned, startRevisionId, startCommentId, 
           new CommentReference(currentCommentId)
         ];
         currentRevisionId = insertResult.nextRevisionId;
-        if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
+
         currentCommentId++;
       }
 
@@ -279,7 +278,6 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
             const replaceInsertResult = createHighlightedInsertedRuns(nextChange.text, currentRevisionId, dateObj);
             textRuns.push(...replaceInsertResult.runs);
             currentRevisionId = replaceInsertResult.nextRevisionId;
-            if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
 
             textRuns.push(new CommentRangeStart(currentCommentId));
             textRuns.push(new TextRun(" "));
@@ -363,7 +361,6 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           const sigInsertResult = createHighlightedInsertedRuns(change.text, currentRevisionId, dateObj);
           textRuns.push(...sigInsertResult.runs);
           currentRevisionId = sigInsertResult.nextRevisionId;
-          if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
           textRuns.push(new CommentRangeStart(currentCommentId));
           textRuns.push(new TextRun(" "));
           textRuns.push(new CommentRangeEnd(currentCommentId));
@@ -373,7 +370,6 @@ function createTrackedParagraphWithComments(original, edited, startRevisionId, s
           const insertResult = createHighlightedInsertedRuns(change.text, currentRevisionId, dateObj);
           textRuns.push(...insertResult.runs);
           currentRevisionId = insertResult.nextRevisionId;
-          if (HIGHLIGHT_INSERTIONS) stats.totalFormattingChanges++;
         }
         break;
     }

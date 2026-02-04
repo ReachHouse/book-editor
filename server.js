@@ -16,7 +16,7 @@
  *   routes/api.js             - Core API endpoints (edit, style guide, docx)
  *   services/anthropicService.js - Claude AI API communication
  *   services/diffService.js   - LCS-based diff algorithms for Track Changes
- *   services/documentService.js - Word document generation with Track Changes
+ *   services/document/          - Word document generation with Track Changes
  *   config/styleGuide.js      - Reach Publishers House Style Guide
  *
  * DEPLOYMENT:
