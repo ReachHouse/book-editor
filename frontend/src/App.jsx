@@ -378,8 +378,12 @@ function App() {
   // ============================================================================
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
-      <div className="container mx-auto px-4 py-12 max-w-5xl">
+    <div className="min-h-screen bg-surface-900 text-surface-200 relative">
+      {/* Subtle background gradient */}
+      <div className="fixed inset-0 bg-gradient-to-b from-surface-900 via-surface-900 to-surface-950 pointer-events-none" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-brand-600/[0.03] rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative container mx-auto px-4 sm:px-6 py-10 sm:py-14 max-w-4xl">
 
         {/* Header */}
         <Header onShowStyleGuide={() => setShowStyleGuide(true)} />
@@ -392,9 +396,9 @@ function App() {
 
         {/* Loading State */}
         {loadingStorage && (
-          <div className="bg-gray-800 rounded-xl p-16 text-center shadow-xl">
-            <Loader className="w-12 h-12 mx-auto mb-4 text-green-500 animate-spin" />
-            <p className="text-gray-400">Loading saved projects...</p>
+          <div className="glass-card p-16 text-center animate-fade-in">
+            <Loader className="w-10 h-10 mx-auto mb-4 text-brand-400 animate-spin" />
+            <p className="text-surface-400 text-sm">Loading saved projects...</p>
           </div>
         )}
 
@@ -439,9 +443,14 @@ function App() {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-12 text-gray-500">
-          <p className="text-xs text-gray-600 mb-1">{VERSION_DISPLAY}</p>
-          <p className="text-sm">&copy; {new Date().getFullYear()} Reach Publishers. Professional AI-Powered Editing.</p>
+        <div className="text-center mt-14 pb-2">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="h-px w-16 bg-gradient-to-r from-transparent to-surface-700/50" />
+            <div className="w-1 h-1 rounded-full bg-surface-700" />
+            <div className="h-px w-16 bg-gradient-to-l from-transparent to-surface-700/50" />
+          </div>
+          <p className="text-xs text-surface-600 mb-0.5">{VERSION_DISPLAY}</p>
+          <p className="text-xs text-surface-500">&copy; {new Date().getFullYear()} Reach Publishers</p>
         </div>
       </div>
     </div>

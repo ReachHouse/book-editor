@@ -21,13 +21,13 @@ describe('FileUpload', () => {
   test('renders supported formats text', () => {
     render(<FileUpload onFileSelect={mockOnFileSelect} />);
 
-    expect(screen.getByText('Microsoft Word documents only (.doc, .docx)')).toBeInTheDocument();
+    expect(screen.getByText('Microsoft Word (.doc, .docx)')).toBeInTheDocument();
   });
 
-  test('renders style guide reference', () => {
+  test('renders drag and drop instruction', () => {
     render(<FileUpload onFileSelect={mockOnFileSelect} />);
 
-    expect(screen.getByText('Edits follow Reach Publishers House Style Guide (UK English)')).toBeInTheDocument();
+    expect(screen.getByText('Drag and drop or click to browse')).toBeInTheDocument();
   });
 
   test('has file input with correct accept attribute', () => {

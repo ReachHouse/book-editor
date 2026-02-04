@@ -23,7 +23,7 @@ describe('CompletionView', () => {
       />
     );
 
-    expect(screen.getByText('Editing Complete!')).toBeInTheDocument();
+    expect(screen.getByText('Editing Complete')).toBeInTheDocument();
   });
 
   test('renders auto-save information', () => {
@@ -71,7 +71,7 @@ describe('CompletionView', () => {
       />
     );
 
-    expect(screen.getByText('Generating Word Document...')).toBeInTheDocument();
+    expect(screen.getByText('Generating Document...')).toBeInTheDocument();
   });
 
   test('calls onDownload when download button is clicked', () => {
@@ -98,7 +98,7 @@ describe('CompletionView', () => {
       />
     );
 
-    const downloadButton = screen.getByText('Generating Word Document...').closest('button');
+    const downloadButton = screen.getByText('Generating Document...').closest('button');
     expect(downloadButton).toBeDisabled();
   });
 
@@ -111,7 +111,7 @@ describe('CompletionView', () => {
       />
     );
 
-    const editAnotherButton = screen.getByText('Edit Another Book');
+    const editAnotherButton = screen.getByText('Edit Another');
     fireEvent.click(editAnotherButton);
 
     expect(mockOnEditAnother).toHaveBeenCalledTimes(1);

@@ -2,11 +2,157 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+    margin: 0;
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+
+  /* Refined scrollbar for Webkit browsers */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.35);
+  }
+
+  /* Selection color */
+  ::selection {
+    background: rgba(22, 163, 74, 0.3);
+    color: #f0fdf6;
+  }
+}
+
+/* ============================================================
+   COMPONENT UTILITIES
+   ============================================================ */
+
+@layer components {
+  /* Glass card surface */
+  .glass-card {
+    @apply bg-surface-800/80 backdrop-blur-sm border border-surface-700/50 rounded-2xl shadow-card;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+
+  .glass-card-hover:hover {
+    @apply shadow-card-hover border-surface-600/50;
+  }
+
+  /* Refined button base */
+  .btn-primary {
+    @apply bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl
+           transition-all duration-200 ease-out
+           shadow-md hover:shadow-lg hover:shadow-brand-600/20
+           active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply bg-surface-700/80 hover:bg-surface-600/80 text-surface-200
+           font-medium rounded-xl border border-surface-600/50
+           transition-all duration-200 ease-out
+           hover:border-surface-500/50
+           active:scale-[0.98];
+  }
+
+  /* Info box variants */
+  .info-box-green {
+    @apply bg-brand-900/20 border border-brand-600/30 rounded-xl;
+  }
+
+  .info-box-blue {
+    @apply bg-blue-900/15 border border-blue-500/25 rounded-xl;
+  }
+
+  .info-box-amber {
+    @apply bg-amber-900/15 border border-amber-500/25 rounded-xl;
+  }
+
+  .info-box-red {
+    @apply bg-red-900/15 border border-red-500/25 rounded-xl;
+  }
+}
+
+/* ============================================================
+   CUSTOM UTILITIES
+   ============================================================ */
+
+@layer utilities {
+  /* Subtle text gradient */
+  .text-gradient {
+    background: linear-gradient(135deg, #4ade80, #16a34a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-warm {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Progress bar shimmer overlay */
+  .progress-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.12) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: progressShimmer 2s ease-in-out infinite;
+  }
+
+  /* Smooth focus ring */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-900;
+  }
+}
+
+/* ============================================================
+   ANIMATIONS (non-Tailwind)
+   ============================================================ */
+
+/* Stagger children animation helper */
+.stagger-children > * {
+  animation: fadeInUp 0.4s ease-out backwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
