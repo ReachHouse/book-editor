@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.15.0 [UI]       - 2026-02-04: Liquid glass redesign, Track Changes bug fix, dead code cleanup
  * v1.14.0 [Refactor] - 2026-02-03: Code optimizations, gzip compression, Docker build improvements
  * v1.13.0 [Feature]  - 2026-02-03: Add frontend component tests (48 tests for 7 components)
  * v1.12.0 [Refactor] - 2026-02-03: Split documentService.js into modular structure (7 modules)
@@ -91,18 +92,18 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.14.0';
+export const VERSION = '1.15.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Refactor';
+export const VERSION_TAG = 'UI';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
  */
-export const VERSION_DATE = '2026-02-03';
+export const VERSION_DATE = '2026-02-04';
 
 /**
  * Combined display string shown in the UI footer
