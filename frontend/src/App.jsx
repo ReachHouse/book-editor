@@ -169,6 +169,11 @@ function App() {
     // Set processing lock
     processingRef.current = true;
 
+    // For resume: set a placeholder file so the upload section stays hidden
+    if (resumeProject) {
+      setFile({ name: resumeProject.fileName });
+    }
+
     // Initialize processing state
     setProcessing(true);
     setError(null);
@@ -178,7 +183,7 @@ function App() {
     const projectId = resumeProject ? resumeProject.id : Date.now().toString();
 
     try {
-      let originalText, chunks, editedChunks, styleGuide, startIndex;
+      let originalText, chunks, editedChunks, styleGuide, startIndex, chunkSize;
 
       if (resumeProject) {
         // Resume existing project
@@ -189,7 +194,7 @@ function App() {
         }
 
         originalText = resumeProject.originalText;
-        const chunkSize = resumeProject.chunkSize || CHUNK_SIZES.LEGACY_DEFAULT;
+        chunkSize = resumeProject.chunkSize || CHUNK_SIZES.LEGACY_DEFAULT;
         addLog(`Resuming with original settings`);
 
         const paragraphs = originalText.split(/\n+/).filter(p => p.trim());
@@ -227,8 +232,9 @@ function App() {
 
         addLog('Document loaded successfully');
 
+        chunkSize = CHUNK_SIZES.NEW_DOCUMENTS;
         const paragraphs = originalText.split(/\n+/).filter(p => p.trim());
-        chunks = createChunks(paragraphs, CHUNK_SIZES.NEW_DOCUMENTS);
+        chunks = createChunks(paragraphs, chunkSize);
 
         if (!chunks.length) {
           throw new Error('Could not process document.');
@@ -277,7 +283,7 @@ function App() {
           timestamp: Date.now(),
           chunksCompleted: i + 1,
           totalChunks: chunks.length,
-          chunkSize: CHUNK_SIZES.NEW_DOCUMENTS,
+          chunkSize,
           editedChunks,
           originalText,
           styleGuide,
@@ -305,7 +311,7 @@ function App() {
         timestamp: Date.now(),
         chunksCompleted: chunks.length,
         totalChunks: chunks.length,
-        chunkSize: CHUNK_SIZES.NEW_DOCUMENTS,
+        chunkSize,
         originalText,
         fullEditedText,
         styleGuide,
@@ -360,7 +366,6 @@ function App() {
   // ============================================================================
 
   const handleResume = (project) => {
-    setFile({ name: project.fileName });
     processBook(project);
   };
 
@@ -380,6 +385,7 @@ function App() {
     setAnalysis(null);
     setCompleted(false);
     setEditedContent(null);
+    setError(null);
     setDebugLog([]);
   }, []);
 

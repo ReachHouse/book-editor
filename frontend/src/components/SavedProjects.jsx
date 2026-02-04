@@ -3,7 +3,7 @@
  * SAVED PROJECTS COMPONENT
  * =============================================================================
  *
- * Displays a list of previously edited books stored in localStorage.
+ * Displays a list of previously edited books stored in IndexedDB (with localStorage fallback).
  *
  * PROPS:
  * ------
@@ -85,9 +85,9 @@ function SavedProjects({
 function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const progressPercent = Math.round(
-    (project.chunksCompleted / project.totalChunks) * 100
-  );
+  const progressPercent = project.totalChunks > 0
+    ? Math.round((project.chunksCompleted / project.totalChunks) * 100)
+    : 0;
 
   const handleDownload = () => {
     const content = project.docContent || {

@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.22.0 [Bugfix]   - 2026-02-04: Fix handleResume stuck state, handleReset stale error, chunkSize legacy resume, progressPercent NaN, stale JSDoc
  * v1.21.0 [Bugfix]   - 2026-02-04: Fix double formatFileName bug (_EDITED_EDITED), remove dead checkApiStatus, gitignore stale build artifacts
  * v1.20.0 [Refactor] - 2026-02-04: Fix stale closure bug, fix storageInfo prop, remove dead CSS/config, align keyframes, CSS utility extraction, timer cleanup
  * v1.19.0 [UI]       - 2026-02-04: Step progress indicator, user-friendly logs, project state badges, filename tooltips
@@ -99,7 +100,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.21.0';
+export const VERSION = '1.22.0';
 
 /**
  * Tag describing the type of changes in this version

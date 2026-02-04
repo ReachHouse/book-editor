@@ -12,7 +12,6 @@
  * POST /api/edit-chunk         - Send text to Claude for editing
  * POST /api/generate-style-guide - Generate consistency guide from first chunk
  * POST /api/generate-docx      - Create Word document with Track Changes
- * GET  /api/status             - Check API configuration status
  *
  * RETRY LOGIC:
  * ------------
