@@ -2,7 +2,7 @@
  * StyleGuideModal Component Tests
  */
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import StyleGuideModal from '../StyleGuideModal';
 
 // Mock the constants module
@@ -15,6 +15,11 @@ describe('StyleGuideModal', () => {
 
   beforeEach(() => {
     mockOnClose.mockClear();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   test('returns null when not open', () => {
@@ -43,21 +48,36 @@ describe('StyleGuideModal', () => {
     expect(screen.getByText('Test style guide content here.')).toBeInTheDocument();
   });
 
-  test('calls onClose when X button is clicked', () => {
+  test('calls onClose when X button is clicked after exit animation', () => {
     render(<StyleGuideModal isOpen={true} onClose={mockOnClose} />);
 
     const closeButton = screen.getByLabelText('Close style guide');
     fireEvent.click(closeButton);
 
+    // onClose is called after 200ms exit animation
+    expect(mockOnClose).not.toHaveBeenCalled();
+    act(() => { jest.advanceTimersByTime(200); });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  test('calls onClose when footer Close button is clicked', () => {
+  test('calls onClose when footer Close button is clicked after exit animation', () => {
     render(<StyleGuideModal isOpen={true} onClose={mockOnClose} />);
 
     const closeButton = screen.getByRole('button', { name: 'Close' });
     fireEvent.click(closeButton);
 
+    // onClose is called after 200ms exit animation
+    expect(mockOnClose).not.toHaveBeenCalled();
+    act(() => { jest.advanceTimersByTime(200); });
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('closes on Escape key press', () => {
+    render(<StyleGuideModal isOpen={true} onClose={mockOnClose} />);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    act(() => { jest.advanceTimersByTime(200); });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 });

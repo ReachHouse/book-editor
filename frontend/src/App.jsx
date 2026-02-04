@@ -21,11 +21,13 @@ import {
   ProcessingView,
   CompletionView,
   SavedProjects,
-  ErrorDisplay
+  ErrorDisplay,
+  ToastContainer
 } from './components';
 
 // Hooks
 import { useProjects } from './hooks/useProjects';
+import { useToast } from './hooks/useToast';
 
 // Services
 import { editChunk, generateStyleGuide, downloadDocument } from './services/api';
@@ -71,6 +73,9 @@ function App() {
     saveProject,
     deleteProject
   } = useProjects();
+
+  // Toast notifications
+  const { toasts, addToast, dismissToast } = useToast();
 
   // Ref to prevent duplicate processBook calls (race condition fix)
   const processingRef = useRef(false);
@@ -336,6 +341,7 @@ function App() {
 
     try {
       await downloadDocument(content);
+      addToast('Document downloaded successfully', 'success');
     } catch (err) {
       console.error('Download error:', err);
       if (err.message.includes('Failed to fetch')) {
@@ -359,6 +365,7 @@ function App() {
 
   const handleDeleteProject = async (projectId) => {
     await deleteProject(projectId);
+    addToast('Project deleted', 'success');
 
     // Clear current content if we deleted the active project
     if (editedContent && editedContent.projectId === projectId) {
@@ -381,6 +388,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-surface-950 text-surface-200 relative overflow-hidden">
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
       {/* Ambient background layers */}
       <div className="fixed inset-0 pointer-events-none">
         {/* Base gradient */}

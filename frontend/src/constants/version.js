@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.17.0 [UI]       - 2026-02-04: Toast notifications, modal exit animations, button active states, Escape key support
  * v1.16.0 [UI]       - 2026-02-04: Delete confirmation dialog, 44px touch targets, ARIA labels, focus ring visibility
  * v1.15.1 [UI]       - 2026-02-04: Unified typography scale, consistent spacing rhythm, heading hierarchy
  * v1.15.0 [UI]       - 2026-02-04: Liquid glass redesign, Track Changes bug fix, dead code cleanup
@@ -94,7 +95,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.16.0';
+export const VERSION = '1.17.0';
 
 /**
  * Tag describing the type of changes in this version

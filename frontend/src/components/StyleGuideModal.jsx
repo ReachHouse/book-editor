@@ -13,14 +13,25 @@
  * =============================================================================
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { BookOpen, X } from 'lucide-react';
 import { FULL_STYLE_GUIDE_DOCUMENT } from '../constants';
 
 /**
  * Modal displaying the complete Reach Publishers style guide.
+ * Supports entry and exit animations via isClosing state.
  */
 function StyleGuideModal({ isOpen, onClose }) {
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 200);
+  }, [onClose]);
+
   // Lock body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -33,19 +44,29 @@ function StyleGuideModal({ isOpen, onClose }) {
     };
   }, [isOpen]);
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, handleClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-surface-950/80 backdrop-blur-md"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       {/* Modal */}
       <div
-        className="relative glass-card w-full max-w-2xl animate-scale-in overflow-hidden"
+        className={`relative glass-card w-full max-w-2xl overflow-hidden ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}
         style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
       >
         {/* Header */}
@@ -58,7 +79,7 @@ function StyleGuideModal({ isOpen, onClose }) {
               <h2 className="text-lg font-bold text-white">Reach Publishers Style Guide</h2>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-400 hover:text-white hover:bg-surface-700/80 transition-all duration-200 focus-ring"
               aria-label="Close style guide"
             >
@@ -88,7 +109,7 @@ function StyleGuideModal({ isOpen, onClose }) {
         {/* Footer */}
         <div className="px-5 py-4 border-t border-surface-700/20 flex-shrink-0">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="btn-primary w-full py-2.5 text-sm focus-ring"
           >
             Close
