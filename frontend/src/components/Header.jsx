@@ -10,28 +10,6 @@
  * ------
  * @param {function} onShowStyleGuide - Callback to show the StyleGuideModal
  *
- * VISUAL LAYOUT:
- * --------------
- * ┌─────────────────────────────────────────────────────────────────────┐
- * │                          [FileText Icon]                            │
- * │                    Professional Book Editor                         │
- * │           AI-powered manuscript editing with tracked changes        │
- * │                                                                     │
- * │              [View Reach Publishers Style Guide]                    │
- * └─────────────────────────────────────────────────────────────────────┘
- *
- * STYLING:
- * --------
- * - Uses Tailwind CSS for all styling
- * - Green accent color (#22c55e) for icon and highlights
- * - Responsive design centered on all screen sizes
- * - Button has hover effects (scale and color change)
- *
- * ICONS:
- * ------
- * - FileText (lucide-react): Main application logo
- * - BookOpen (lucide-react): Icon on the style guide button
- *
  * =============================================================================
  */
 
@@ -46,26 +24,35 @@ import { FileText, BookOpen } from 'lucide-react';
  */
 function Header({ onShowStyleGuide }) {
   return (
-    <div className="text-center mb-16">
-      {/* Application Logo */}
-      <div className="flex items-center justify-center mb-6">
-        <FileText className="w-16 h-16 text-green-500" />
+    <div className="text-center mb-12 animate-fade-in">
+      {/* Logo mark */}
+      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-600/15 border border-brand-500/20 mb-6">
+        <FileText className="w-8 h-8 text-brand-400" />
       </div>
 
-      {/* Application Title */}
-      <h1 className="text-5xl font-bold mb-3">Professional Book Editor</h1>
+      {/* Title - serif font for editorial identity */}
+      <h1 className="font-display text-4xl sm:text-5xl font-bold mb-3 text-white tracking-tight">
+        Professional Book Editor
+      </h1>
+
+      {/* Subtle decorative line */}
+      <div className="flex items-center justify-center gap-3 mb-4">
+        <div className="h-px w-12 bg-gradient-to-r from-transparent to-surface-600" />
+        <div className="w-1.5 h-1.5 rounded-full bg-brand-500/60" />
+        <div className="h-px w-12 bg-gradient-to-l from-transparent to-surface-600" />
+      </div>
 
       {/* Subtitle */}
-      <p className="text-gray-400 text-lg mb-6">
+      <p className="text-surface-400 text-base mb-8 font-light tracking-wide">
         AI-powered manuscript editing with tracked changes
       </p>
 
       {/* Style Guide Button */}
       <button
         onClick={onShowStyleGuide}
-        className="inline-flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-all hover:scale-105"
+        className="btn-secondary inline-flex items-center gap-2.5 py-2.5 px-5 text-sm focus-ring"
       >
-        <BookOpen className="w-5 h-5" />
+        <BookOpen className="w-4 h-4 text-brand-400" />
         View Reach Publishers Style Guide
       </button>
     </div>
