@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.18.0 [Refactor] - 2026-02-04: Inline styles to CSS utilities, useCallback optimization, shimmer duration fix
  * v1.17.0 [UI]       - 2026-02-04: Toast notifications, modal exit animations, button active states, Escape key support
  * v1.16.0 [UI]       - 2026-02-04: Delete confirmation dialog, 44px touch targets, ARIA labels, focus ring visibility
  * v1.15.1 [UI]       - 2026-02-04: Unified typography scale, consistent spacing rhythm, heading hierarchy
@@ -95,13 +96,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.17.0';
+export const VERSION = '1.18.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'UI';
+export const VERSION_TAG = 'Refactor';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

@@ -24,9 +24,9 @@ function ErrorDisplay({ error, debugLog }) {
   if (!error) return null;
 
   return (
-    <div className="info-box-red p-5 mb-8 animate-fade-in-down">
+    <div className="info-box-red p-4 sm:p-5 mb-8 animate-fade-in-down">
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(145deg, rgba(239,68,68,0.12), rgba(239,68,68,0.05))', border: '1px solid rgba(248,113,113,0.12)' }}>
+        <div className="w-9 h-9 rounded-lg glass-icon-error flex items-center justify-center flex-shrink-0">
           <AlertCircle className="w-4 h-4 text-red-400" />
         </div>
         <div className="flex-1 pt-1">

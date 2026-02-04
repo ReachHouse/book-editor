@@ -66,8 +66,7 @@ function StyleGuideModal({ isOpen, onClose }) {
 
       {/* Modal */}
       <div
-        className={`relative glass-card w-full max-w-2xl overflow-hidden ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}
-        style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+        className={`relative glass-card w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}
       >
         {/* Header */}
         <div className="px-5 py-4 border-b border-surface-700/20 flex-shrink-0">
@@ -98,8 +97,7 @@ function StyleGuideModal({ isOpen, onClose }) {
 
           <div className="glass-inner p-4">
             <pre
-              className="whitespace-pre-wrap text-xs text-surface-300 leading-relaxed font-sans"
-              style={{ margin: 0 }}
+              className="whitespace-pre-wrap text-xs text-surface-300 leading-relaxed font-sans m-0"
             >
               {FULL_STYLE_GUIDE_DOCUMENT}
             </pre>

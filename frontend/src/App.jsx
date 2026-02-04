@@ -374,13 +374,19 @@ function App() {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setFile(null);
     setAnalysis(null);
     setCompleted(false);
     setEditedContent(null);
     setDebugLog([]);
-  };
+  }, []);
+
+  // Stable callbacks to prevent unnecessary child re-renders
+  const handleShowStyleGuide = useCallback(() => setShowStyleGuide(true), []);
+  const handleCloseStyleGuide = useCallback(() => setShowStyleGuide(false), []);
+  const handleStartEditing = useCallback(() => processBook(), []);
+  const handleDownloadContent = useCallback(() => handleDownload(editedContent), [editedContent]);
 
   // ============================================================================
   // RENDER
@@ -396,22 +402,22 @@ function App() {
         {/* Base gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-surface-950 via-surface-900/50 to-surface-950" />
         {/* Top ambient glow - green tinted */}
-        <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full opacity-[0.035]" style={{ background: 'radial-gradient(ellipse, #4ade80, transparent 70%)' }} />
+        <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full opacity-[0.035] ambient-glow-green" />
         {/* Bottom ambient warmth */}
-        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02]" style={{ background: 'radial-gradient(ellipse, #60a5fa, transparent 70%)' }} />
-        {/* Subtle noise texture via CSS */}
-        <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")', backgroundRepeat: 'repeat', backgroundSize: '256px 256px' }} />
+        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02] ambient-glow-blue" />
+        {/* Subtle noise texture */}
+        <div className="absolute inset-0 opacity-[0.015] noise-texture" />
       </div>
 
       <div className="relative container mx-auto px-4 sm:px-6 py-10 sm:py-14 max-w-4xl">
 
         {/* Header */}
-        <Header onShowStyleGuide={() => setShowStyleGuide(true)} />
+        <Header onShowStyleGuide={handleShowStyleGuide} />
 
         {/* Style Guide Modal */}
         <StyleGuideModal
           isOpen={showStyleGuide}
-          onClose={() => setShowStyleGuide(false)}
+          onClose={handleCloseStyleGuide}
         />
 
         {/* Loading State */}
@@ -443,7 +449,7 @@ function App() {
         {analysis && !processing && !completed && (
           <DocumentAnalysis
             analysis={analysis}
-            onStartEditing={() => processBook()}
+            onStartEditing={handleStartEditing}
             onCancel={handleReset}
           />
         )}
@@ -456,7 +462,7 @@ function App() {
         {/* Completion Display */}
         {completed && (
           <CompletionView
-            onDownload={() => handleDownload(editedContent)}
+            onDownload={handleDownloadContent}
             onEditAnother={handleReset}
             isDownloading={downloadingDocx}
           />
