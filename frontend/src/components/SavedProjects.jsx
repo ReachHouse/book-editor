@@ -18,7 +18,7 @@
  */
 
 import React, { useState } from 'react';
-import { Clock, Download, Play, Trash2, Check, X, Loader, AlertTriangle } from 'lucide-react';
+import { Clock, Download, Play, Trash2, Check, X, Loader, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
 import { formatFileName } from '../utils/documentUtils';
 
 /**
@@ -79,7 +79,7 @@ function SavedProjects({
 }
 
 /**
- * Individual project item with status and action buttons.
+ * Individual project item with status badge, mini progress bar, and action buttons.
  * Includes inline delete confirmation to prevent accidental data loss.
  */
 function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading }) {
@@ -106,19 +106,55 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
   return (
     <div className="group glass-inner p-4 flex items-center justify-between hover:border-surface-600/15 transition-all duration-300">
       {/* Info */}
-      <div className="flex-1 min-w-0 mr-4">
-        <p className="font-medium text-surface-200 text-sm truncate" title={project.fileName}>
-          {project.fileName}
-        </p>
-        <p className="text-xs text-surface-500 mt-0.5">
-          {project.isComplete ? (
-            <span>Completed {new Date(project.timestamp).toLocaleString()}</span>
-          ) : (
-            <span className="tabular-nums">
-              In progress: {project.chunksCompleted}/{project.totalChunks} sections ({progressPercent}%)
+      <div className="flex items-start gap-3 flex-1 min-w-0 mr-4">
+        {/* File icon */}
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+          project.isComplete
+            ? 'bg-brand-600/15 border border-brand-500/15'
+            : 'bg-blue-600/15 border border-blue-500/15'
+        }`}>
+          {project.isComplete
+            ? <CheckCircle className="w-3.5 h-3.5 text-brand-400" />
+            : <FileText className="w-3.5 h-3.5 text-blue-400" />
+          }
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {/* Filename + status badge */}
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="font-medium text-surface-200 text-sm truncate" title={project.fileName}>
+              {project.fileName}
+            </p>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${
+              project.isComplete
+                ? 'bg-brand-600/15 text-brand-400 border border-brand-500/15'
+                : 'bg-blue-600/15 text-blue-400 border border-blue-500/15'
+            }`}>
+              {project.isComplete ? 'Ready' : 'In Progress'}
             </span>
+          </div>
+
+          {/* Status detail */}
+          <p className="text-xs text-surface-500 mt-1">
+            {project.isComplete ? (
+              <span>Completed {new Date(project.timestamp).toLocaleString()}</span>
+            ) : (
+              <span className="tabular-nums">
+                {project.chunksCompleted}/{project.totalChunks} sections ({progressPercent}%)
+              </span>
+            )}
+          </p>
+
+          {/* Mini progress bar for in-progress projects */}
+          {!project.isComplete && (
+            <div className="mt-1.5 h-1 rounded-full bg-surface-800/60 overflow-hidden max-w-[200px]">
+              <div
+                className="h-full rounded-full bg-blue-500/60 transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
           )}
-        </p>
+        </div>
       </div>
 
       {/* Actions */}

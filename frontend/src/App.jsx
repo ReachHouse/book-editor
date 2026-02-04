@@ -181,7 +181,7 @@ function App() {
 
       if (resumeProject) {
         // Resume existing project
-        addLog(`Resuming: ${resumeProject.fileName}`);
+        addLog(`Resuming editing: ${resumeProject.fileName}`);
 
         if (!resumeProject.editedChunks || !Array.isArray(resumeProject.editedChunks)) {
           throw new Error('Cannot resume: Invalid project data');
@@ -189,7 +189,7 @@ function App() {
 
         originalText = resumeProject.originalText;
         const chunkSize = resumeProject.chunkSize || CHUNK_SIZES.LEGACY_DEFAULT;
-        addLog(`Using chunk size: ${chunkSize} words`);
+        addLog(`Resuming with original settings`);
 
         const paragraphs = originalText.split(/\n+/).filter(p => p.trim());
         chunks = createChunks(paragraphs, chunkSize);
@@ -210,7 +210,7 @@ function App() {
 
       } else {
         // New document
-        addLog('Starting new document...');
+        addLog('Preparing document for editing...');
 
         if (!file || typeof file.arrayBuffer !== 'function') {
           throw new Error('Invalid file. Please upload again.');
@@ -224,7 +224,7 @@ function App() {
           throw new Error('Document is empty.');
         }
 
-        addLog(`Extracted ${originalText.length} characters`);
+        addLog('Document loaded successfully');
 
         const paragraphs = originalText.split(/\n+/).filter(p => p.trim());
         chunks = createChunks(paragraphs, CHUNK_SIZES.NEW_DOCUMENTS);
@@ -237,13 +237,13 @@ function App() {
         styleGuide = '';
         startIndex = 0;
 
-        addLog(`Created ${chunks.length} sections`);
+        addLog(`Document split into ${chunks.length} sections`);
         setProgress({ current: 0, total: chunks.length, stage: 'Editing...' });
       }
 
       // Process each chunk
       for (let i = startIndex; i < chunks.length; i++) {
-        addLog(`Processing section ${i + 1}/${chunks.length}`);
+        addLog(`Editing section ${i + 1} of ${chunks.length}...`);
         setProgress({
           current: i,
           total: chunks.length,
@@ -261,7 +261,7 @@ function App() {
           throw new Error(`Section ${i + 1} returned empty.`);
         }
 
-        addLog(`Section ${i + 1} complete (${editedChunk.length} chars)`);
+        addLog(`Section ${i + 1} complete`);
         editedChunks.push(editedChunk);
 
         // Generate style guide after first chunk
@@ -285,7 +285,7 @@ function App() {
       }
 
       // Finalize
-      addLog('All sections complete');
+      addLog('All sections edited successfully');
 
       const fullEditedText = editedChunks.join('\n\n');
       const docContent = {
@@ -313,7 +313,7 @@ function App() {
       });
 
       setEditedContent(docContent);
-      addLog('Complete! File saved.');
+      addLog('Editing complete — ready for download');
       setCompleted(true);
       setProcessing(false);
       processingRef.current = false; // Release processing lock

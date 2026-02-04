@@ -54,7 +54,7 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
               <Icon className="w-3.5 h-3.5 text-surface-500 group-hover:text-brand-400 transition-colors" />
               <p className="text-surface-500 text-xs font-medium uppercase tracking-wider">{label}</p>
             </div>
-            <p className="font-semibold text-surface-200 text-sm truncate">{analysis[key]}</p>
+            <p className="font-semibold text-surface-200 text-sm truncate" title={String(analysis[key])}>{analysis[key]}</p>
           </div>
         ))}
       </div>

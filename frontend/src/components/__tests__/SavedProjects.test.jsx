@@ -90,7 +90,8 @@ describe('SavedProjects', () => {
       />
     );
 
-    expect(screen.getByText(/In progress: 5\/10 sections/)).toBeInTheDocument();
+    expect(screen.getByText('In Progress')).toBeInTheDocument();
+    expect(screen.getByText(/5\/10 sections/)).toBeInTheDocument();
   });
 
   test('shows download button for completed projects', () => {

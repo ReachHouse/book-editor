@@ -105,7 +105,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
  * @throws {Error} If all retry attempts fail
  */
 export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0) {
-  logFn('Sending to server for editing...');
+  logFn('Sending section to editor...');
 
   try {
     // Make the API request with timeout
@@ -139,7 +139,7 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
     if (retryCount < API_CONFIG.MAX_RETRIES) {
       // Calculate delay with linear backoff
       const delay = API_CONFIG.RETRY_DELAY_BASE * (retryCount + 1);
-      logFn(`Retrying in ${delay / 1000}s... (Attempt ${retryCount + 1}/${API_CONFIG.MAX_RETRIES})`);
+      logFn(`Connection issue — retrying in ${delay / 1000}s (attempt ${retryCount + 1}/${API_CONFIG.MAX_RETRIES})`);
 
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -168,7 +168,7 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
  */
 export async function generateStyleGuide(text, logFn) {
   try {
-    logFn('Generating style guide from first section...');
+    logFn('Building consistency guide from first section...');
 
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/generate-style-guide`, {
       method: 'POST',
