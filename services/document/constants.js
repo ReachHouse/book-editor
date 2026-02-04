@@ -22,9 +22,12 @@ const DISABLE_COMMENTS = false;
 // Inline comments on track changes - testing with single-paragraph content
 const DISABLE_INLINE_COMMENTS = false;
 
-// Per Reach Publishers style guide: highlight changes in red for visibility
-// This adds red highlighting to insertions AND tracks it as a formatting revision
-const HIGHLIGHT_INSERTIONS = true;
+// Whether to add explicit highlight formatting to insertions.
+// DISABLED: Word's native Track Changes already renders insertions
+// with blue underline and deletions with red strikethrough.
+// Explicit formatting creates duplicate "Formatted" revisions and
+// persists as permanent text properties when changes are accepted.
+const HIGHLIGHT_INSERTIONS = false;
 
 // docx highlight colors: yellow, green, cyan, magenta, blue, red,
 // darkBlue, darkCyan, darkGreen, darkMagenta, darkRed, darkYellow, gray, lightGray, black

@@ -3,51 +3,35 @@
  * TEXT FORMATTING
  * =============================================================================
  *
- * Functions for creating formatted text runs with highlighting,
- * italics parsing, and track change markup.
+ * Functions for creating formatted text runs with italics parsing
+ * and track change markup.
+ *
+ * NOTE: Insertions rely purely on Word's native Track Changes rendering
+ * (blue underline for insertions, red strikethrough for deletions).
+ * No explicit formatting (highlight, color, underline) is applied to
+ * InsertedTextRun objects, so accepting changes leaves clean text.
  *
  * =============================================================================
  */
 
 const { TextRun, InsertedTextRun } = require('docx');
-const {
-  AUTHOR,
-  HIGHLIGHT_INSERTIONS,
-  INSERTION_HIGHLIGHT_COLOR
-} = require('./constants');
+const { AUTHOR } = require('./constants');
 
 /**
- * Create a highlighted InsertedTextRun for visibility.
- * Combines track change (InsertedTextRun) with formatting revision (highlight).
+ * Create an InsertedTextRun for track changes.
+ * Uses only Track Changes metadata - no explicit formatting.
  *
  * @param {string} text - The inserted text
  * @param {number} revisionId - Revision ID for the insertion
  * @param {Date} dateObj - Date object for the revision
- * @returns {InsertedTextRun} InsertedTextRun with highlight and formatting revision tracked
+ * @returns {InsertedTextRun}
  */
 function createHighlightedInsertedRun(text, revisionId, dateObj) {
-  if (!HIGHLIGHT_INSERTIONS) {
-    return new InsertedTextRun({
-      text: text,
-      id: revisionId,
-      author: AUTHOR,
-      date: dateObj,
-    });
-  }
-
-  // Return InsertedTextRun with highlight AND formatting revision tracking
   return new InsertedTextRun({
     text: text,
     id: revisionId,
     author: AUTHOR,
     date: dateObj,
-    highlight: INSERTION_HIGHLIGHT_COLOR,
-    // Track the highlight as a formatting revision
-    revision: {
-      id: revisionId * 2 + 1, // Odd IDs for formatting to avoid collision
-      author: AUTHOR,
-      date: dateObj,
-    }
   });
 }
 
@@ -106,6 +90,8 @@ function parseItalicsToTextRuns(text, baseOptions = {}) {
 
 /**
  * Helper to create an InsertedTextRun with optional italics.
+ * Only applies italics when the source text is genuinely italic -
+ * no highlight or formatting revisions are added.
  *
  * @param {string} text - Text content
  * @param {number} revisionId - Revision ID
@@ -125,20 +111,11 @@ function createInsertedRunWithOptions(text, revisionId, dateObj, italics) {
     options.italics = true;
   }
 
-  if (HIGHLIGHT_INSERTIONS) {
-    options.highlight = INSERTION_HIGHLIGHT_COLOR;
-    options.revision = {
-      id: revisionId * 2 + 1,
-      author: AUTHOR,
-      date: dateObj,
-    };
-  }
-
   return new InsertedTextRun(options);
 }
 
 /**
- * Create highlighted inserted text runs, supporting *italics* markers.
+ * Create inserted text runs, supporting *italics* markers.
  * Returns array of InsertedTextRun objects with proper formatting.
  *
  * @param {string} text - Text to insert (may contain *italic* markers)
