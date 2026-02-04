@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.20.0 [Refactor] - 2026-02-04: Fix stale closure bug, fix storageInfo prop, remove dead CSS/config, align keyframes, CSS utility extraction, timer cleanup
  * v1.19.0 [UI]       - 2026-02-04: Step progress indicator, user-friendly logs, project state badges, filename tooltips
  * v1.18.0 [Refactor] - 2026-02-04: Inline styles to CSS utilities, useCallback optimization, shimmer duration fix
  * v1.17.0 [UI]       - 2026-02-04: Toast notifications, modal exit animations, button active states, Escape key support
@@ -97,13 +98,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.19.0';
+export const VERSION = '1.20.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'UI';
+export const VERSION_TAG = 'Refactor';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

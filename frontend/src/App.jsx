@@ -71,7 +71,8 @@ function App() {
     loading: loadingStorage,
     loadProjects,
     saveProject,
-    deleteProject
+    deleteProject,
+    storageInfo
   } = useProjects();
 
   // Toast notifications
@@ -382,11 +383,9 @@ function App() {
     setDebugLog([]);
   }, []);
 
-  // Stable callbacks to prevent unnecessary child re-renders
+  // Stable callbacks for components that only use state setters (safe with empty deps)
   const handleShowStyleGuide = useCallback(() => setShowStyleGuide(true), []);
   const handleCloseStyleGuide = useCallback(() => setShowStyleGuide(false), []);
-  const handleStartEditing = useCallback(() => processBook(), []);
-  const handleDownloadContent = useCallback(() => handleDownload(editedContent), [editedContent]);
 
   // ============================================================================
   // RENDER
@@ -441,6 +440,7 @@ function App() {
               onResume={handleResume}
               onDelete={handleDeleteProject}
               isDownloading={downloadingDocx}
+              storageInfo={storageInfo}
             />
           </>
         )}
@@ -449,7 +449,7 @@ function App() {
         {analysis && !processing && !completed && (
           <DocumentAnalysis
             analysis={analysis}
-            onStartEditing={handleStartEditing}
+            onStartEditing={() => processBook()}
             onCancel={handleReset}
           />
         )}
@@ -462,7 +462,7 @@ function App() {
         {/* Completion Display */}
         {completed && (
           <CompletionView
-            onDownload={handleDownloadContent}
+            onDownload={() => handleDownload(editedContent)}
             onEditAnother={handleReset}
             isDownloading={downloadingDocx}
           />

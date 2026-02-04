@@ -37,7 +37,7 @@ function ErrorDisplay({ error, debugLog }) {
 
       {debugLog && debugLog.length > 0 && (
         <div className="mt-4">
-          <DebugLog logs={debugLog} title="Debug Log:" />
+          <DebugLog logs={debugLog} title="Debug Log" />
         </div>
       )}
     </div>

@@ -118,12 +118,8 @@ function ProcessingView({ progress, debugLog }) {
         <div className="glass-inner rounded-full h-3.5 overflow-hidden">
           {/* Fill */}
           <div
-            className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden"
-            style={{
-              width: `${percentage}%`,
-              background: 'linear-gradient(90deg, #15803d, #16a34a, #4ade80)',
-              boxShadow: '0 0 12px rgba(74, 222, 128, 0.2), 0 0 4px rgba(74, 222, 128, 0.3) inset',
-            }}
+            className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden progress-fill"
+            style={{ width: `${percentage}%` }}
           >
             <div className="absolute inset-0 progress-shimmer" />
           </div>

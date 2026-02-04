@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 let nextId = 0;
 
@@ -12,6 +12,14 @@ let nextId = 0;
 export function useToast(maxVisible = 3) {
   const [toasts, setToasts] = useState([]);
   const timersRef = useRef({});
+
+  // Clear all timers on unmount to prevent stale state updates
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
+  }, []);
 
   const dismissToast = useCallback((id) => {
     // Mark as exiting for animation

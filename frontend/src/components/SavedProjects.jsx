@@ -35,7 +35,7 @@ function SavedProjects({
   if (!projects || projects.length === 0) return null;
 
   return (
-    <div className="glass-card p-6 sm:p-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+    <div className="glass-card p-6 sm:p-8 animate-fade-in-up [animation-delay:100ms]">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-xl glass-icon-neutral flex items-center justify-center">
