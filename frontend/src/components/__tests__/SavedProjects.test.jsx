@@ -138,7 +138,7 @@ describe('SavedProjects', () => {
     expect(deleteButtons).toHaveLength(2);
   });
 
-  test('calls onDelete when delete button is clicked', () => {
+  test('calls onDelete after confirmation when delete button is clicked', () => {
     render(
       <SavedProjects
         projects={[completedProject]}
@@ -149,10 +149,41 @@ describe('SavedProjects', () => {
       />
     );
 
+    // First click shows confirmation
+    const deleteButton = screen.getByLabelText('Delete from storage');
+    fireEvent.click(deleteButton);
+    expect(mockOnDelete).not.toHaveBeenCalled();
+
+    // Confirm delete
+    const confirmButton = screen.getByLabelText('Confirm delete');
+    fireEvent.click(confirmButton);
+    expect(mockOnDelete).toHaveBeenCalledWith('1');
+  });
+
+  test('cancels delete when cancel button is clicked', () => {
+    render(
+      <SavedProjects
+        projects={[completedProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    // First click shows confirmation
     const deleteButton = screen.getByLabelText('Delete from storage');
     fireEvent.click(deleteButton);
 
-    expect(mockOnDelete).toHaveBeenCalledWith('1');
+    // Cancel delete
+    const cancelButton = screen.getByLabelText('Cancel delete');
+    fireEvent.click(cancelButton);
+
+    // Should not have called onDelete
+    expect(mockOnDelete).not.toHaveBeenCalled();
+
+    // Delete button should be visible again
+    expect(screen.getByLabelText('Delete from storage')).toBeInTheDocument();
   });
 
   test('calls onResume when resume button is clicked', () => {

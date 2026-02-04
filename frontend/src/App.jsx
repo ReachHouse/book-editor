@@ -406,8 +406,8 @@ function App() {
 
         {/* Loading State */}
         {loadingStorage && (
-          <div className="glass-card py-10 text-center animate-fade-in">
-            <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" />
+          <div className="glass-card py-10 text-center animate-fade-in" role="status" aria-label="Loading saved projects">
+            <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" aria-hidden="true" />
             <p className="text-surface-400 text-sm">Loading saved projects...</p>
           </div>
         )}

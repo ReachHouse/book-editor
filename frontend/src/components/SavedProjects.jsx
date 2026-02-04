@@ -17,8 +17,8 @@
  * =============================================================================
  */
 
-import React from 'react';
-import { Clock, Download, Play, Trash2, Loader, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, Download, Play, Trash2, Check, X, Loader, AlertTriangle } from 'lucide-react';
 import { formatFileName } from '../utils/documentUtils';
 
 /**
@@ -80,8 +80,11 @@ function SavedProjects({
 
 /**
  * Individual project item with status and action buttons.
+ * Includes inline delete confirmation to prevent accidental data loss.
  */
 function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
   const progressPercent = Math.round(
     (project.chunksCompleted / project.totalChunks) * 100
   );
@@ -95,11 +98,16 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
     onDownload(content);
   };
 
+  const handleConfirmDelete = () => {
+    onDelete(project.id);
+    setConfirmingDelete(false);
+  };
+
   return (
     <div className="group glass-inner p-4 flex items-center justify-between hover:border-surface-600/15 transition-all duration-300">
       {/* Info */}
       <div className="flex-1 min-w-0 mr-4">
-        <p className="font-medium text-surface-200 text-sm truncate">
+        <p className="font-medium text-surface-200 text-sm truncate" title={project.fileName}>
           {project.fileName}
         </p>
         <p className="text-xs text-surface-500 mt-0.5">
@@ -114,43 +122,63 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 flex-shrink-0">
-        {project.isComplete && (
+      {confirmingDelete ? (
+        <div className="flex gap-2 flex-shrink-0 items-center">
+          <span className="text-xs text-surface-400 mr-1">Delete?</span>
           <button
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-brand-600/80 hover:bg-brand-500 text-white transition-all duration-200 disabled:opacity-40 focus-ring"
-            title="Download Word document with Track Changes"
-            aria-label="Download Word document with Track Changes"
+            onClick={handleConfirmDelete}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-red-600/80 hover:bg-red-500 text-white transition-all duration-200 focus-ring"
+            aria-label="Confirm delete"
           >
-            {isDownloading ? (
-              <Loader className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
+            <Check className="w-4 h-4" />
           </button>
-        )}
-
-        {!project.isComplete && (
           <button
-            onClick={() => onResume(project)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-600/80 hover:bg-blue-500 text-white transition-all duration-200 focus-ring"
-            title="Resume editing from where you left off"
-            aria-label="Resume editing from where you left off"
+            onClick={() => setConfirmingDelete(false)}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-surface-600/80 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
+            aria-label="Cancel delete"
           >
-            <Play className="w-4 h-4" />
+            <X className="w-4 h-4" />
           </button>
-        )}
+        </div>
+      ) : (
+        <div className="flex gap-2 flex-shrink-0">
+          {project.isComplete && (
+            <button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="w-11 h-11 flex items-center justify-center rounded-lg bg-brand-600/80 hover:bg-brand-500 text-white transition-all duration-200 disabled:opacity-40 focus-ring"
+              title="Download Word document with Track Changes"
+              aria-label="Download Word document with Track Changes"
+            >
+              {isDownloading ? (
+                <Loader className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </button>
+          )}
 
-        <button
-          onClick={() => onDelete(project.id)}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-red-600/80 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
-          title="Delete from storage"
-          aria-label="Delete from storage"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
+          {!project.isComplete && (
+            <button
+              onClick={() => onResume(project)}
+              className="w-11 h-11 flex items-center justify-center rounded-lg bg-blue-600/80 hover:bg-blue-500 text-white transition-all duration-200 focus-ring"
+              title="Resume editing from where you left off"
+              aria-label="Resume editing from where you left off"
+            >
+              <Play className="w-4 h-4" />
+            </button>
+          )}
+
+          <button
+            onClick={() => setConfirmingDelete(true)}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-red-600/80 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
+            title="Delete from storage"
+            aria-label="Delete from storage"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

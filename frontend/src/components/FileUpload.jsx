@@ -59,6 +59,8 @@ function FileUpload({ onFileSelect }) {
 
   return (
     <div
+      role="region"
+      aria-label="File upload area — drag and drop a Word document or click to browse"
       className={`
         relative rounded-[1.25rem] border-2 border-dashed p-12 sm:p-16 text-center
         transition-all duration-500 ease-out mb-8 animate-fade-in-up group cursor-pointer
@@ -79,6 +81,7 @@ function FileUpload({ onFileSelect }) {
         onChange={handleChange}
         className="hidden"
         id="file-upload"
+        aria-label="Upload Word document"
       />
 
       <label htmlFor="file-upload" className="cursor-pointer block">
