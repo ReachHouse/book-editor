@@ -34,7 +34,7 @@ function ProcessingView({ progress, debugLog }) {
           <h2 className="text-2xl font-bold text-white mb-1">Processing Manuscript</h2>
           <p className="text-surface-400 text-sm">{progress.stage}</p>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-brand-600/15 border border-brand-500/20 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-xl glass-icon flex items-center justify-center">
           <Loader className="w-5 h-5 text-brand-400 animate-spin" />
         </div>
       </div>
@@ -49,16 +49,16 @@ function ProcessingView({ progress, debugLog }) {
       {/* Progress bar */}
       <div className="relative mb-2">
         {/* Track */}
-        <div className="bg-surface-900/70 rounded-full h-3 overflow-hidden border border-surface-700/40">
+        <div className="glass-inner rounded-full h-3.5 overflow-hidden">
           {/* Fill */}
           <div
             className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden"
             style={{
               width: `${percentage}%`,
               background: 'linear-gradient(90deg, #15803d, #16a34a, #4ade80)',
+              boxShadow: '0 0 12px rgba(74, 222, 128, 0.2), 0 0 4px rgba(74, 222, 128, 0.3) inset',
             }}
           >
-            {/* Shimmer overlay */}
             <div className="absolute inset-0 progress-shimmer" />
           </div>
         </div>

@@ -23,7 +23,7 @@ function DebugLog({ logs, title = 'Debug Log', showPulse = false }) {
   if (!logs || logs.length === 0) return null;
 
   return (
-    <div className="bg-surface-900/70 border border-surface-700/30 rounded-xl p-4 max-h-72 overflow-y-auto">
+    <div className="glass-inner p-4 max-h-72 overflow-y-auto">
       <h3 className="text-xs font-semibold text-surface-400 mb-2.5 flex items-center uppercase tracking-wider">
         {showPulse && (
           <div className="w-1.5 h-1.5 bg-brand-500 rounded-full mr-2 animate-pulse-soft" />

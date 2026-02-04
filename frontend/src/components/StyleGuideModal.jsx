@@ -39,20 +39,20 @@ function StyleGuideModal({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-surface-950/85 backdrop-blur-sm"
+        className="absolute inset-0 bg-surface-950/80 backdrop-blur-md"
         onClick={onClose}
       />
 
       {/* Modal */}
       <div
-        className="relative bg-surface-800 border border-surface-700/50 rounded-2xl w-full max-w-2xl shadow-2xl animate-scale-in"
+        className="relative glass-card w-full max-w-2xl animate-scale-in overflow-hidden"
         style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-surface-700/50 flex-shrink-0">
+        <div className="px-5 py-4 border-b border-surface-700/20 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brand-600/15 border border-brand-500/20 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg glass-icon flex items-center justify-center">
                 <BookOpen className="w-4 h-4 text-brand-400" />
               </div>
               <h2 className="text-lg font-bold text-white">Reach Publishers Style Guide</h2>
@@ -75,7 +75,7 @@ function StyleGuideModal({ isOpen, onClose }) {
             </p>
           </div>
 
-          <div className="bg-surface-900/70 border border-surface-700/30 rounded-xl p-4">
+          <div className="glass-inner p-4">
             <pre
               className="whitespace-pre-wrap text-xs text-surface-300 leading-relaxed font-sans"
               style={{ margin: 0 }}
@@ -86,7 +86,7 @@ function StyleGuideModal({ isOpen, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-surface-700/50 flex-shrink-0">
+        <div className="px-5 py-4 border-t border-surface-700/20 flex-shrink-0">
           <button
             onClick={onClose}
             className="btn-primary w-full py-2.5 text-sm focus-ring"
