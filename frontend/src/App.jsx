@@ -378,10 +378,18 @@ function App() {
   // ============================================================================
 
   return (
-    <div className="min-h-screen bg-surface-900 text-surface-200 relative">
-      {/* Subtle background gradient */}
-      <div className="fixed inset-0 bg-gradient-to-b from-surface-900 via-surface-900 to-surface-950 pointer-events-none" />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-brand-600/[0.03] rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-surface-950 text-surface-200 relative overflow-hidden">
+      {/* Ambient background layers */}
+      <div className="fixed inset-0 pointer-events-none">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-surface-950 via-surface-900/50 to-surface-950" />
+        {/* Top ambient glow - green tinted */}
+        <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full opacity-[0.035]" style={{ background: 'radial-gradient(ellipse, #4ade80, transparent 70%)' }} />
+        {/* Bottom ambient warmth */}
+        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02]" style={{ background: 'radial-gradient(ellipse, #60a5fa, transparent 70%)' }} />
+        {/* Subtle noise texture via CSS */}
+        <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")', backgroundRepeat: 'repeat', backgroundSize: '256px 256px' }} />
+      </div>
 
       <div className="relative container mx-auto px-4 sm:px-6 py-10 sm:py-14 max-w-4xl">
 
@@ -445,9 +453,9 @@ function App() {
         {/* Footer */}
         <div className="text-center mt-14 pb-2">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="h-px w-16 bg-gradient-to-r from-transparent to-surface-700/50" />
-            <div className="w-1 h-1 rounded-full bg-surface-700" />
-            <div className="h-px w-16 bg-gradient-to-l from-transparent to-surface-700/50" />
+            <div className="h-px w-16 bg-gradient-to-r from-transparent to-surface-700/30" />
+            <div className="w-1 h-1 rounded-full bg-surface-700/50" />
+            <div className="h-px w-16 bg-gradient-to-l from-transparent to-surface-700/30" />
           </div>
           <p className="text-xs text-surface-600 mb-0.5">{VERSION_DISPLAY}</p>
           <p className="text-xs text-surface-500">&copy; {new Date().getFullYear()} Reach Publishers</p>

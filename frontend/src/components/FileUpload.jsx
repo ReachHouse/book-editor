@@ -60,11 +60,12 @@ function FileUpload({ onFileSelect }) {
   return (
     <div
       className={`
-        relative rounded-2xl border-2 border-dashed p-12 sm:p-16 text-center
-        transition-all duration-300 mb-8 animate-fade-in-up group cursor-pointer
+        relative rounded-[1.25rem] border-2 border-dashed p-12 sm:p-16 text-center
+        transition-all duration-500 ease-out mb-8 animate-fade-in-up group cursor-pointer
+        backdrop-blur-sm
         ${isDragging
-          ? 'border-brand-400 bg-brand-600/10 shadow-glow-green'
-          : 'border-surface-600/60 bg-surface-800/50 hover:border-brand-500/50 hover:bg-surface-800/70'
+          ? 'border-brand-400/60 bg-brand-600/[0.08] shadow-[0_0_40px_-8px_rgba(74,222,128,0.15)]'
+          : 'border-surface-600/30 bg-surface-800/30 hover:border-brand-500/30 hover:bg-surface-800/40'
         }
       `}
       onDragOver={handleDragOver}
@@ -84,16 +85,16 @@ function FileUpload({ onFileSelect }) {
         {/* Upload icon with animated ring */}
         <div className="relative inline-flex items-center justify-center mb-6">
           <div className={`
-            absolute inset-0 rounded-full transition-all duration-500
+            absolute inset-0 rounded-full transition-all duration-700 ease-out
             ${isDragging
-              ? 'bg-brand-500/15 scale-150'
-              : 'bg-surface-700/30 scale-100 group-hover:bg-brand-600/10 group-hover:scale-125'
+              ? 'bg-brand-500/10 scale-[1.6]'
+              : 'bg-surface-700/20 scale-100 group-hover:bg-brand-600/[0.07] group-hover:scale-[1.3]'
             }
           `} />
           <div className="relative w-16 h-16 flex items-center justify-center">
             <Upload className={`
-              w-10 h-10 transition-all duration-300
-              ${isDragging ? 'text-brand-400 -translate-y-1' : 'text-surface-400 group-hover:text-brand-400'}
+              w-9 h-9 transition-all duration-500 ease-out
+              ${isDragging ? 'text-brand-400 -translate-y-1.5' : 'text-surface-500 group-hover:text-brand-400'}
             `} />
           </div>
         </div>

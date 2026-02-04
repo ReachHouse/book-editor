@@ -26,7 +26,7 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
     <div className="glass-card p-6 sm:p-8 animate-scale-in">
       {/* Success header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-brand-600/15 border border-brand-500/20 mb-5 animate-glow">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full glass-icon mb-5 animate-glow">
           <CheckCircle className="w-10 h-10 text-brand-400" />
         </div>
         <h2 className="font-display text-3xl sm:text-4xl font-bold mb-3 text-white">

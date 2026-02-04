@@ -34,7 +34,7 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
     <div className="glass-card p-6 sm:p-8 mb-8 animate-scale-in">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-brand-600/15 border border-brand-500/20 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-xl glass-icon flex items-center justify-center">
           <CheckCircle className="w-5 h-5 text-brand-400" />
         </div>
         <div>
@@ -48,7 +48,7 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
         {ANALYSIS_FIELDS.map(({ key, label, icon: Icon }) => (
           <div
             key={key}
-            className="bg-surface-900/50 border border-surface-700/40 rounded-xl p-3.5 group hover:border-surface-600/60 transition-colors duration-200"
+            className="glass-inner p-3.5 group hover:border-surface-600/15 transition-all duration-300"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <Icon className="w-3.5 h-3.5 text-surface-500 group-hover:text-brand-400 transition-colors" />

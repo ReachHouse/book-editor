@@ -24,9 +24,9 @@ import { FileText, BookOpen } from 'lucide-react';
  */
 function Header({ onShowStyleGuide }) {
   return (
-    <div className="text-center mb-12 animate-fade-in">
+    <div className="text-center mb-14 animate-fade-in">
       {/* Logo mark */}
-      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-600/15 border border-brand-500/20 mb-6">
+      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl glass-icon mb-6">
         <FileText className="w-8 h-8 text-brand-400" />
       </div>
 
@@ -37,9 +37,9 @@ function Header({ onShowStyleGuide }) {
 
       {/* Subtle decorative line */}
       <div className="flex items-center justify-center gap-3 mb-4">
-        <div className="h-px w-12 bg-gradient-to-r from-transparent to-surface-600" />
-        <div className="w-1.5 h-1.5 rounded-full bg-brand-500/60" />
-        <div className="h-px w-12 bg-gradient-to-l from-transparent to-surface-600" />
+        <div className="h-px w-16 bg-gradient-to-r from-transparent to-surface-700/40" />
+        <div className="w-1.5 h-1.5 rounded-full bg-brand-500/40" />
+        <div className="h-px w-16 bg-gradient-to-l from-transparent to-surface-700/40" />
       </div>
 
       {/* Subtitle */}
