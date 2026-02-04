@@ -51,7 +51,6 @@
  */
 
 import { API_BASE_URL, API_CONFIG } from '../constants';
-import { formatFileName } from '../utils/documentUtils';
 
 /**
  * Default timeout for API requests (5 minutes)
@@ -203,7 +202,7 @@ export async function generateStyleGuide(text, logFn) {
  * @param {Object} content - Document content for generation
  * @param {string} content.original - Original manuscript text
  * @param {string} content.edited - AI-edited manuscript text
- * @param {string} content.fileName - Original file name (will add _EDITED suffix)
+ * @param {string} content.fileName - Formatted file name (already includes _EDITED suffix)
  * @returns {Promise<void>}
  * @throws {Error} If document generation fails
  */
@@ -215,7 +214,7 @@ export async function downloadDocument(content) {
     body: JSON.stringify({
       originalText: content.original,
       editedText: content.edited,
-      fileName: formatFileName(content.fileName)
+      fileName: content.fileName
     })
   }, 3 * 60 * 1000); // 3 minute timeout for document generation
 
@@ -238,35 +237,11 @@ export async function downloadDocument(content) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = formatFileName(content.fileName);
+  a.download = content.fileName;
   document.body.appendChild(a);
   a.click();
 
   // Clean up
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-}
-
-/**
- * Check the API configuration status.
- *
- * Used to verify the backend is running and properly configured
- * (e.g., API key is set).
- *
- * @returns {Promise<Object>} Status object with:
- *   - status: 'ready' | 'configuration_needed' | 'error'
- *   - apiKeyConfigured: boolean
- */
-export async function checkApiStatus() {
-  try {
-    const response = await fetchWithTimeout(
-      `${API_BASE_URL}/api/status`,
-      {},
-      10 * 1000 // 10 second timeout for status check
-    );
-    return await response.json();
-  } catch (err) {
-    // Return error status if request fails entirely
-    return { status: 'error', apiKeyConfigured: false };
-  }
 }
