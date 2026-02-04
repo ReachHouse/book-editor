@@ -100,12 +100,12 @@ function FileUpload({ onFileSelect }) {
         </div>
 
         {/* Primary text */}
-        <p className="text-xl font-semibold mb-2 text-surface-200">
+        <p className="text-lg font-semibold mb-2 text-surface-200">
           Upload Your Manuscript
         </p>
 
         {/* Format info */}
-        <p className="text-surface-400 text-sm mb-1.5">
+        <p className="text-surface-400 text-sm mb-2">
           Drag and drop or click to browse
         </p>
         <div className="inline-flex items-center gap-1.5 text-surface-500 text-xs">

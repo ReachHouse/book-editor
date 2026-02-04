@@ -70,7 +70,7 @@ function StyleGuideModal({ isOpen, onClose }) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5">
           <div className="info-box-green p-3 mb-4">
-            <p className="text-xs text-brand-300/80">
+            <p className="text-xs text-brand-300/90">
               <strong className="text-brand-300">Important:</strong> All edits strictly follow the Reach Publishers House Style Guide.
             </p>
           </div>

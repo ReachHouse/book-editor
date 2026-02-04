@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.15.1 [UI]       - 2026-02-04: Unified typography scale, consistent spacing rhythm, heading hierarchy
  * v1.15.0 [UI]       - 2026-02-04: Liquid glass redesign, Track Changes bug fix, dead code cleanup
  * v1.14.0 [Refactor] - 2026-02-03: Code optimizations, gzip compression, Docker build improvements
  * v1.13.0 [Feature]  - 2026-02-03: Add frontend component tests (48 tests for 7 components)
@@ -92,7 +93,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.15.0';
+export const VERSION = '1.15.1';
 
 /**
  * Tag describing the type of changes in this version

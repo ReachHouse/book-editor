@@ -29,10 +29,10 @@ function ProcessingView({ progress, debugLog }) {
   return (
     <div className="glass-card p-6 sm:p-8 mb-8 animate-fade-in-up">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-1">Processing Manuscript</h2>
-          <p className="text-surface-400 text-sm">{progress.stage}</p>
+          <h2 className="text-lg font-semibold text-white mb-1">Processing Manuscript</h2>
+          <p className="text-sm text-surface-400">{progress.stage}</p>
         </div>
         <div className="w-10 h-10 rounded-xl glass-icon flex items-center justify-center">
           <Loader className="w-5 h-5 text-brand-400 animate-spin" />
@@ -40,8 +40,8 @@ function ProcessingView({ progress, debugLog }) {
       </div>
 
       {/* Auto-save note */}
-      <div className="info-box-green px-4 py-2.5 mb-5">
-        <p className="text-xs text-brand-300/80">
+      <div className="info-box-green px-4 py-2.5 mb-4">
+        <p className="text-xs text-brand-300/90">
           Progress saved after each section. Resume anytime if interrupted.
         </p>
       </div>
@@ -70,7 +70,7 @@ function ProcessingView({ progress, debugLog }) {
       </div>
 
       {/* Section counter */}
-      <p className="text-xs text-surface-500 text-center mb-6 tabular-nums">
+      <p className="text-xs text-surface-500 text-center mb-5 tabular-nums">
         {progress.current} of {progress.total} sections completed
       </p>
 

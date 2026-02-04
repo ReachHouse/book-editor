@@ -42,8 +42,8 @@ function SavedProjects({
           <Clock className="w-5 h-5 text-surface-400" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white">Previously Edited Books</h2>
-          <p className="text-xs text-surface-500">Download completed books or resume incomplete ones</p>
+          <h2 className="text-lg font-semibold text-white">Previously Edited Books</h2>
+          <p className="text-sm text-surface-400">Download or resume previous edits</p>
         </div>
       </div>
 

@@ -25,20 +25,20 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
   return (
     <div className="glass-card p-6 sm:p-8 animate-scale-in">
       {/* Success header */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full glass-icon mb-5 animate-glow">
-          <CheckCircle className="w-10 h-10 text-brand-400" />
+      <div className="text-center mb-6">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full glass-icon mb-4 animate-glow">
+          <CheckCircle className="w-8 h-8 text-brand-400" />
         </div>
-        <h2 className="font-display text-3xl sm:text-4xl font-bold mb-3 text-white">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-white">
           Editing Complete
         </h2>
-        <p className="text-surface-400 max-w-md mx-auto">
+        <p className="text-sm text-surface-400 max-w-md mx-auto">
           Manuscript professionally edited following Reach Publishers House Style Guide.
         </p>
       </div>
 
       {/* Info boxes */}
-      <div className="space-y-3 mb-8">
+      <div className="space-y-3 mb-6">
         <div className="info-box-green p-4">
           <p className="text-sm text-brand-300/90">
             <strong className="text-brand-300">Auto-Saved:</strong> Accessible anytime from &ldquo;Previously Edited Books&rdquo;
@@ -63,7 +63,7 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
         <button
           onClick={onDownload}
           disabled={isDownloading}
-          className="btn-primary flex-1 py-3.5 px-6 text-base flex items-center justify-center gap-2.5 focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary flex-1 py-3 px-5 text-sm flex items-center justify-center gap-2.5 focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isDownloading ? (
             <>
@@ -79,7 +79,7 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
         </button>
         <button
           onClick={onEditAnother}
-          className="btn-secondary py-3.5 px-6 text-base focus-ring"
+          className="btn-secondary py-3 px-5 text-sm focus-ring"
         >
           Edit Another
         </button>

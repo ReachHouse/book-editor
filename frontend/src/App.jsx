@@ -406,8 +406,8 @@ function App() {
 
         {/* Loading State */}
         {loadingStorage && (
-          <div className="glass-card p-16 text-center animate-fade-in">
-            <Loader className="w-10 h-10 mx-auto mb-4 text-brand-400 animate-spin" />
+          <div className="glass-card py-10 text-center animate-fade-in">
+            <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" />
             <p className="text-surface-400 text-sm">Loading saved projects...</p>
           </div>
         )}
@@ -453,14 +453,14 @@ function App() {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-14 pb-2">
+        <div className="text-center mt-10 pb-2">
           <div className="flex items-center justify-center gap-3 mb-3">
             <div className="h-px w-16 bg-gradient-to-r from-transparent to-surface-700/30" />
             <div className="w-1 h-1 rounded-full bg-surface-700/50" />
             <div className="h-px w-16 bg-gradient-to-l from-transparent to-surface-700/30" />
           </div>
-          <p className="text-xs text-surface-600 mb-0.5">{VERSION_DISPLAY}</p>
-          <p className="text-xs text-surface-500">&copy; {new Date().getFullYear()} Reach Publishers</p>
+          <p className="text-xs text-surface-500 mb-0.5">{VERSION_DISPLAY}</p>
+          <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach Publishers</p>
         </div>
       </div>
     </div>

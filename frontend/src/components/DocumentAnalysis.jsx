@@ -33,18 +33,18 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
   return (
     <div className="glass-card p-6 sm:p-8 mb-8 animate-scale-in">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-xl glass-icon flex items-center justify-center">
           <CheckCircle className="w-5 h-5 text-brand-400" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-white">Document Analysis</h2>
+          <h2 className="text-lg font-semibold text-white">Document Analysis</h2>
           <p className="text-sm text-surface-400">Review details before editing</p>
         </div>
       </div>
 
       {/* Metadata Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 stagger-children">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 stagger-children">
         {ANALYSIS_FIELDS.map(({ key, label, icon: Icon }) => (
           <div
             key={key}
@@ -60,7 +60,7 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
       </div>
 
       {/* Processing info */}
-      <div className="info-box-green p-4 mb-6">
+      <div className="info-box-green p-4 mb-5">
         <p className="text-sm text-brand-300/90 leading-relaxed">
           Document will be processed in <strong className="text-brand-300">{analysis.estimatedChunks} sections</strong>
           <span className="mx-1.5 text-brand-600">&#183;</span>
@@ -74,13 +74,13 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
       <div className="flex gap-3">
         <button
           onClick={onStartEditing}
-          className="btn-primary flex-1 py-3.5 px-6 text-base focus-ring"
+          className="btn-primary flex-1 py-3 px-5 text-sm focus-ring"
         >
           Start Editing
         </button>
         <button
           onClick={onCancel}
-          className="btn-secondary py-3.5 px-6 text-base focus-ring"
+          className="btn-secondary py-3 px-5 text-sm focus-ring"
         >
           Cancel
         </button>
