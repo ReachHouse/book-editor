@@ -317,6 +317,8 @@ function App() {
     } catch (err) {
       addLog(`Error: ${err.message}`, 'error');
       setError('Processing failed: ' + err.message);
+      setFile(null);
+      setAnalysis(null);
       setProcessing(false);
       processingRef.current = false; // Release processing lock
       await loadProjects();

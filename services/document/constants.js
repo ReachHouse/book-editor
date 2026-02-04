@@ -15,29 +15,15 @@ const SIGNIFICANT_CHANGE_THRESHOLD = 3;
 // Author name for all comments and revisions
 const AUTHOR = "AI Editor";
 
-// TEMPORARY: Set to true to disable all comments for debugging
-// If document opens cleanly with this true, comments are the issue
+// Set to true to disable all comments (useful for debugging document issues)
 const DISABLE_COMMENTS = false;
 
-// Inline comments on track changes - testing with single-paragraph content
+// Set to true to disable inline comments on individual track changes
 const DISABLE_INLINE_COMMENTS = false;
-
-// Whether to add explicit highlight formatting to insertions.
-// DISABLED: Word's native Track Changes already renders insertions
-// with blue underline and deletions with red strikethrough.
-// Explicit formatting creates duplicate "Formatted" revisions and
-// persists as permanent text properties when changes are accepted.
-const HIGHLIGHT_INSERTIONS = false;
-
-// docx highlight colors: yellow, green, cyan, magenta, blue, red,
-// darkBlue, darkCyan, darkGreen, darkMagenta, darkRed, darkYellow, gray, lightGray, black
-const INSERTION_HIGHLIGHT_COLOR = "yellow";
 
 module.exports = {
   SIGNIFICANT_CHANGE_THRESHOLD,
   AUTHOR,
   DISABLE_COMMENTS,
-  DISABLE_INLINE_COMMENTS,
-  HIGHLIGHT_INSERTIONS,
-  INSERTION_HIGHLIGHT_COLOR
+  DISABLE_INLINE_COMMENTS
 };

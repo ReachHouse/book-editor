@@ -14,7 +14,7 @@
  * =============================================================================
  */
 
-const { TextRun, InsertedTextRun } = require('docx');
+const { InsertedTextRun } = require('docx');
 const { AUTHOR } = require('./constants');
 
 /**
@@ -33,59 +33,6 @@ function createHighlightedInsertedRun(text, revisionId, dateObj) {
     author: AUTHOR,
     date: dateObj,
   });
-}
-
-/**
- * Parse text for markdown-style *italics* and return array of TextRuns.
- * Converts *text* markers to actual Word italics formatting.
- *
- * @param {string} text - Text that may contain *italic* markers
- * @param {Object} baseOptions - Base options for TextRun (e.g., highlight, revision)
- * @returns {Array<TextRun>} Array of TextRuns with appropriate formatting
- */
-function parseItalicsToTextRuns(text, baseOptions = {}) {
-  if (!text) return [];
-
-  const runs = [];
-  const italicPattern = /\*([^*]+)\*/g;
-
-  let lastIndex = 0;
-  let match;
-
-  while ((match = italicPattern.exec(text)) !== null) {
-    // Add text before the italic marker
-    if (match.index > lastIndex) {
-      const beforeText = text.substring(lastIndex, match.index);
-      if (beforeText) {
-        runs.push(new TextRun({ text: beforeText, ...baseOptions }));
-      }
-    }
-
-    // Add the italic text (without the * markers)
-    const italicText = match[1];
-    runs.push(new TextRun({
-      text: italicText,
-      italics: true,
-      ...baseOptions
-    }));
-
-    lastIndex = match.index + match[0].length;
-  }
-
-  // Add remaining text after last italic marker
-  if (lastIndex < text.length) {
-    const remainingText = text.substring(lastIndex);
-    if (remainingText) {
-      runs.push(new TextRun({ text: remainingText, ...baseOptions }));
-    }
-  }
-
-  // If no italics found, return single TextRun
-  if (runs.length === 0) {
-    runs.push(new TextRun({ text: text, ...baseOptions }));
-  }
-
-  return runs;
 }
 
 /**
@@ -172,7 +119,6 @@ function createHighlightedInsertedRuns(text, revisionId, dateObj) {
 
 module.exports = {
   createHighlightedInsertedRun,
-  parseItalicsToTextRuns,
   createInsertedRunWithOptions,
   createHighlightedInsertedRuns
 };
