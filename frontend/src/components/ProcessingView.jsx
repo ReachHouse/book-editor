@@ -48,15 +48,10 @@ function ProcessingView({ progress, debugLog }) {
 
   return (
     <div className="glass-card p-6 sm:p-8 mb-8 animate-fade-in-up">
-      {/* Header - px-2 matches step indicator padding for alignment */}
-      <div className="flex items-center justify-between mb-6 px-2">
-        <div>
-          <h2 className="text-lg font-semibold text-white mb-1">Processing Manuscript</h2>
-          <p className="text-sm text-surface-400">{progress.stage}</p>
-        </div>
-        <div className="w-9 h-9 rounded-lg glass-icon flex items-center justify-center">
-          <Loader className="w-4 h-4 text-brand-400 animate-spin" />
-        </div>
+      {/* Header */}
+      <div className="mb-6 px-2">
+        <h2 className="text-lg font-semibold text-white mb-1">Processing Manuscript</h2>
+        <p className="text-sm text-surface-400">{progress.stage}</p>
       </div>
 
       {/* Step Indicator */}
@@ -86,13 +81,18 @@ function ProcessingView({ progress, debugLog }) {
                       : 'bg-surface-800/40 border border-surface-700/20'
                   }
                 `}>
-                  <Icon className={`w-4 h-4 transition-colors duration-500 ${
-                    isDone
-                      ? 'text-brand-400'
-                      : isActive
+                  {/* Show spinner for Complete step while processing */}
+                  {idx === 2 && !isDone ? (
+                    <Loader className="w-4 h-4 text-brand-400 animate-spin" />
+                  ) : (
+                    <Icon className={`w-4 h-4 transition-colors duration-500 ${
+                      isDone
                         ? 'text-brand-400'
-                        : 'text-surface-600'
-                  }`} />
+                        : isActive
+                          ? 'text-brand-400'
+                          : 'text-surface-600'
+                    }`} />
+                  )}
                 </div>
                 <span className={`text-xs font-medium transition-colors duration-500 ${
                   isDone || isActive ? 'text-surface-400' : 'text-surface-600'
