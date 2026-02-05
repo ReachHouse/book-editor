@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.34.0 [Bugfix]   - 2026-02-05: Input validation & race conditions — FileUpload validates file size (50MB max) and type before upload with error display, SavedProjects delete button loading state prevents double-click race condition, updated tests (535 total)
  * v1.33.0 [Bugfix]   - 2026-02-05: Reliability hardening — separate JWT verification from DB lookup in auth middleware (prevents error masking), fix UsageDisplay unmount race condition, add unique IDs to debug logs, add accessibility to DebugLog, validate style guide config at load time (535 total)
  * v1.32.0 [Bugfix]   - 2026-02-05: Production hardening — graceful shutdown with interval cleanup, uncaughtException/unhandledRejection handlers, server error listener, consistent token expiry timestamps, JSON serialization error handling, null check on project save, frontend setTimeout cleanup in useToast and StyleGuideModal (535 total)
  * v1.31.0 [Bugfix]   - 2026-02-05: Deep audit & polish — safeJsonParse for corrupted DB data, fix date reuse in login lockout, email length validation (254 max), token limit upper bounds (100M max), logout validation, conditional console logging, URL memory leak fix in downloadDocument, 4 new regression tests (535 total)
@@ -113,7 +114,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.33.0';
+export const VERSION = '1.34.0';
 
 /**
  * Tag describing the type of changes in this version

@@ -28,13 +28,52 @@ import { Upload, FileText } from 'lucide-react';
  * @param {Object} props - Component props
  * @param {function} props.onFileSelect - Callback receiving the selected File object
  */
+// Maximum file size: 50MB (matches backend limit)
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+/**
+ * Validate file before passing to callback.
+ * Checks file extension and size limits.
+ *
+ * @param {File} file - The file to validate
+ * @returns {string|null} Error message or null if valid
+ */
+function validateFile(file) {
+  if (!file) return 'No file selected';
+
+  // Check file extension
+  const ext = file.name.toLowerCase().split('.').pop();
+  if (ext !== 'doc' && ext !== 'docx') {
+    return 'Please select a Word document (.doc or .docx)';
+  }
+
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    const sizeMB = Math.round(file.size / 1024 / 1024);
+    return `File too large (${sizeMB}MB). Maximum size is 50MB.`;
+  }
+
+  return null;
+}
+
 function FileUpload({ onFileSelect }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleFile = (file) => {
+    const validationError = validateFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    onFileSelect(file);
+  };
 
   const handleChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      onFileSelect(file);
+      handleFile(file);
     }
   };
 
@@ -53,7 +92,7 @@ function FileUpload({ onFileSelect }) {
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) {
-      onFileSelect(file);
+      handleFile(file);
     }
   };
 
@@ -113,9 +152,16 @@ function FileUpload({ onFileSelect }) {
         </p>
         <div className="inline-flex items-center gap-1.5 text-surface-500 text-xs">
           <FileText className="w-3.5 h-3.5" />
-          <span>Microsoft Word (.doc, .docx)</span>
+          <span>Microsoft Word (.doc, .docx) • Max 50MB</span>
         </div>
       </label>
+
+      {/* Error message */}
+      {error && (
+        <div className="mt-4 text-sm text-red-400" role="alert">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

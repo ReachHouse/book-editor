@@ -21,7 +21,7 @@ describe('FileUpload', () => {
   test('renders supported formats text', () => {
     render(<FileUpload onFileSelect={mockOnFileSelect} />);
 
-    expect(screen.getByText('Microsoft Word (.doc, .docx)')).toBeInTheDocument();
+    expect(screen.getByText('Microsoft Word (.doc, .docx) • Max 50MB')).toBeInTheDocument();
   });
 
   test('renders drag and drop instruction', () => {

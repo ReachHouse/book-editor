@@ -67,14 +67,21 @@ function SavedProjects({
  */
 function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const progressPercent = project.totalChunks > 0
     ? Math.round((project.chunksCompleted / project.totalChunks) * 100)
     : 0;
 
-  const handleConfirmDelete = () => {
-    onDelete(project.id);
-    setConfirmingDelete(false);
+  const handleConfirmDelete = async () => {
+    if (isDeleting) return; // Prevent double-click
+    setIsDeleting(true);
+    try {
+      await onDelete(project.id);
+    } finally {
+      setIsDeleting(false);
+      setConfirmingDelete(false);
+    }
   };
 
   return (
@@ -133,18 +140,26 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
 
       {/* Actions */}
       {confirmingDelete ? (
-        <div className="flex gap-2 flex-shrink-0 items-center">
-          <span className="text-xs text-surface-400 mr-1">Delete?</span>
+        <div className="flex gap-2 flex-shrink-0 items-center" aria-live="polite">
+          <span className="text-xs text-surface-400 mr-1">
+            {isDeleting ? 'Deleting...' : 'Delete?'}
+          </span>
           <button
             onClick={handleConfirmDelete}
-            className="w-11 h-11 flex items-center justify-center rounded-lg bg-red-600/80 hover:bg-red-500 active:scale-95 text-white transition-all duration-200 focus-ring"
+            disabled={isDeleting}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-red-600/80 hover:bg-red-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-50 focus-ring"
             aria-label="Confirm delete"
           >
-            <Check className="w-4 h-4" />
+            {isDeleting ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <Check className="w-4 h-4" />
+            )}
           </button>
           <button
             onClick={() => setConfirmingDelete(false)}
-            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-surface-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
+            disabled={isDeleting}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-surface-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 disabled:opacity-50 focus-ring"
             aria-label="Cancel delete"
           >
             <X className="w-4 h-4" />
