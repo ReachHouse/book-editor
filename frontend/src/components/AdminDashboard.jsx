@@ -249,6 +249,16 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
   const [daily, setDaily] = useState(dailyLimit.toString());
   const [monthly, setMonthly] = useState(monthlyLimit.toString());
 
+  // Validate that value is a non-negative integer
+  const isValidLimit = (val) => {
+    const num = parseInt(val, 10);
+    return !isNaN(num) && num >= 0 && String(num) === val.trim();
+  };
+
+  const isDailyValid = isValidLimit(daily);
+  const isMonthlyValid = isValidLimit(monthly);
+  const canSave = isDailyValid && isMonthlyValid;
+
   return (
     <div className="mt-3 p-3 rounded-lg bg-surface-800/50 border border-surface-700/50">
       <div className="grid grid-cols-2 gap-3 mb-3">
@@ -258,7 +268,9 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
             type="number"
             value={daily}
             onChange={(e) => setDaily(e.target.value)}
-            className="w-full px-2 py-1.5 text-sm bg-surface-900 border border-surface-700 rounded text-surface-200 focus:outline-none focus:border-brand-500"
+            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none ${
+              isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+            }`}
             min="0"
           />
         </div>
@@ -268,7 +280,9 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
             type="number"
             value={monthly}
             onChange={(e) => setMonthly(e.target.value)}
-            className="w-full px-2 py-1.5 text-sm bg-surface-900 border border-surface-700 rounded text-surface-200 focus:outline-none focus:border-brand-500"
+            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none ${
+              isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+            }`}
             min="0"
           />
         </div>
@@ -276,7 +290,8 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
       <div className="flex gap-2">
         <button
           onClick={() => onSave(daily, monthly)}
-          className="text-xs px-3 py-1.5 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors"
+          disabled={!canSave}
+          className="text-xs px-3 py-1.5 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Save
         </button>

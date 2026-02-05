@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.29.1 [Bugfix]   - 2026-02-05: Deep audit — fix negative limit parameter in usage history endpoint, add LimitEditor client-side validation, update Header JSDoc, add regression tests (528 total)
  * v1.29.0 [Feature]  - 2026-02-05: Admin dashboard — user management (list/update/delete users, role toggle, limits editor), invite code management (list/generate codes), AdminDashboard component with tabs, 5 admin API endpoints, 37 new tests (526 total)
  * v1.28.0 [Feature]  - 2026-02-05: Usage tracking & limits — log token usage per API call, enforce daily/monthly limits (429), usage summary endpoints, admin stats, frontend UsageDisplay with progress bars (471 tests)
  * v1.27.0 [Feature]  - 2026-02-05: Server-side project storage — CRUD endpoints, SQLite upsert, metadata-only listing, full-project fetch, 50 project limit, frontend API migration (440 tests)
@@ -108,13 +109,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.29.0';
+export const VERSION = '1.29.1';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Feature';
+export const VERSION_TAG = 'Bugfix';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

@@ -219,6 +219,38 @@ describe('GET /api/usage/history', () => {
     // Just check it doesn't error — we can't easily test the cap without 200+ entries
   });
 
+  test('handles negative limit parameter', async () => {
+    // Create 3 entries
+    for (let i = 0; i < 3; i++) {
+      testDb.usageLogs.create({
+        userId: regularUser.id,
+        endpoint: `/api/edit-chunk`,
+        tokensInput: i * 100
+      });
+    }
+
+    // Negative limit should be clamped to 1 (minimum)
+    const res = await userGet('/api/usage/history?limit=-5');
+    expect(res.status).toBe(200);
+    expect(res.body.history).toHaveLength(1);
+  });
+
+  test('handles zero limit parameter', async () => {
+    // Create 3 entries
+    for (let i = 0; i < 3; i++) {
+      testDb.usageLogs.create({
+        userId: regularUser.id,
+        endpoint: `/api/edit-chunk`,
+        tokensInput: i * 100
+      });
+    }
+
+    // Zero limit should be clamped to 1 (minimum)
+    const res = await userGet('/api/usage/history?limit=0');
+    expect(res.status).toBe(200);
+    expect(res.body.history).toHaveLength(1);
+  });
+
   test('does not include other users history', async () => {
     testDb.usageLogs.create({
       userId: adminUser.id,

@@ -89,7 +89,9 @@ router.get('/api/usage', requireAuth, (req, res) => {
  */
 router.get('/api/usage/history', requireAuth, (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    // Clamp limit to 1-200 range, defaulting to 50
+    const parsed = parseInt(req.query.limit, 10);
+    const limit = Math.max(1, Math.min(isNaN(parsed) ? 50 : parsed, 200));
     const history = database.usageLogs.getHistory(req.user.userId, limit);
 
     res.json({

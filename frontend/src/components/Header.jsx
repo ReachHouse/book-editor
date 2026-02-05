@@ -9,7 +9,8 @@
  * PROPS:
  * ------
  * @param {function} onShowStyleGuide - Callback to show the StyleGuideModal
- * @param {Object} [user]            - Current authenticated user object
+ * @param {function} [onShowAdmin]    - Callback to show the AdminDashboard (admin only)
+ * @param {Object} [user]             - Current authenticated user object
  *
  * =============================================================================
  */
@@ -23,6 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
  *
  * @param {Object} props - Component props
  * @param {function} props.onShowStyleGuide - Called when user clicks style guide button
+ * @param {function} [props.onShowAdmin] - Called when admin clicks admin dashboard button
  * @param {Object} [props.user] - Current authenticated user
  */
 function Header({ onShowStyleGuide, onShowAdmin, user }) {
