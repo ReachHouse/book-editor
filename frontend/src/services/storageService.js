@@ -7,7 +7,7 @@
  * with localStorage fallback for browsers that don't support IndexedDB.
  *
  * IndexedDB provides:
- * - 50MB+ storage (vs 5-10MB for localStorage)
+ * - 100MB storage (vs 5-10MB for localStorage)
  * - Better performance for large objects
  * - Async operations that don't block the main thread
  *
@@ -36,7 +36,7 @@ const STORE_NAME = 'projects';
 const LOCALSTORAGE_PREFIX = 'book_';
 
 // Storage limits
-const INDEXEDDB_LIMIT_BYTES = 50 * 1024 * 1024; // 50 MB
+const INDEXEDDB_LIMIT_BYTES = 100 * 1024 * 1024; // 100 MB
 const LOCALSTORAGE_LIMIT_BYTES = 5 * 1024 * 1024; // 5 MB
 const WARNING_THRESHOLD = 0.8; // 80%
 
@@ -223,12 +223,9 @@ class StorageService {
    * @private
    */
   async _getIndexedDBUsage() {
-    if (navigator.storage && navigator.storage.estimate) {
-      const estimate = await navigator.storage.estimate();
-      return estimate.usage || 0;
-    }
-
-    // Fallback: estimate by getting all projects and measuring their size
+    // Always measure actual project data for accurate, immediate results.
+    // navigator.storage.estimate() reports total origin usage (not just our DB)
+    // and doesn't update immediately after deletions.
     const projects = await this._getAllFromIndexedDB();
     let total = 0;
     for (const project of projects) {

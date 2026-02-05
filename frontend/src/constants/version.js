@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.23.0 [Bugfix]   - 2026-02-05: Fix storage display not updating after deletion, increase storage limit to 100MB
  * v1.22.0 [Bugfix]   - 2026-02-04: Fix handleResume stuck state, handleReset stale error, chunkSize legacy resume, progressPercent NaN, stale JSDoc
  * v1.21.0 [Bugfix]   - 2026-02-04: Fix double formatFileName bug (_EDITED_EDITED), remove dead checkApiStatus, gitignore stale build artifacts
  * v1.20.0 [Refactor] - 2026-02-04: Fix stale closure bug, fix storageInfo prop, remove dead CSS/config, align keyframes, CSS utility extraction, timer cleanup
@@ -100,7 +101,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.22.0';
+export const VERSION = '1.23.0';
 
 /**
  * Tag describing the type of changes in this version
@@ -111,7 +112,7 @@ export const VERSION_TAG = 'Bugfix';
 /**
  * Date of this version release (YYYY-MM-DD format)
  */
-export const VERSION_DATE = '2026-02-04';
+export const VERSION_DATE = '2026-02-05';
 
 /**
  * Combined display string shown in the UI footer

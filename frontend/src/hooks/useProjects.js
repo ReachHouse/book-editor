@@ -4,7 +4,7 @@
  * =============================================================================
  *
  * Custom React hook for managing book editing projects.
- * Uses IndexedDB for storage (50MB+ capacity) with localStorage fallback.
+ * Uses IndexedDB for storage (100MB capacity) with localStorage fallback.
  *
  * PURPOSE:
  * --------
@@ -14,7 +14,7 @@
  *
  * STORAGE:
  * --------
- * Primary: IndexedDB (50MB+ capacity, async, better for large documents)
+ * Primary: IndexedDB (100MB capacity, async, better for large documents)
  * Fallback: localStorage (5-10MB capacity, if IndexedDB unavailable)
  *
  * Automatic migration from localStorage to IndexedDB on first use.
@@ -74,7 +74,7 @@ export function useProjects() {
   // State: storage usage information
   const [storageInfo, setStorageInfo] = useState({
     usedMB: '0.00',
-    limitMB: '50',
+    limitMB: '100',
     percentUsed: 0,
     isWarning: false,
     storageType: 'loading...'
