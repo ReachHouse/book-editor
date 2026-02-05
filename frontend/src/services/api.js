@@ -575,6 +575,25 @@ export async function adminCreateInviteCode() {
   return data.code;
 }
 
+/**
+ * Delete an unused invite code (admin only).
+ *
+ * @param {number} codeId - The ID of the invite code to delete
+ * @returns {Promise<void>}
+ */
+export async function adminDeleteInviteCode(codeId) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/invite-codes/${codeId}`, {
+    method: 'DELETE',
+    headers
+  }, API_TIMEOUTS.DEFAULT);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to delete invite code (${response.status})`);
+  }
+}
+
 // =============================================================================
 // FIRST-TIME SETUP (No auth required - only works when no users exist)
 // =============================================================================

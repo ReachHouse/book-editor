@@ -290,4 +290,31 @@ router.post('/api/admin/invite-codes', requireAdmin, (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/admin/invite-codes/:id
+ *
+ * Delete an unused invite code.
+ * Cannot delete codes that have already been used.
+ *
+ * Response: { success: true }
+ */
+router.delete('/api/admin/invite-codes/:id', requireAdmin, (req, res) => {
+  try {
+    const codeId = parseInt(req.params.id, 10);
+    if (isNaN(codeId)) {
+      return res.status(400).json({ error: 'Invalid invite code ID' });
+    }
+
+    const deleted = database.inviteCodes.deleteUnused(codeId);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Invite code not found or already used' });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Admin delete invite code error:', err.message);
+    res.status(500).json({ error: 'Failed to delete invite code' });
+  }
+});
+
 module.exports = router;

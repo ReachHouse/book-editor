@@ -352,6 +352,18 @@ class DatabaseService {
           'SELECT id FROM invite_codes WHERE code = ? AND is_used = 0'
         ).get(code);
         return !!row;
+      },
+
+      /**
+       * Delete an unused invite code by ID.
+       * @param {number} id - Invite code ID
+       * @returns {boolean} True if deleted, false if not found or already used
+       */
+      deleteUnused(id) {
+        const result = db.prepare(
+          'DELETE FROM invite_codes WHERE id = ? AND is_used = 0'
+        ).run(id);
+        return result.changes > 0;
       }
     };
   }

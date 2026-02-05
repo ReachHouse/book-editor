@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import {
   adminListUsers, adminUpdateUser, adminDeleteUser,
-  adminListInviteCodes, adminCreateInviteCode
+  adminListInviteCodes, adminCreateInviteCode, adminDeleteInviteCode
 } from '../services/api';
 
 // =============================================================================
@@ -329,6 +329,7 @@ function InviteCodesTab() {
   const [error, setError] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [confirmDeleteCode, setConfirmDeleteCode] = useState(null);
   const copyTimeoutRef = useRef(null);
 
   // Cleanup timeout on unmount
@@ -365,6 +366,17 @@ function InviteCodesTab() {
       setError(err.message);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleDeleteCode = async (codeId) => {
+    setError(null);
+    try {
+      await adminDeleteInviteCode(codeId);
+      setConfirmDeleteCode(null);
+      await loadCodes();
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -461,25 +473,60 @@ function InviteCodesTab() {
           <h4 className="text-xs text-surface-500 uppercase tracking-wider mb-2">Available</h4>
           <div className="space-y-2">
             {unusedCodes.map(code => (
-              <div key={code.id} className="glass-card p-3 flex items-center justify-between">
-                <div>
-                  <code className="text-sm font-mono text-brand-400">{code.code}</code>
-                  <p className="text-xs text-surface-500 mt-0.5">
-                    Created by {code.createdBy || 'system'} on {formatDate(code.createdAt)}
-                  </p>
+              <div key={code.id} className="glass-card p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <code className="text-sm font-mono text-brand-400">{code.code}</code>
+                    <p className="text-xs text-surface-500 mt-0.5">
+                      Created by {code.createdBy || 'system'} on {formatDate(code.createdAt)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleCopy(code.code, code.id)}
+                      className="p-1.5 rounded text-surface-500 hover:text-brand-400 hover:bg-surface-800/50 transition-colors"
+                      title="Copy to clipboard"
+                      aria-label={copiedId === code.id ? 'Copied!' : `Copy invite code ${code.code}`}
+                    >
+                      {copiedId === code.id ? (
+                        <Check className="w-4 h-4 text-green-400" aria-hidden="true" />
+                      ) : (
+                        <Copy className="w-4 h-4" aria-hidden="true" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteCode(code.id)}
+                      className="p-1.5 rounded text-surface-500 hover:text-red-400 hover:bg-surface-800/50 transition-colors"
+                      title="Delete invite code"
+                      aria-label={`Delete invite code ${code.code}`}
+                    >
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleCopy(code.code, code.id)}
-                  className="p-1.5 rounded text-surface-500 hover:text-brand-400 hover:bg-surface-800/50 transition-colors"
-                  title="Copy to clipboard"
-                  aria-label={copiedId === code.id ? 'Copied!' : `Copy invite code ${code.code}`}
-                >
-                  {copiedId === code.id ? (
-                    <Check className="w-4 h-4 text-green-400" aria-hidden="true" />
-                  ) : (
-                    <Copy className="w-4 h-4" aria-hidden="true" />
-                  )}
-                </button>
+
+                {/* Delete Confirmation */}
+                {confirmDeleteCode === code.id && (
+                  <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <p className="text-sm text-red-400 mb-2">
+                      Delete this invite code? This cannot be undone.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleDeleteCode(code.id)}
+                        className="text-xs px-3 py-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteCode(null)}
+                        className="text-xs px-3 py-1.5 rounded bg-surface-800 text-surface-400 hover:bg-surface-700 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
