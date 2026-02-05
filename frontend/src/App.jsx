@@ -72,6 +72,7 @@ function App() {
 
   // Setup wizard state (for first-time setup when no users exist)
   const [needsSetup, setNeedsSetup] = useState(false);
+  const [setupEnabled, setSetupEnabled] = useState(false);
   const [checkingSetup, setCheckingSetup] = useState(true);
 
   // Check if first-time setup is required on mount
@@ -80,9 +81,10 @@ function App() {
 
     async function checkSetup() {
       try {
-        const setupRequired = await checkSetupRequired();
+        const { needsSetup: required, setupEnabled: enabled } = await checkSetupRequired();
         if (mounted) {
-          setNeedsSetup(setupRequired);
+          setNeedsSetup(required);
+          setSetupEnabled(enabled);
         }
       } catch (err) {
         // On error, assume setup not required (show login)
@@ -511,6 +513,7 @@ function App() {
         </div>
       }>
         <SetupWizard
+          setupEnabled={setupEnabled}
           onSetupComplete={() => {
             setNeedsSetup(false);
             setAuthPage('login');

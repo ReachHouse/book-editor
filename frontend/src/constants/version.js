@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.40.1 [Security] - 2026-02-05: CRITICAL FIX — setup wizard now requires SETUP_SECRET env var to prevent unauthorized admin account creation on fresh deployments, timing-safe secret comparison, frontend displays setup disabled warning, 4 new security tests (452 total)
  * v1.40.0 [UI]       - 2026-02-05: Accessibility & polish — focus trap in StyleGuideModal, ARIA tab roles in AdminDashboard, aria-labels on icon buttons, role="alert" on error containers, form label associations with htmlFor/id, visible focus indicators with peer-focus-visible, ErrorDisplay role="alert" (448 total)
  * v1.39.5 [Docs]     - 2026-02-05: Polish release — add 6 tests for new batch query methods (getAllDailyUsage, getAllMonthlyUsage, getAllCounts), verify code comments, cleanup (448 total)
  * v1.39.0 [Refactor] - 2026-02-05: Performance optimizations — fix N+1 queries in admin endpoints (3→1 batch queries), React.lazy for AdminDashboard/SetupWizard, static asset caching (1 year for versioned files), optimistic updates in useProjects (442 total)
@@ -121,13 +122,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.40.0';
+export const VERSION = '1.40.1';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'UI';
+export const VERSION_TAG = 'Security';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
