@@ -17,8 +17,10 @@
  * RATE LIMITING:
  * --------------
  * Auth endpoints use the global API rate limiter (100 req / 15 min).
- * Login additionally has its own stricter limiter (20 req / 15 min)
- * to mitigate brute-force attempts.
+ * Additionally, each endpoint has its own stricter limiter:
+ * - Login:    20 req / 15 min  (brute-force mitigation)
+ * - Register: 10 req / 15 min  (invite code enumeration prevention)
+ * - Refresh:  30 req / 15 min  (token-spinning prevention)
  *
  * =============================================================================
  */
@@ -55,6 +57,18 @@ const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: { error: 'Too many registration attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+/**
+ * Rate limit for token refresh to prevent token-spinning attacks.
+ * 30 attempts per 15-minute window per IP.
+ */
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many refresh attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -156,7 +170,7 @@ router.post('/api/auth/login', loginLimiter, async (req, res) => {
  *     refreshToken: string
  *   }
  */
-router.post('/api/auth/refresh', (req, res) => {
+router.post('/api/auth/refresh', refreshLimiter, (req, res) => {
   try {
     const { refreshToken } = req.body;
 

@@ -96,17 +96,13 @@ function requireAuth(req, res, next) {
  * Returns 403 Forbidden if the user is not an admin.
  */
 function requireAdmin(req, res, next) {
-  // First verify auth
-  requireAuth(req, res, (err) => {
-    if (err) return next(err);
-
-    // Check if response was already sent by requireAuth (e.g., 401)
-    if (res.headersSent) return;
-
+  // First verify auth, then check admin role.
+  // If requireAuth rejects (sends 401), the callback is never called.
+  // requireAuth only calls next() on success, at which point req.user is set.
+  requireAuth(req, res, () => {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-
     next();
   });
 }

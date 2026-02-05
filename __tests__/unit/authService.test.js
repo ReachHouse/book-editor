@@ -218,7 +218,7 @@ describe('Registration', () => {
         password: 'securePass123',
         inviteCode: code2.code
       })
-    ).rejects.toThrow('Email or username already registered');
+    ).rejects.toThrow('Email already registered');
   });
 
   test('rejects duplicate username', async () => {

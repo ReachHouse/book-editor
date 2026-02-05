@@ -180,6 +180,20 @@ console.log('Initializing database...');
 database.init();
 console.log('Database ready.');
 
+// Periodic cleanup: remove expired sessions every hour.
+// Prevents the sessions table from growing unbounded.
+const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+setInterval(() => {
+  try {
+    const deleted = database.sessions.deleteExpired();
+    if (deleted > 0) {
+      console.log(`Session cleanup: removed ${deleted} expired session(s)`);
+    }
+  } catch (err) {
+    console.error('Session cleanup error:', err.message);
+  }
+}, SESSION_CLEANUP_INTERVAL_MS);
+
 // Start listening on all network interfaces (0.0.0.0)
 // This is required for Docker container networking
 app.listen(PORT, '0.0.0.0', () => {

@@ -185,9 +185,9 @@ class DatabaseService {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@reachpublishers.com';
     const adminPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex');
 
-    // Hash password with a simple placeholder — bcrypt will be added in v1.26.0.
-    // For now, store a marker indicating this needs to be re-hashed on first login.
-    // This avoids adding bcrypt as a dependency in this version.
+    // Store password with a plain-text marker for initial seed.
+    // On first admin login, authService.login() detects the "plain:" prefix
+    // and re-hashes the password with bcrypt automatically.
     const passwordHash = `plain:${adminPassword}`;
 
     this.db.prepare(`
@@ -295,8 +295,8 @@ class DatabaseService {
 
         if (updates.length === 0) return this.findById(id);
 
-        // Always update the updated_at timestamp
-        if (!fields.updated_at) {
+        // Always update the updated_at timestamp (unless explicitly provided)
+        if (!Object.prototype.hasOwnProperty.call(fields, 'updated_at')) {
           updates.push("updated_at = datetime('now')");
         }
 

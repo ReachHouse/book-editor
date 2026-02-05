@@ -55,7 +55,7 @@
  * =============================================================================
  */
 
-import { API_BASE_URL, API_CONFIG } from '../constants';
+import { API_BASE_URL, API_CONFIG, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
 
 /**
  * Default timeout for API requests (5 minutes)
@@ -67,15 +67,11 @@ const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 // AUTHENTICATION HELPERS
 // =============================================================================
 
-/** localStorage keys (must match AuthContext) */
-const TOKEN_KEY = 'book_editor_access_token';
-const REFRESH_KEY = 'book_editor_refresh_token';
-const USER_KEY = 'book_editor_user';
-
-/** Buffer before expiry to trigger refresh (60 seconds) */
-const REFRESH_BUFFER_MS = 60 * 1000;
-
-/** Shared refresh promise to prevent concurrent refresh requests */
+/**
+ * Shared refresh promise to prevent concurrent refresh requests.
+ * All concurrent API calls share this single promise so only one
+ * refresh request is sent to the server at a time.
+ */
 let refreshPromise = null;
 
 /**
@@ -100,7 +96,7 @@ function decodeJwt(token) {
 async function refreshAccessToken() {
   if (refreshPromise) return refreshPromise;
 
-  const refreshToken = localStorage.getItem(REFRESH_KEY);
+  const refreshToken = localStorage.getItem(AUTH_KEYS.REFRESH);
   if (!refreshToken) return null;
 
   refreshPromise = (async () => {
@@ -112,15 +108,15 @@ async function refreshAccessToken() {
       });
       if (!res.ok) {
         // Refresh failed — clear auth (will cause redirect to login)
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(REFRESH_KEY);
-        localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(AUTH_KEYS.TOKEN);
+        localStorage.removeItem(AUTH_KEYS.REFRESH);
+        localStorage.removeItem(AUTH_KEYS.USER);
         return null;
       }
       const data = await res.json();
-      localStorage.setItem(TOKEN_KEY, data.accessToken);
-      localStorage.setItem(REFRESH_KEY, data.refreshToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      localStorage.setItem(AUTH_KEYS.TOKEN, data.accessToken);
+      localStorage.setItem(AUTH_KEYS.REFRESH, data.refreshToken);
+      localStorage.setItem(AUTH_KEYS.USER, JSON.stringify(data.user));
       return data.accessToken;
     } catch {
       return null;
@@ -139,11 +135,11 @@ async function refreshAccessToken() {
  * @returns {Promise<Object>} Headers object with Content-Type and Authorization
  */
 async function getAuthHeaders() {
-  let token = localStorage.getItem(TOKEN_KEY);
+  let token = localStorage.getItem(AUTH_KEYS.TOKEN);
 
   if (token) {
     const decoded = decodeJwt(token);
-    if (decoded && decoded.exp && Date.now() >= decoded.exp * 1000 - REFRESH_BUFFER_MS) {
+    if (decoded && decoded.exp && Date.now() >= decoded.exp * 1000 - TOKEN_REFRESH_BUFFER_MS) {
       token = await refreshAccessToken();
     }
   }

@@ -65,6 +65,9 @@ function RegisterPage({ onSwitchToLogin }) {
     setSubmitting(true);
     try {
       await register(username.trim(), email.trim(), password, inviteCode.trim());
+      // Clear sensitive data from component state on success
+      setPassword('');
+      setConfirmPassword('');
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {

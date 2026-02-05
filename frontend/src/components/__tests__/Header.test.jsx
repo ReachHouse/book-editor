@@ -2,11 +2,11 @@
  * Header Component Tests
  */
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Header from '../Header';
 
 // Mock the AuthContext
-const mockLogout = jest.fn();
+const mockLogout = jest.fn().mockResolvedValue(undefined);
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
     logout: mockLogout
@@ -76,13 +76,15 @@ describe('Header', () => {
     expect(screen.getByLabelText('Sign out')).toBeInTheDocument();
   });
 
-  test('calls logout when sign out is clicked', () => {
+  test('calls logout when sign out is clicked', async () => {
     const user = { username: 'testuser', role: 'user' };
     render(<Header onShowStyleGuide={mockOnShowStyleGuide} user={user} />);
 
     fireEvent.click(screen.getByLabelText('Sign out'));
 
-    expect(mockLogout).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockLogout).toHaveBeenCalledTimes(1);
+    });
   });
 
   test('does not show user bar when no user provided', () => {

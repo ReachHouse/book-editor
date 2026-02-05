@@ -14,8 +14,8 @@
  * =============================================================================
  */
 
-import React from 'react';
-import { FileText, BookOpen, LogOut, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, BookOpen, LogOut, Loader, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -27,6 +27,16 @@ import { useAuth } from '../contexts/AuthContext';
  */
 function Header({ onShowStyleGuide, user }) {
   const { logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <div className="text-center mb-10 animate-fade-in">
@@ -43,11 +53,16 @@ function Header({ onShowStyleGuide, user }) {
             )}
           </div>
           <button
-            onClick={logout}
-            className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-300 transition-colors py-1 px-2 rounded hover:bg-surface-800/50"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-300 transition-colors py-1 px-2 rounded hover:bg-surface-800/50 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Sign out"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            {loggingOut ? (
+              <Loader className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <LogOut className="w-3.5 h-3.5" />
+            )}
             Sign out
           </button>
         </div>

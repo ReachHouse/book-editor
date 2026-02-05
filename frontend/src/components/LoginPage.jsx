@@ -36,6 +36,8 @@ function LoginPage({ onSwitchToRegister }) {
     setSubmitting(true);
     try {
       await login(identifier.trim(), password);
+      // Clear sensitive data from component state on success
+      setPassword('');
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

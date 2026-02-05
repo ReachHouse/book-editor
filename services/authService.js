@@ -140,12 +140,14 @@ function generateAccessToken(user) {
 function generateRefreshToken(userId) {
   const token = crypto.randomBytes(48).toString('hex');
 
-  // Calculate expiry date
+  // Calculate expiry date in SQLite-compatible format (YYYY-MM-DD HH:MM:SS)
+  // so that deleteExpired() comparisons with datetime('now') work correctly.
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
+  const sqliteExpiry = expiresAt.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
 
   // Store in sessions table
-  database.sessions.create(userId, token, expiresAt.toISOString());
+  database.sessions.create(userId, token, sqliteExpiry);
 
   return token;
 }
@@ -202,26 +204,28 @@ const authService = {
       throw Object.assign(new Error('Password must be at least 8 characters'), { status: 400 });
     }
 
-    // Check invite code validity
-    if (!database.inviteCodes.isValid(inviteCode)) {
-      throw Object.assign(new Error('Invalid or already used invite code'), { status: 400 });
-    }
-
-    // Check for existing users with same email or username
-    const existing = database.users.findByEmailOrUsername(email);
-    if (existing) {
-      throw Object.assign(new Error('Email or username already registered'), { status: 409 });
-    }
-
-    const existingUsername = database.users.findByUsername(username);
-    if (existingUsername) {
-      throw Object.assign(new Error('Username already taken'), { status: 409 });
-    }
-
-    // Hash password and create user inside a transaction
+    // Hash password before entering the transaction (bcrypt is async)
     const passwordHash = await hashPassword(password);
 
+    // All checks and writes run inside a single transaction to prevent
+    // race conditions (e.g., two concurrent requests using the same invite code).
     const user = database.transaction(() => {
+      // Check invite code validity
+      if (!database.inviteCodes.isValid(inviteCode)) {
+        throw Object.assign(new Error('Invalid or already used invite code'), { status: 400 });
+      }
+
+      // Check for existing users with same email or username
+      const existingEmail = database.users.findByEmail(email);
+      if (existingEmail) {
+        throw Object.assign(new Error('Email already registered'), { status: 409 });
+      }
+
+      const existingUsername = database.users.findByUsername(username);
+      if (existingUsername) {
+        throw Object.assign(new Error('Username already taken'), { status: 409 });
+      }
+
       const newUser = database.users.create({
         username,
         email,
@@ -229,8 +233,11 @@ const authService = {
         role: 'user'
       });
 
-      // Mark invite code as used
-      database.inviteCodes.markUsed(inviteCode, newUser.id);
+      // Mark invite code as used and verify it succeeded
+      const marked = database.inviteCodes.markUsed(inviteCode, newUser.id);
+      if (!marked) {
+        throw Object.assign(new Error('Failed to use invite code'), { status: 500 });
+      }
 
       return newUser;
     });
@@ -314,21 +321,18 @@ const authService = {
     }
 
     // Reset failed attempts and update last login
-    database.users.update(user.id, {
+    const freshUser = database.users.update(user.id, {
       failed_login_attempts: 0,
       locked_until: null,
       last_login_at: new Date().toISOString()
     });
 
-    // Clean up expired sessions periodically
-    database.sessions.deleteExpired();
-
-    // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user.id);
+    // Generate tokens using the fresh user data (not the stale pre-update copy)
+    const accessToken = generateAccessToken(freshUser);
+    const refreshToken = generateRefreshToken(freshUser.id);
 
     return {
-      user: sanitizeUser(user),
+      user: sanitizeUser(freshUser),
       accessToken,
       refreshToken
     };

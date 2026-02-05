@@ -16,13 +16,12 @@
  * - login(identifier, password)  - Authenticate and store tokens
  * - register(username, email, password, inviteCode) - Create account
  * - logout()                      - Clear tokens and redirect to login
- * - getAccessToken()              - Get current access token (auto-refreshes if expired)
  *
  * TOKEN STORAGE:
  * --------------
- * Access and refresh tokens are stored in localStorage.
- * The access token is checked for expiry before each API call.
- * If expired, the refresh token is used to obtain a new pair.
+ * Access and refresh tokens are stored in localStorage using keys from
+ * constants/index.js (AUTH_KEYS). The same keys are used by services/api.js
+ * to attach Authorization headers to API requests.
  *
  * USAGE:
  * ------
@@ -38,18 +37,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { API_BASE_URL } from '../constants';
-
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const TOKEN_KEY = 'book_editor_access_token';
-const REFRESH_KEY = 'book_editor_refresh_token';
-const USER_KEY = 'book_editor_user';
-
-// Refresh the access token 60 seconds before it expires
-const REFRESH_BUFFER_MS = 60 * 1000;
+import { API_BASE_URL, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
 
 // =============================================================================
 // CONTEXT
@@ -83,7 +71,7 @@ function isTokenExpired(token) {
   const decoded = decodeToken(token);
   if (!decoded || !decoded.exp) return true;
   const expiresMs = decoded.exp * 1000;
-  return Date.now() >= expiresMs - REFRESH_BUFFER_MS;
+  return Date.now() >= expiresMs - TOKEN_REFRESH_BUFFER_MS;
 }
 
 // =============================================================================
@@ -93,7 +81,7 @@ function isTokenExpired(token) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
-      const stored = localStorage.getItem(USER_KEY);
+      const stored = localStorage.getItem(AUTH_KEYS.USER);
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -112,9 +100,9 @@ export function AuthProvider({ children }) {
    * Store tokens and user in localStorage.
    */
   const storeAuth = useCallback((accessToken, refreshToken, userData) => {
-    localStorage.setItem(TOKEN_KEY, accessToken);
-    localStorage.setItem(REFRESH_KEY, refreshToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    localStorage.setItem(AUTH_KEYS.TOKEN, accessToken);
+    localStorage.setItem(AUTH_KEYS.REFRESH, refreshToken);
+    localStorage.setItem(AUTH_KEYS.USER, JSON.stringify(userData));
     setUser(userData);
   }, []);
 
@@ -122,9 +110,9 @@ export function AuthProvider({ children }) {
    * Clear all stored auth data.
    */
   const clearAuth = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(AUTH_KEYS.TOKEN);
+    localStorage.removeItem(AUTH_KEYS.REFRESH);
+    localStorage.removeItem(AUTH_KEYS.USER);
     setUser(null);
   }, []);
 
@@ -140,7 +128,7 @@ export function AuthProvider({ children }) {
       return refreshingRef.current;
     }
 
-    const refreshToken = localStorage.getItem(REFRESH_KEY);
+    const refreshToken = localStorage.getItem(AUTH_KEYS.REFRESH);
     if (!refreshToken) {
       clearAuth();
       return null;
@@ -174,24 +162,6 @@ export function AuthProvider({ children }) {
     return refreshingRef.current;
   }, [clearAuth, storeAuth]);
 
-  /**
-   * Get a valid access token, refreshing if necessary.
-   * This is the main method API calls should use.
-   *
-   * @returns {Promise<string|null>} Valid access token or null
-   */
-  const getAccessToken = useCallback(async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
-
-    if (!token) return null;
-
-    if (isTokenExpired(token)) {
-      return refreshAccessToken();
-    }
-
-    return token;
-  }, [refreshAccessToken]);
-
   // =========================================================================
   // AUTH ACTIONS
   // =========================================================================
@@ -211,12 +181,19 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ identifier, password })
     });
 
-    const data = await response.json();
-
+    // Parse JSON safely — check response.ok first to handle non-JSON error pages
     if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
+      let errorMessage = 'Login failed';
+      try {
+        const data = await response.json();
+        errorMessage = data.error || errorMessage;
+      } catch {
+        errorMessage = `Server error (${response.status})`;
+      }
+      throw new Error(errorMessage);
     }
 
+    const data = await response.json();
     storeAuth(data.accessToken, data.refreshToken, data.user);
     return data.user;
   }, [storeAuth]);
@@ -238,12 +215,19 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ username, email, password, inviteCode })
     });
 
-    const data = await response.json();
-
+    // Parse JSON safely — check response.ok first to handle non-JSON error pages
     if (!response.ok) {
-      throw new Error(data.error || 'Registration failed');
+      let errorMessage = 'Registration failed';
+      try {
+        const data = await response.json();
+        errorMessage = data.error || errorMessage;
+      } catch {
+        errorMessage = `Server error (${response.status})`;
+      }
+      throw new Error(errorMessage);
     }
 
+    const data = await response.json();
     storeAuth(data.accessToken, data.refreshToken, data.user);
     return data.user;
   }, [storeAuth]);
@@ -252,7 +236,7 @@ export function AuthProvider({ children }) {
    * Logout: invalidate refresh token and clear local state.
    */
   const logout = useCallback(async () => {
-    const refreshToken = localStorage.getItem(REFRESH_KEY);
+    const refreshToken = localStorage.getItem(AUTH_KEYS.REFRESH);
 
     // Best-effort server-side logout (don't block on failure)
     try {
@@ -274,8 +258,8 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function checkAuth() {
-      const token = localStorage.getItem(TOKEN_KEY);
-      const refreshToken = localStorage.getItem(REFRESH_KEY);
+      const token = localStorage.getItem(AUTH_KEYS.TOKEN);
+      const refreshToken = localStorage.getItem(AUTH_KEYS.REFRESH);
 
       if (!token && !refreshToken) {
         setLoading(false);
@@ -298,7 +282,7 @@ export function AuthProvider({ children }) {
 
           if (response.ok) {
             const data = await response.json();
-            localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+            localStorage.setItem(AUTH_KEYS.USER, JSON.stringify(data.user));
             setUser(data.user);
           } else {
             clearAuth();
@@ -324,8 +308,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user,
     login,
     register,
-    logout,
-    getAccessToken
+    logout
   };
 
   return (
@@ -339,7 +322,7 @@ export function AuthProvider({ children }) {
  * Hook to access auth context.
  * Must be used within an AuthProvider.
  *
- * @returns {{ user, loading, isAuthenticated, login, register, logout, getAccessToken }}
+ * @returns {{ user, loading, isAuthenticated, login, register, logout }}
  */
 export function useAuth() {
   const context = useContext(AuthContext);
