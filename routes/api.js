@@ -182,7 +182,7 @@ function logUsage(userId, endpoint, usage, projectId) {
  */
 router.post('/api/edit-chunk', requireAuth, async (req, res) => {
   try {
-    const { text, styleGuide, projectId } = req.body;
+    const { text, styleGuide, projectId, customStyleGuide } = req.body;
     const isFirst = req.body.isFirst === true; // Explicitly default to false
 
     // Validate required input with type checking
@@ -207,6 +207,16 @@ router.post('/api/edit-chunk', requireAuth, async (req, res) => {
       }
     }
 
+    // Validate custom style guide (optional, max 50KB to allow detailed guides)
+    if (customStyleGuide !== undefined && customStyleGuide !== null) {
+      if (typeof customStyleGuide !== 'string') {
+        return res.status(400).json({ error: 'customStyleGuide must be a string' });
+      }
+      if (customStyleGuide.length > 50000) {
+        return res.status(400).json({ error: 'customStyleGuide exceeds maximum size (50KB)' });
+      }
+    }
+
     // Enforce usage limits before making the API call
     const limitCheck = checkUsageLimits(req.user.userId);
     if (!limitCheck.allowed) {
@@ -220,8 +230,8 @@ router.post('/api/edit-chunk', requireAuth, async (req, res) => {
       });
     }
 
-    // Send to Claude for editing
-    const result = await editChunk(text, styleGuide, isFirst);
+    // Send to Claude for editing (with optional custom style guide)
+    const result = await editChunk(text, styleGuide, isFirst, customStyleGuide);
 
     // Log usage
     logUsage(req.user.userId, '/api/edit-chunk', result.usage, projectId);

@@ -59,7 +59,7 @@ import {
   formatFileSize,
   estimateProcessingTime
 } from './utils/documentUtils';
-import { CHUNK_SIZES, VERSION_DISPLAY } from './constants';
+import { CHUNK_SIZES, VERSION_DISPLAY, FULL_STYLE_GUIDE_DOCUMENT } from './constants';
 
 // ============================================================================
 // MAIN APPLICATION COMPONENT
@@ -116,6 +116,9 @@ function App() {
   const [showStyleGuide, setShowStyleGuide] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
+
+  // Custom style guide state
+  const [customStyleGuide, setCustomStyleGuide] = useState(FULL_STYLE_GUIDE_DOCUMENT);
 
   // Projects hook (server-backed storage)
   const {
@@ -191,6 +194,7 @@ function App() {
     setCompleted(false);
     setEditedContent(null);
     setDebugLog([]);
+    setCustomStyleGuide(FULL_STYLE_GUIDE_DOCUMENT); // Reset to default for new documents
 
     try {
       const analysisResult = await analyzeDocument(uploadedFile);
@@ -314,7 +318,9 @@ function App() {
           chunks[i],
           styleGuide,
           i === 0 && !resumeProject,
-          addLog
+          addLog,
+          0, // retryCount
+          customStyleGuide
         );
 
         if (!editedChunk || !editedChunk.trim()) {
@@ -340,6 +346,7 @@ function App() {
           editedChunks,
           originalText,
           styleGuide,
+          customStyleGuide,
           isComplete: false
         });
       }
@@ -368,6 +375,7 @@ function App() {
         originalText,
         fullEditedText,
         styleGuide,
+        customStyleGuide,
         isComplete: true,
         docContent
       });
@@ -456,6 +464,8 @@ function App() {
         setError('Project not found. It may have been deleted.');
         return;
       }
+      // Load custom style guide from project (or use default if not set)
+      setCustomStyleGuide(fullProject.customStyleGuide || FULL_STYLE_GUIDE_DOCUMENT);
       processBook(fullProject);
     } catch (err) {
       setError('Failed to load project: ' + err.message);
@@ -480,6 +490,7 @@ function App() {
     setEditedContent(null);
     setError(null);
     setDebugLog([]);
+    setCustomStyleGuide(FULL_STYLE_GUIDE_DOCUMENT);
   }, []);
 
   // Stable callbacks for components that only use state setters (safe with empty deps)
@@ -487,6 +498,23 @@ function App() {
   const handleCloseStyleGuide = useCallback(() => setShowStyleGuide(false), []);
   const handleShowAdmin = useCallback(() => setShowAdmin(true), []);
   const handleCloseAdmin = useCallback(() => setShowAdmin(false), []);
+
+  // Style guide modal handlers
+  const handleStyleGuideChange = useCallback((value) => {
+    setCustomStyleGuide(value);
+  }, []);
+
+  const handleStyleGuideSave = useCallback(() => {
+    addToast('Style guide saved', 'success');
+  }, [addToast]);
+
+  const handleStyleGuideReset = useCallback(() => {
+    setCustomStyleGuide(FULL_STYLE_GUIDE_DOCUMENT);
+    addToast('Style guide reset to default', 'info');
+  }, [addToast]);
+
+  // Determine style guide mode: 'edit' when document is ready but not yet processed/completed
+  const styleGuideMode = (analysis && !processing && !completed) ? 'edit' : 'view';
 
   // ============================================================================
   // RENDER
@@ -572,7 +600,12 @@ function App() {
       <div className="relative container mx-auto px-4 sm:px-6 py-10 sm:py-14 max-w-4xl">
 
         {/* Header */}
-        <Header onShowStyleGuide={handleShowStyleGuide} onShowAdmin={handleShowAdmin} user={user} />
+        <Header
+          onShowStyleGuide={handleShowStyleGuide}
+          onShowAdmin={handleShowAdmin}
+          user={user}
+          styleGuideMode={styleGuideMode}
+        />
 
         {/* Main Content Area - target for skip link */}
         <main id="main-content" tabIndex="-1" className="outline-none">
@@ -584,6 +617,11 @@ function App() {
         <StyleGuideModal
           isOpen={showStyleGuide}
           onClose={handleCloseStyleGuide}
+          mode={styleGuideMode}
+          value={customStyleGuide}
+          onChange={handleStyleGuideChange}
+          onSave={handleStyleGuideSave}
+          onReset={handleStyleGuideReset}
         />
 
         {/* Admin Dashboard (full-page view for admins, lazy loaded) */}

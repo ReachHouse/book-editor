@@ -191,10 +191,11 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUTS.EDIT
  * @param {boolean} isFirst - True if this is the first chunk (no prior context)
  * @param {function} logFn - Logging function: logFn(message, type='info')
  * @param {number} retryCount - Internal: current retry attempt number
+ * @param {string|null} customStyleGuide - User-customized style guide (optional)
  * @returns {Promise<string>} The edited text
  * @throws {Error} If all retry attempts fail
  */
-export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0) {
+export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0, customStyleGuide = null) {
   logFn('Sending section to editor...');
 
   try {
@@ -205,7 +206,7 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/edit-chunk`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ text, styleGuide, isFirst })
+      body: JSON.stringify({ text, styleGuide, isFirst, customStyleGuide })
     });
 
     // Handle HTTP errors
@@ -238,7 +239,7 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
       await new Promise(resolve => setTimeout(resolve, delay));
 
       // Recursive retry
-      return editChunk(text, styleGuide, isFirst, logFn, retryCount + 1);
+      return editChunk(text, styleGuide, isFirst, logFn, retryCount + 1, customStyleGuide);
     }
 
     // All retries exhausted - rethrow

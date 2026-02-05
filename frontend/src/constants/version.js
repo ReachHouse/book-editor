@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.46.0 [Feature]  - 2026-02-05: Editable style guide — users can customize the style guide used by the AI for editing their documents, "Edit Style Guide" button in upload phase, "View Style Guide" (read-only) after completion, custom guide persisted per project, Reset to Default option, MAX_CUSTOM_STYLE_GUIDE_LENGTH (50KB) limit (477 total)
  * v1.45.0 [Feature]  - 2026-02-05: Comprehensive formatting support — add **bold**, _underline_, ~~strikethrough~~, ***bold+italic*** marker parsing alongside *italic*, token-based parser handles mixed formatting, all formatting counted in stats.totalFormattingChanges, 20 new tests (477 total)
  * v1.44.2 [Bugfix]   - 2026-02-05: Fix Formatting: 0 in Word Track Changes — AI Editor Summary now counts italic conversions (stats.totalFormattingChanges incremented when *italic* markers processed), pass stats context through formatting pipeline, 5 new tests (457 total)
  * v1.44.1 [Feature]  - 2026-02-06: Improved unlimited feature — dedicated Unlimited toggle button (infinity icon) in user action row, Unlimited badge displayed next to role, Limits button disabled when unlimited, simplified LimitEditor without checkboxes, UsageDisplay auto-refreshes after admin updates limits via custom event
@@ -136,7 +137,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.45.0';
+export const VERSION = '1.46.0';
 
 /**
  * Tag describing the type of changes in this version
