@@ -346,3 +346,153 @@ describe('formatting stats counter', () => {
     expect(result.runs).toHaveLength(0);
   });
 });
+
+// =============================================================================
+// Comprehensive Formatting Tests (v1.45.0)
+// =============================================================================
+
+const { parseFormattedText } = require('../../services/document/formatting');
+
+describe('comprehensive formatting support', () => {
+  describe('bold formatting (**text**)', () => {
+    test('parses **text** as bold', () => {
+      const segments = parseFormattedText('This is **bold** text');
+      expect(segments).toHaveLength(3);
+      expect(segments[0]).toEqual({ text: 'This is ', formatting: {} });
+      expect(segments[1]).toEqual({ text: 'bold', formatting: { bold: true } });
+      expect(segments[2]).toEqual({ text: ' text', formatting: {} });
+    });
+
+    test('creates correct number of runs for bold', () => {
+      const result = createHighlightedInsertedRuns('This is **bold** text', 1, new Date());
+      expect(result.runs).toHaveLength(3);
+    });
+
+    test('counts bold in stats', () => {
+      const stats = { totalFormattingChanges: 0 };
+      createHighlightedInsertedRuns('Make this **important**', 1, new Date(), stats);
+      expect(stats.totalFormattingChanges).toBe(1);
+    });
+  });
+
+  describe('underline formatting (_text_ and __text__)', () => {
+    test('parses _text_ as underline', () => {
+      const segments = parseFormattedText('This is _underlined_ text');
+      expect(segments).toHaveLength(3);
+      expect(segments[1]).toEqual({ text: 'underlined', formatting: { underline: { type: 'single' } } });
+    });
+
+    test('parses __text__ as underline', () => {
+      const segments = parseFormattedText('This is __underlined__ text');
+      expect(segments).toHaveLength(3);
+      expect(segments[1]).toEqual({ text: 'underlined', formatting: { underline: { type: 'single' } } });
+    });
+
+    test('creates correct number of runs for underline', () => {
+      const result = createHighlightedInsertedRuns('This is _underlined_ text', 1, new Date());
+      expect(result.runs).toHaveLength(3);
+    });
+
+    test('counts underline in stats', () => {
+      const stats = { totalFormattingChanges: 0 };
+      createHighlightedInsertedRuns('Make this _emphasized_', 1, new Date(), stats);
+      expect(stats.totalFormattingChanges).toBe(1);
+    });
+  });
+
+  describe('strikethrough formatting (~~text~~)', () => {
+    test('parses ~~text~~ as strikethrough', () => {
+      const segments = parseFormattedText('This is ~~deleted~~ text');
+      expect(segments).toHaveLength(3);
+      expect(segments[1]).toEqual({ text: 'deleted', formatting: { strike: true } });
+    });
+
+    test('creates correct number of runs for strikethrough', () => {
+      const result = createHighlightedInsertedRuns('This is ~~deleted~~ text', 1, new Date());
+      expect(result.runs).toHaveLength(3);
+    });
+
+    test('counts strikethrough in stats', () => {
+      const stats = { totalFormattingChanges: 0 };
+      createHighlightedInsertedRuns('Remove ~~this part~~', 1, new Date(), stats);
+      expect(stats.totalFormattingChanges).toBe(1);
+    });
+  });
+
+  describe('bold+italic formatting (***text***)', () => {
+    test('parses ***text*** as bold+italic', () => {
+      const segments = parseFormattedText('This is ***very important*** text');
+      expect(segments).toHaveLength(3);
+      expect(segments[1]).toEqual({ text: 'very important', formatting: { bold: true, italics: true } });
+    });
+
+    test('creates correct number of runs for bold+italic', () => {
+      const result = createHighlightedInsertedRuns('This is ***very important*** text', 1, new Date());
+      expect(result.runs).toHaveLength(3);
+    });
+
+    test('counts bold+italic in stats', () => {
+      const stats = { totalFormattingChanges: 0 };
+      createHighlightedInsertedRuns('This is ***critical***', 1, new Date(), stats);
+      expect(stats.totalFormattingChanges).toBe(1);
+    });
+  });
+
+  describe('mixed formatting in same text', () => {
+    test('handles multiple different format types', () => {
+      const stats = { totalFormattingChanges: 0 };
+      const result = createHighlightedInsertedRuns(
+        'Text with *italic* and **bold** and ~~strike~~ formatting',
+        1,
+        new Date(),
+        stats
+      );
+      // Should have: "Text with ", italic, " and ", bold, " and ", strike, " formatting"
+      expect(result.runs.length).toBeGreaterThan(5);
+      expect(stats.totalFormattingChanges).toBe(3);
+    });
+
+    test('parses multiple formats correctly', () => {
+      const segments = parseFormattedText('*italic* and **bold**');
+      expect(segments.length).toBeGreaterThanOrEqual(3);
+      // Find the italic and bold segments
+      const italicSeg = segments.find(s => s.formatting.italics);
+      const boldSeg = segments.find(s => s.formatting.bold);
+      expect(italicSeg).toBeDefined();
+      expect(boldSeg).toBeDefined();
+    });
+
+    test('handles adjacent formatting markers', () => {
+      const result = createHighlightedInsertedRuns('*italic***bold**', 1, new Date());
+      expect(result.runs.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('edge cases', () => {
+    test('handles asterisks in math expressions', () => {
+      // Single asterisks without pairs shouldn't match
+      const result = createHighlightedInsertedRuns('5 * 3 = 15', 1, new Date());
+      expect(result.runs).toHaveLength(1);
+    });
+
+    test('handles underscores in variable names', () => {
+      // variable_name shouldn't be underlined if there's only one underscore
+      const result = createHighlightedInsertedRuns('my_variable_name', 1, new Date());
+      // This might match _variable_ but that's expected markdown behavior
+      expect(result.runs.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test('handles empty formatting markers', () => {
+      // ** ** shouldn't crash
+      expect(() => {
+        createHighlightedInsertedRuns('text ** ** more', 1, new Date());
+      }).not.toThrow();
+    });
+
+    test('does not throw on document generation with formatting', async () => {
+      const original = 'The status quo must change.';
+      const edited = 'The *status quo* must **definitely** change with _emphasis_ and ~~removed~~.';
+      await expect(generateDocxBuffer(original, edited)).resolves.not.toThrow();
+    });
+  });
+});

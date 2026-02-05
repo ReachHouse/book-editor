@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.45.0 [Feature]  - 2026-02-05: Comprehensive formatting support — add **bold**, _underline_, ~~strikethrough~~, ***bold+italic*** marker parsing alongside *italic*, token-based parser handles mixed formatting, all formatting counted in stats.totalFormattingChanges, 20 new tests (477 total)
  * v1.44.2 [Bugfix]   - 2026-02-05: Fix Formatting: 0 in Word Track Changes — AI Editor Summary now counts italic conversions (stats.totalFormattingChanges incremented when *italic* markers processed), pass stats context through formatting pipeline, 5 new tests (457 total)
  * v1.44.1 [Feature]  - 2026-02-06: Improved unlimited feature — dedicated Unlimited toggle button (infinity icon) in user action row, Unlimited badge displayed next to role, Limits button disabled when unlimited, simplified LimitEditor without checkboxes, UsageDisplay auto-refreshes after admin updates limits via custom event
  * v1.44.0 [Feature]  - 2026-02-05: Unlimited token limits — add "Unlimited" option for daily/monthly limits with gold styling, backend skips limit checks when limit is 0, LimitEditor checkbox toggles, UsageDisplay gold gradient bar for unlimited users
@@ -135,13 +136,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.44.2';
+export const VERSION = '1.45.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Bugfix';
+export const VERSION_TAG = 'Feature';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
