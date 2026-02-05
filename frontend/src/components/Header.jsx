@@ -4,27 +4,55 @@
  * =============================================================================
  *
  * The main header displayed at the top of the application.
- * Contains the application logo, title, and a button to view the style guide.
+ * Contains the application logo, title, style guide button, and user info.
  *
  * PROPS:
  * ------
  * @param {function} onShowStyleGuide - Callback to show the StyleGuideModal
+ * @param {Object} [user]            - Current authenticated user object
  *
  * =============================================================================
  */
 
 import React from 'react';
-import { FileText, BookOpen } from 'lucide-react';
+import { FileText, BookOpen, LogOut, User } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
- * Header component displaying app title and style guide access.
+ * Header component displaying app title, style guide access, and user controls.
  *
  * @param {Object} props - Component props
  * @param {function} props.onShowStyleGuide - Called when user clicks style guide button
+ * @param {Object} [props.user] - Current authenticated user
  */
-function Header({ onShowStyleGuide }) {
+function Header({ onShowStyleGuide, user }) {
+  const { logout } = useAuth();
+
   return (
     <div className="text-center mb-10 animate-fade-in">
+      {/* User bar - positioned at top right */}
+      {user && (
+        <div className="flex items-center justify-end gap-3 mb-4">
+          <div className="flex items-center gap-2 text-sm text-surface-400">
+            <User className="w-3.5 h-3.5" />
+            <span>{user.username}</span>
+            {user.role === 'admin' && (
+              <span className="text-xs px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-400 font-medium">
+                Admin
+              </span>
+            )}
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-300 transition-colors py-1 px-2 rounded hover:bg-surface-800/50"
+            aria-label="Sign out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Sign out
+          </button>
+        </div>
+      )}
+
       {/* Logo mark */}
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl glass-icon mb-5">
         <FileText className="w-7 h-7 text-brand-400" />

@@ -3,6 +3,13 @@
  *
  * AI-powered manuscript editing with native Word Track Changes support.
  * Refactored for maintainability with modular components and services.
+ *
+ * AUTH FLOW:
+ * ----------
+ * - AppWrapper renders AuthProvider around App
+ * - App checks isAuthenticated from useAuth()
+ * - If not authenticated: shows LoginPage or RegisterPage
+ * - If authenticated: shows the editor as before
  */
 
 import React, { useState, useCallback, useRef } from 'react';
@@ -11,6 +18,9 @@ import * as mammoth from 'mammoth';
 
 // Maximum log entries to prevent memory leak
 const MAX_LOG_ENTRIES = 500;
+
+// Auth
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Components
 import {
@@ -22,6 +32,8 @@ import {
   CompletionView,
   SavedProjects,
   ErrorDisplay,
+  LoginPage,
+  RegisterPage,
   ToastContainer
 } from './components';
 
@@ -49,6 +61,10 @@ import { CHUNK_SIZES, VERSION_DISPLAY } from './constants';
 // ============================================================================
 
 function App() {
+  // Auth state
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const [authPage, setAuthPage] = useState('login'); // 'login' or 'register'
+
   // File and analysis state
   const [file, setFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
@@ -397,6 +413,27 @@ function App() {
   // RENDER
   // ============================================================================
 
+  // Auth loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-surface-950 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" />
+          <p className="text-surface-400 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated — show login or register page
+  if (!isAuthenticated) {
+    if (authPage === 'register') {
+      return <RegisterPage onSwitchToLogin={() => setAuthPage('login')} />;
+    }
+    return <LoginPage onSwitchToRegister={() => setAuthPage('register')} />;
+  }
+
+  // Authenticated — show the editor
   return (
     <div className="min-h-screen bg-surface-950 text-surface-200 relative overflow-hidden">
       {/* Toast Notifications */}
@@ -417,7 +454,7 @@ function App() {
       <div className="relative container mx-auto px-4 sm:px-6 py-10 sm:py-14 max-w-4xl">
 
         {/* Header */}
-        <Header onShowStyleGuide={handleShowStyleGuide} />
+        <Header onShowStyleGuide={handleShowStyleGuide} user={user} />
 
         {/* Style Guide Modal */}
         <StyleGuideModal
@@ -489,4 +526,15 @@ function App() {
   );
 }
 
-export default App;
+/**
+ * AppWrapper wraps the main App in AuthProvider so useAuth() works everywhere.
+ */
+function AppWrapper() {
+  return (
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+}
+
+export default AppWrapper;

@@ -14,6 +14,9 @@
  *   server.js (this file)     - Express app setup, middleware, and startup
  *   routes/health.js          - Health check and status endpoints
  *   routes/api.js             - Core API endpoints (edit, style guide, docx)
+ *   routes/auth.js            - Authentication endpoints (register, login, etc.)
+ *   middleware/auth.js         - JWT verification middleware
+ *   services/authService.js   - Authentication logic (password, tokens)
  *   services/database.js      - SQLite database layer (users, sessions, usage)
  *   services/anthropicService.js - Claude AI API communication
  *   services/diffService.js   - LCS-based diff algorithms for Track Changes
@@ -50,9 +53,11 @@ const rateLimit = require('express-rate-limit');
 // Routes are split into logical modules for maintainability:
 // - healthRoutes: System health and configuration status
 // - apiRoutes: Core editing functionality (edit-chunk, generate-docx, etc.)
+// - authRoutes: User authentication (register, login, token refresh, logout)
 
 const healthRoutes = require('./routes/health');
 const apiRoutes = require('./routes/api');
+const authRoutes = require('./routes/auth');
 const { validateEnvironment } = require('./routes/health');
 const { database } = require('./services/database');
 
@@ -82,7 +87,7 @@ const corsOptions = {
     ? (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
     : true, // Allow all origins in development
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400 // Cache preflight for 24 hours
 };
 app.use(cors(corsOptions));
@@ -128,8 +133,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Used for monitoring, deployment verification, and debugging
 app.use(healthRoutes);
 
+// Auth Routes: /api/auth/register, /api/auth/login, /api/auth/refresh, /api/auth/me, /api/auth/logout
+// User authentication and session management
+app.use(authRoutes);
+
 // API Routes: /api/edit-chunk, /api/generate-style-guide, /api/generate-docx
-// Core editing functionality that communicates with Claude AI
+// Core editing functionality that communicates with Claude AI (requires auth)
 app.use(apiRoutes);
 
 // =============================================================================
@@ -181,6 +190,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  Port:          ${PORT}`);
   console.log(`  URL:           http://localhost:${PORT}`);
   console.log(`  API Key:       ${process.env.ANTHROPIC_API_KEY ? 'Configured' : 'NOT SET'}`);
+  console.log(`  JWT Secret:    ${process.env.JWT_SECRET ? 'Configured' : 'Auto-generated (set JWT_SECRET for persistence)'}`);
   console.log(`  Track Changes: Native Word Format`);
   console.log(`  Environment:   ${process.env.NODE_ENV || 'development'}`);
   console.log(`  Database:      SQLite (${database.initialized ? 'ready' : 'failed'})`);

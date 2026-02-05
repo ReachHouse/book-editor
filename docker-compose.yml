@@ -29,6 +29,10 @@
 # ADMIN_PASSWORD:    Optional - Admin password for first-time setup.
 #                    If not set, a random password is generated and printed to logs.
 #
+# JWT_SECRET:        Optional - Secret key for signing JWT tokens.
+#                    If not set, a random key is generated (tokens won't survive restarts).
+#                    For production, set a long random string: export JWT_SECRET=$(openssl rand -hex 64)
+#
 # NODE_ENV: production (set in compose file)
 # PORT: 3001 (internal port, set in compose file)
 #
@@ -98,6 +102,8 @@ services:
       # API key from host environment (required for Claude API)
       # The :- syntax means "use empty string if not set"
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # JWT signing secret (set for persistent auth across restarts)
+      - JWT_SECRET=${JWT_SECRET:-}
 
     # Persistent volume for SQLite database
     # Data survives container rebuilds and restarts

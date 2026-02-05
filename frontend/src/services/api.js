@@ -33,6 +33,12 @@
  * Exception: generateStyleGuide fails silently and returns a default guide,
  * since it's not critical to the editing process.
  *
+ * AUTHENTICATION:
+ * ---------------
+ * All API requests include a JWT access token in the Authorization header.
+ * The getAuthHeaders() helper reads the token from localStorage and
+ * auto-refreshes it when expired.
+ *
  * USAGE:
  * ------
  * import { editChunk, generateStyleGuide, downloadDocument } from './services/api';
@@ -56,6 +62,98 @@ import { API_BASE_URL, API_CONFIG } from '../constants';
  * Editing large chunks can take time; this prevents indefinite hangs
  */
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
+
+// =============================================================================
+// AUTHENTICATION HELPERS
+// =============================================================================
+
+/** localStorage keys (must match AuthContext) */
+const TOKEN_KEY = 'book_editor_access_token';
+const REFRESH_KEY = 'book_editor_refresh_token';
+const USER_KEY = 'book_editor_user';
+
+/** Buffer before expiry to trigger refresh (60 seconds) */
+const REFRESH_BUFFER_MS = 60 * 1000;
+
+/** Shared refresh promise to prevent concurrent refresh requests */
+let refreshPromise = null;
+
+/**
+ * Decode a JWT payload to check expiry (no signature verification).
+ * @param {string} token
+ * @returns {Object|null}
+ */
+function decodeJwt(token) {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Refresh the access token using the stored refresh token.
+ * Returns the new access token, or null on failure.
+ *
+ * @returns {Promise<string|null>}
+ */
+async function refreshAccessToken() {
+  if (refreshPromise) return refreshPromise;
+
+  const refreshToken = localStorage.getItem(REFRESH_KEY);
+  if (!refreshToken) return null;
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken })
+      });
+      if (!res.ok) {
+        // Refresh failed — clear auth (will cause redirect to login)
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REFRESH_KEY);
+        localStorage.removeItem(USER_KEY);
+        return null;
+      }
+      const data = await res.json();
+      localStorage.setItem(TOKEN_KEY, data.accessToken);
+      localStorage.setItem(REFRESH_KEY, data.refreshToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      return data.accessToken;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+/**
+ * Get headers including a valid Authorization token.
+ * Auto-refreshes the token if it's about to expire.
+ *
+ * @returns {Promise<Object>} Headers object with Content-Type and Authorization
+ */
+async function getAuthHeaders() {
+  let token = localStorage.getItem(TOKEN_KEY);
+
+  if (token) {
+    const decoded = decodeJwt(token);
+    if (decoded && decoded.exp && Date.now() >= decoded.exp * 1000 - REFRESH_BUFFER_MS) {
+      token = await refreshAccessToken();
+    }
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 /**
  * Fetch wrapper with timeout support using AbortController.
@@ -106,10 +204,13 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
   logFn('Sending section to editor...');
 
   try {
+    // Get auth headers (auto-refreshes token if needed)
+    const headers = await getAuthHeaders();
+
     // Make the API request with timeout
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/edit-chunk`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ text, styleGuide, isFirst })
     });
 
@@ -168,9 +269,11 @@ export async function generateStyleGuide(text, logFn) {
   try {
     logFn('Building consistency guide from first section...');
 
+    const headers = await getAuthHeaders();
+
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/generate-style-guide`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ text })
     }, 2 * 60 * 1000); // 2 minute timeout for style guide (shorter task)
 
@@ -206,10 +309,13 @@ export async function generateStyleGuide(text, logFn) {
  * @throws {Error} If document generation fails
  */
 export async function downloadDocument(content) {
+  // Get auth headers (auto-refreshes token if needed)
+  const headers = await getAuthHeaders();
+
   // Request the document from the server with timeout
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/generate-docx`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       originalText: content.original,
       editedText: content.edited,

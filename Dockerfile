@@ -54,8 +54,9 @@
 # ----------------------
 # Backend:
 #   - server.js          → Main Express server
-#   - routes/            → API route handlers (health.js, api.js)
-#   - services/          → Business logic (anthropicService.js, diffService.js, documentService.js)
+#   - routes/            → API route handlers (health.js, api.js, auth.js)
+#   - services/          → Business logic (anthropicService.js, authService.js, database.js, etc.)
+#   - middleware/         → Express middleware (auth.js)
 #   - database/          → Database migrations
 #   - config/            → Configuration (styleGuide.js)
 #   - package.json       → Dependencies
@@ -120,6 +121,7 @@ RUN apk add --no-cache --virtual .build-deps python3 make g++ && \
 COPY server.js ./
 COPY routes/ ./routes/
 COPY services/ ./services/
+COPY middleware/ ./middleware/
 COPY database/ ./database/
 COPY config/ ./config/
 

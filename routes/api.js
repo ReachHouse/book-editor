@@ -34,6 +34,7 @@ const express = require('express');
 const router = express.Router();
 const { editChunk, generateStyleGuide } = require('../services/anthropicService');
 const { generateDocxBuffer } = require('../services/document');
+const { requireAuth } = require('../middleware/auth');
 
 // =============================================================================
 // INPUT VALIDATION HELPERS
@@ -113,7 +114,7 @@ function validateTextField(value, fieldName, maxLength = MAX_TEXT_LENGTH) {
  *   400 - No text provided
  *   500 - API key not configured or API error
  */
-router.post('/api/edit-chunk', async (req, res) => {
+router.post('/api/edit-chunk', requireAuth, async (req, res) => {
   try {
     const { text, styleGuide, isFirst } = req.body;
 
@@ -162,7 +163,7 @@ router.post('/api/edit-chunk', async (req, res) => {
  * Note: This endpoint returns a default guide on error rather than
  * failing, since style guide generation is not critical to editing.
  */
-router.post('/api/generate-style-guide', async (req, res) => {
+router.post('/api/generate-style-guide', requireAuth, async (req, res) => {
   try {
     const { text } = req.body;
 
@@ -213,7 +214,7 @@ router.post('/api/generate-style-guide', async (req, res) => {
  *   - Insertions: Blue underline
  *   - Author: "AI Editor"
  */
-router.post('/api/generate-docx', async (req, res) => {
+router.post('/api/generate-docx', requireAuth, async (req, res) => {
   try {
     const { originalText, editedText, fileName } = req.body;
 
