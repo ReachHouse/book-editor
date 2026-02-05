@@ -3,38 +3,22 @@
  * USE PROJECTS HOOK
  * =============================================================================
  *
- * Custom React hook for managing book editing projects.
- * Uses IndexedDB for storage (100MB capacity) with localStorage fallback.
+ * Custom React hook for managing book editing projects via server-side storage.
  *
  * PURPOSE:
  * --------
- * - Persist editing progress across browser sessions
- * - Allow users to resume interrupted edits
+ * - Persist editing progress on the server (tied to user account)
+ * - Allow users to resume interrupted edits from any device
  * - Store completed projects for later download
  *
  * STORAGE:
  * --------
- * Primary: IndexedDB (100MB capacity, async, better for large documents)
- * Fallback: localStorage (5-10MB capacity, if IndexedDB unavailable)
+ * All project data is stored server-side in SQLite via the /api/projects
+ * endpoints. This replaces the previous client-side IndexedDB/localStorage
+ * approach with persistent, user-scoped server storage.
  *
- * Automatic migration from localStorage to IndexedDB on first use.
- *
- * PROJECT STRUCTURE:
- * ------------------
- * {
- *   id: string,              - Unique identifier (timestamp string)
- *   fileName: string,        - Original file name
- *   timestamp: number,       - Last modified time (Date.now())
- *   chunksCompleted: number, - Number of chunks processed
- *   totalChunks: number,     - Total chunks in document
- *   chunkSize: number,       - Words per chunk (for resume compatibility)
- *   editedChunks: Array,     - Array of edited chunk strings
- *   originalText: string,    - Complete original document text
- *   styleGuide: string,      - Generated style guide for consistency
- *   isComplete: boolean,     - True if all chunks processed
- *   fullEditedText: string,  - Complete edited text (only if complete)
- *   docContent: Object       - Pre-prepared download content (optional)
- * }
+ * The list endpoint returns lightweight metadata (no text content).
+ * Full project data is fetched on demand for resume/download.
  *
  * USAGE:
  * ------
@@ -42,14 +26,12 @@
  *
  * function MyComponent() {
  *   const {
- *     savedProjects,    // Array of saved projects (sorted by timestamp)
+ *     savedProjects,    // Array of project metadata (sorted by timestamp)
  *     loading,          // True while initial load is in progress
- *     loadProjects,     // Function to reload the list
+ *     loadProjects,     // Function to reload the list from server
  *     saveProject,      // Function to save/update a project
  *     deleteProject,    // Function to delete by ID
- *     getProject,       // Function to get a single project by ID
- *     projectExists,    // Function to check if project exists
- *     storageInfo       // Storage usage info { usedMB, limitMB, percentUsed, isWarning, storageType }
+ *     getProject,       // Function to get full project data by ID
  *   } = useProjects();
  * }
  *
@@ -57,42 +39,34 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { storageService } from '../services/storageService';
+import {
+  listProjects,
+  getProject as getProjectApi,
+  saveProject as saveProjectApi,
+  deleteProjectApi
+} from '../services/api';
 
 /**
- * Custom hook for managing book editing projects.
+ * Custom hook for managing book editing projects via server API.
  *
  * @returns {Object} Project management functions and state
  */
 export function useProjects() {
-  // State: array of saved projects
+  // State: array of saved project metadata
   const [savedProjects, setSavedProjects] = useState([]);
 
-  // State: true while loading from storage
+  // State: true while loading from server
   const [loading, setLoading] = useState(true);
 
-  // State: storage usage information
-  const [storageInfo, setStorageInfo] = useState({
-    usedMB: '0.00',
-    limitMB: '100',
-    percentUsed: 0,
-    isWarning: false,
-    storageType: 'loading...'
-  });
-
   /**
-   * Load all saved projects from storage.
-   * Updates both the project list and storage info.
+   * Load all projects from the server (metadata only).
    *
    * @returns {Promise<void>}
    */
   const loadProjects = useCallback(async () => {
     try {
-      const projects = await storageService.getAllProjects();
+      const projects = await listProjects();
       setSavedProjects(projects);
-
-      const info = await storageService.getStorageInfo();
-      setStorageInfo(info);
     } catch (err) {
       console.error('Error loading saved projects:', err);
     } finally {
@@ -101,14 +75,14 @@ export function useProjects() {
   }, []);
 
   /**
-   * Save or update a project.
+   * Save or update a project on the server.
    *
    * @param {Object} projectData - Project data to save (must have 'id' field)
-   * @throws {Error} If storage quota exceeded
+   * @throws {Error} If save fails
    */
   const saveProject = useCallback(async (projectData) => {
     try {
-      await storageService.saveProject(projectData);
+      await saveProjectApi(projectData);
       await loadProjects();
     } catch (err) {
       console.error('Failed to save project:', err);
@@ -124,7 +98,7 @@ export function useProjects() {
    */
   const deleteProject = useCallback(async (projectId) => {
     try {
-      await storageService.deleteProject(projectId);
+      await deleteProjectApi(projectId);
       await loadProjects();
     } catch (err) {
       console.error('Failed to delete project:', err);
@@ -133,58 +107,44 @@ export function useProjects() {
   }, [loadProjects]);
 
   /**
-   * Get a specific project by ID.
+   * Get full project data by ID (including text content).
+   * Used for resume and download operations.
    *
    * @param {string} projectId - The ID of the project to retrieve
-   * @returns {Promise<Object|null>} The project data, or null if not found
+   * @returns {Promise<Object|null>} The full project data, or null if not found
    */
   const getProject = useCallback(async (projectId) => {
     try {
-      return await storageService.getProject(projectId);
+      return await getProjectApi(projectId);
     } catch (err) {
       console.error('Error getting project:', err);
       return null;
     }
   }, []);
 
-  /**
-   * Check if a project exists in storage.
-   *
-   * @param {string} projectId - The ID to check
-   * @returns {Promise<boolean>} True if the project exists
-   */
-  const projectExists = useCallback(async (projectId) => {
-    return await storageService.projectExists(projectId);
-  }, []);
-
-  // Initialize storage service and load projects on mount
+  // Load projects on mount
   useEffect(() => {
     let mounted = true;
 
-    const initAndLoad = async () => {
-      await storageService.init();
-      // Only update state if component is still mounted
+    const load = async () => {
       if (mounted) {
         await loadProjects();
       }
     };
-    initAndLoad();
+    load();
 
-    // Cleanup: prevent state updates after unmount
     return () => {
       mounted = false;
     };
   }, [loadProjects]);
 
   return {
-    savedProjects,    // Array of saved projects
+    savedProjects,    // Array of project metadata
     loading,          // Loading state
     loadProjects,     // Reload the project list
     saveProject,      // Save or update a project
     deleteProject,    // Delete a project by ID
-    getProject,       // Get a single project by ID (now async)
-    projectExists,    // Check if a project exists (now async)
-    storageInfo       // Storage usage info { usedMB, limitMB, percentUsed, isWarning, storageType }
+    getProject,       // Get full project data by ID (async)
   };
 }
 

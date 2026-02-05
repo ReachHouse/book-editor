@@ -3,23 +3,21 @@
  * SAVED PROJECTS COMPONENT
  * =============================================================================
  *
- * Displays a list of previously edited books stored in IndexedDB (with localStorage fallback).
+ * Displays a list of previously edited books stored on the server.
  *
  * PROPS:
  * ------
- * @param {Array} projects - Array of project objects from useProjects hook
- * @param {function} onDownload - Callback to download a completed project
- * @param {function} onResume - Callback to resume an incomplete project
+ * @param {Array} projects - Array of project metadata from useProjects hook
+ * @param {function} onDownload - Callback to download a completed project (receives project)
+ * @param {function} onResume - Callback to resume an incomplete project (receives project)
  * @param {function} onDelete - Callback to delete a project (receives projectId)
  * @param {boolean} isDownloading - True while a download is in progress
- * @param {Object} storageInfo - Storage usage info from useProjects hook
  *
  * =============================================================================
  */
 
 import React, { useState } from 'react';
-import { Clock, Download, Play, Trash2, Check, X, Loader, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
-import { formatFileName } from '../utils/documentUtils';
+import { Clock, Download, Play, Trash2, Check, X, Loader, FileText, CheckCircle } from 'lucide-react';
 
 /**
  * List of saved projects with actions.
@@ -29,8 +27,7 @@ function SavedProjects({
   onDownload,
   onResume,
   onDelete,
-  isDownloading,
-  storageInfo
+  isDownloading
 }) {
   if (!projects || projects.length === 0) return null;
 
@@ -46,27 +43,6 @@ function SavedProjects({
           <p className="text-sm text-surface-400">Download or resume previous edits</p>
         </div>
       </div>
-
-      {/* Storage Warning */}
-      {storageInfo && storageInfo.isWarning && (
-        <div className="info-box-amber p-3.5 mb-5 flex items-start gap-3">
-          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-amber-200 font-semibold text-sm">Storage Nearly Full</p>
-            <p className="text-amber-300/70 text-xs mt-0.5">
-              Using {storageInfo.usedMB} MB of {storageInfo.limitMB} MB ({storageInfo.percentUsed}%).
-              Delete old projects to free up space.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Non-persistent storage warning */}
-      {storageInfo && storageInfo.isPersistent === false && (
-        <p className="text-xs text-surface-500 mb-4">
-          Your browser may clear saved projects over time. Download completed books promptly.
-        </p>
-      )}
 
       {/* Project List */}
       <div className="space-y-2">
@@ -95,15 +71,6 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
   const progressPercent = project.totalChunks > 0
     ? Math.round((project.chunksCompleted / project.totalChunks) * 100)
     : 0;
-
-  const handleDownload = () => {
-    const content = project.docContent || {
-      original: project.originalText,
-      edited: project.fullEditedText,
-      fileName: formatFileName(project.fileName)
-    };
-    onDownload(content);
-  };
 
   const handleConfirmDelete = () => {
     onDelete(project.id);
@@ -187,7 +154,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
         <div className="flex gap-2 flex-shrink-0">
           {project.isComplete && (
             <button
-              onClick={handleDownload}
+              onClick={() => onDownload(project)}
               disabled={isDownloading}
               className="w-11 h-11 flex items-center justify-center rounded-lg bg-brand-600/80 hover:bg-brand-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-40 focus-ring"
               title="Download Word document with Track Changes"

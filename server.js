@@ -58,6 +58,7 @@ const rateLimit = require('express-rate-limit');
 const healthRoutes = require('./routes/health');
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
+const projectRoutes = require('./routes/projects');
 const { validateEnvironment } = require('./routes/health');
 const { database } = require('./services/database');
 
@@ -86,7 +87,7 @@ const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
     ? (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
     : true, // Allow all origins in development
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400 // Cache preflight for 24 hours
 };
@@ -136,6 +137,10 @@ app.use(healthRoutes);
 // Auth Routes: /api/auth/register, /api/auth/login, /api/auth/refresh, /api/auth/me, /api/auth/logout
 // User authentication and session management
 app.use(authRoutes);
+
+// Project Routes: /api/projects (CRUD for server-side project storage)
+// Requires auth — users can only access their own projects
+app.use(projectRoutes);
 
 // API Routes: /api/edit-chunk, /api/generate-style-guide, /api/generate-docx
 // Core editing functionality that communicates with Claude AI (requires auth)

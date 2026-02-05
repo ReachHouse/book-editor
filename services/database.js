@@ -566,6 +566,124 @@ class DatabaseService {
   }
 
   // ===========================================================================
+  // PROJECTS
+  // ===========================================================================
+
+  /**
+   * Project query helpers.
+   */
+  get projects() {
+    const db = this.db;
+    return {
+      /**
+       * List all projects for a user (metadata only, no large text fields).
+       * Sorted by updated_at descending (newest first).
+       *
+       * @param {number} userId
+       * @returns {Array}
+       */
+      listByUser(userId) {
+        return db.prepare(`
+          SELECT id, user_id, file_name, is_complete, chunks_completed,
+                 total_chunks, chunk_size, created_at, updated_at
+          FROM projects
+          WHERE user_id = ?
+          ORDER BY updated_at DESC
+        `).all(userId);
+      },
+
+      /**
+       * Get a single project with all data (including large text fields).
+       *
+       * @param {string} id - Project ID
+       * @param {number} userId - Owner's user ID
+       * @returns {Object|undefined}
+       */
+      findById(id, userId) {
+        return db.prepare(
+          'SELECT * FROM projects WHERE id = ? AND user_id = ?'
+        ).get(id, userId);
+      },
+
+      /**
+       * Save (upsert) a project. Creates if new, updates if existing.
+       *
+       * @param {number} userId
+       * @param {Object} data - Project data
+       * @returns {Object} The saved project (metadata only)
+       */
+      save(userId, data) {
+        const {
+          id, fileName, isComplete = false, chunksCompleted = 0,
+          totalChunks = 0, chunkSize = 2000, originalText = null,
+          editedChunks = null, fullEditedText = null,
+          styleGuide = null, docContent = null
+        } = data;
+
+        // Serialize arrays/objects to JSON strings
+        const editedChunksJson = editedChunks ? JSON.stringify(editedChunks) : null;
+        const docContentJson = docContent ? JSON.stringify(docContent) : null;
+
+        db.prepare(`
+          INSERT INTO projects (
+            id, user_id, file_name, is_complete, chunks_completed,
+            total_chunks, chunk_size, original_text, edited_chunks,
+            full_edited_text, style_guide, doc_content
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id, user_id) DO UPDATE SET
+            file_name = excluded.file_name,
+            is_complete = excluded.is_complete,
+            chunks_completed = excluded.chunks_completed,
+            total_chunks = excluded.total_chunks,
+            chunk_size = excluded.chunk_size,
+            original_text = excluded.original_text,
+            edited_chunks = excluded.edited_chunks,
+            full_edited_text = excluded.full_edited_text,
+            style_guide = excluded.style_guide,
+            doc_content = excluded.doc_content,
+            updated_at = datetime('now')
+        `).run(
+          id, userId, fileName, isComplete ? 1 : 0, chunksCompleted,
+          totalChunks, chunkSize, originalText, editedChunksJson,
+          fullEditedText, styleGuide, docContentJson
+        );
+
+        return db.prepare(`
+          SELECT id, user_id, file_name, is_complete, chunks_completed,
+                 total_chunks, chunk_size, created_at, updated_at
+          FROM projects WHERE id = ? AND user_id = ?
+        `).get(id, userId);
+      },
+
+      /**
+       * Delete a project.
+       *
+       * @param {string} id - Project ID
+       * @param {number} userId - Owner's user ID
+       * @returns {boolean} True if deleted
+       */
+      delete(id, userId) {
+        const result = db.prepare(
+          'DELETE FROM projects WHERE id = ? AND user_id = ?'
+        ).run(id, userId);
+        return result.changes > 0;
+      },
+
+      /**
+       * Count projects for a user.
+       *
+       * @param {number} userId
+       * @returns {number}
+       */
+      count(userId) {
+        return db.prepare(
+          'SELECT COUNT(*) AS count FROM projects WHERE user_id = ?'
+        ).get(userId).count;
+      }
+    };
+  }
+
+  // ===========================================================================
   // RAW ACCESS (for advanced queries and transactions)
   // ===========================================================================
 

@@ -16,9 +16,8 @@ describe('SavedProjects', () => {
     timestamp: Date.now(),
     chunksCompleted: 10,
     totalChunks: 10,
-    isComplete: true,
-    originalText: 'Original text',
-    fullEditedText: 'Edited text'
+    chunkSize: 2000,
+    isComplete: true
   };
 
   const inProgressProject = {
@@ -27,8 +26,8 @@ describe('SavedProjects', () => {
     timestamp: Date.now(),
     chunksCompleted: 5,
     totalChunks: 10,
-    isComplete: false,
-    originalText: 'Original text'
+    chunkSize: 2000,
+    isComplete: false
   };
 
   beforeEach(() => {
@@ -107,6 +106,23 @@ describe('SavedProjects', () => {
 
     const downloadButton = screen.getByLabelText('Download Word document with Track Changes');
     expect(downloadButton).toBeInTheDocument();
+  });
+
+  test('calls onDownload with project when download button is clicked', () => {
+    render(
+      <SavedProjects
+        projects={[completedProject]}
+        onDownload={mockOnDownload}
+        onResume={mockOnResume}
+        onDelete={mockOnDelete}
+        isDownloading={false}
+      />
+    );
+
+    const downloadButton = screen.getByLabelText('Download Word document with Track Changes');
+    fireEvent.click(downloadButton);
+
+    expect(mockOnDownload).toHaveBeenCalledWith(completedProject);
   });
 
   test('shows resume button for in-progress projects', () => {
@@ -202,27 +218,5 @@ describe('SavedProjects', () => {
     fireEvent.click(resumeButton);
 
     expect(mockOnResume).toHaveBeenCalledWith(inProgressProject);
-  });
-
-  test('displays storage warning when provided', () => {
-    const storageInfo = {
-      isWarning: true,
-      usedMB: '4.5',
-      limitMB: '5',
-      percentUsed: '90'
-    };
-
-    render(
-      <SavedProjects
-        projects={[completedProject]}
-        onDownload={mockOnDownload}
-        onResume={mockOnResume}
-        onDelete={mockOnDelete}
-        isDownloading={false}
-        storageInfo={storageInfo}
-      />
-    );
-
-    expect(screen.getByText('Storage Nearly Full')).toBeInTheDocument();
   });
 });

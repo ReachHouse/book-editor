@@ -81,14 +81,14 @@ function App() {
   const [showStyleGuide, setShowStyleGuide] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
 
-  // Projects hook
+  // Projects hook (server-backed storage)
   const {
     savedProjects,
     loading: loadingStorage,
     loadProjects,
     saveProject,
     deleteProject,
-    storageInfo
+    getProject
   } = useProjects();
 
   // Toast notifications
@@ -377,12 +377,52 @@ function App() {
     }
   };
 
+  /**
+   * Handle download from saved projects list.
+   * Fetches full project data from server, then triggers download.
+   */
+  const handleProjectDownload = async (project) => {
+    setDownloadingDocx(true);
+    try {
+      const fullProject = await getProject(project.id);
+      if (!fullProject) {
+        setError('Project not found. It may have been deleted.');
+        return;
+      }
+      const content = fullProject.docContent || {
+        original: fullProject.originalText,
+        edited: fullProject.fullEditedText,
+        fileName: formatFileName(fullProject.fileName)
+      };
+      await downloadDocument(content);
+      addToast('Document downloaded successfully', 'success');
+    } catch (err) {
+      console.error('Download error:', err);
+      if (err.message.includes('Failed to fetch')) {
+        setError('Cannot connect to server. Please try again later.');
+      } else {
+        setError('Download failed: ' + err.message);
+      }
+    } finally {
+      setDownloadingDocx(false);
+    }
+  };
+
   // ============================================================================
   // PROJECT MANAGEMENT HANDLERS
   // ============================================================================
 
-  const handleResume = (project) => {
-    processBook(project);
+  const handleResume = async (project) => {
+    try {
+      const fullProject = await getProject(project.id);
+      if (!fullProject) {
+        setError('Project not found. It may have been deleted.');
+        return;
+      }
+      processBook(fullProject);
+    } catch (err) {
+      setError('Failed to load project: ' + err.message);
+    }
   };
 
   const handleDeleteProject = async (projectId) => {
@@ -479,11 +519,10 @@ function App() {
             <FileUpload onFileSelect={handleFileUpload} />
             <SavedProjects
               projects={savedProjects}
-              onDownload={handleDownload}
+              onDownload={handleProjectDownload}
               onResume={handleResume}
               onDelete={handleDeleteProject}
               isDownloading={downloadingDocx}
-              storageInfo={storageInfo}
             />
           </>
         )}

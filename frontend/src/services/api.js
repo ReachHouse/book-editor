@@ -9,9 +9,13 @@
  *
  * API ENDPOINTS:
  * --------------
- * POST /api/edit-chunk         - Send text to Claude for editing
- * POST /api/generate-style-guide - Generate consistency guide from first chunk
- * POST /api/generate-docx      - Create Word document with Track Changes
+ * POST   /api/edit-chunk          - Send text to Claude for editing
+ * POST   /api/generate-style-guide - Generate consistency guide from first chunk
+ * POST   /api/generate-docx       - Create Word document with Track Changes
+ * GET    /api/projects            - List user's projects (metadata)
+ * GET    /api/projects/:id        - Get full project data
+ * PUT    /api/projects/:id        - Save/update a project
+ * DELETE /api/projects/:id        - Delete a project
  *
  * RETRY LOGIC:
  * ------------
@@ -345,4 +349,96 @@ export async function downloadDocument(content) {
   // Clean up
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// =============================================================================
+// PROJECT API
+// =============================================================================
+
+/**
+ * List all projects for the current user (metadata only).
+ *
+ * @returns {Promise<Array>} Array of project metadata objects
+ */
+export async function listProjects() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects`, {
+    method: 'GET',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    throw new Error(`Failed to load projects (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.projects;
+}
+
+/**
+ * Get a single project with full data (text content included).
+ *
+ * @param {string} projectId - The project ID
+ * @returns {Promise<Object>} Full project data
+ */
+export async function getProject(projectId) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${projectId}`, {
+    method: 'GET',
+    headers
+  }, 60000);
+
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    throw new Error(`Failed to load project (${response.status})`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * Save or update a project on the server.
+ *
+ * @param {Object} projectData - Project data to save
+ * @returns {Promise<Object>} Saved project metadata
+ */
+export async function saveProject(projectData) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${projectData.id}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(projectData)
+  }, 60000);
+
+  if (!response.ok) {
+    let errorMessage = `Failed to save project (${response.status})`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch {
+      // Response wasn't JSON
+    }
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  return data.project;
+}
+
+/**
+ * Delete a project from the server.
+ *
+ * @param {string} projectId - The project ID to delete
+ * @returns {Promise<void>}
+ */
+export async function deleteProjectApi(projectId) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${projectId}`, {
+    method: 'DELETE',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete project (${response.status})`);
+  }
 }

@@ -105,13 +105,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.26.1';
+export const VERSION = '1.27.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Bugfix';
+export const VERSION_TAG = 'Feature';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
