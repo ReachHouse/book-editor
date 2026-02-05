@@ -29,11 +29,11 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full glass-icon mb-4 animate-glow">
           <CheckCircle className="w-8 h-8 text-brand-400" />
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-white">
+        <h2 className="text-lg font-semibold mb-2 text-white">
           Editing Complete
         </h2>
         <p className="text-sm text-surface-400 max-w-md mx-auto">
-          Manuscript professionally edited following Reach Publishers House Style Guide.
+          Manuscript edited following the Reach House Style Guide.
         </p>
       </div>
 
@@ -46,14 +46,14 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
         </div>
 
         <div className="info-box-blue p-4">
-          <p className="text-sm text-blue-300/90 leading-relaxed">
-            <strong className="text-blue-300">Track Changes:</strong> Downloads as Word (.docx) with full change tracking
+          <p className="text-sm text-blue-300/90">
+            <strong className="text-blue-300">Word Document:</strong> Open in Word to review and accept or reject edits.
             <br />
-            <span className="text-red-400/90">Red strikethrough</span> for deletions
-            <span className="mx-1.5 text-blue-500/50">&#183;</span>
-            <span className="text-blue-300/90">Blue underline</span> for insertions
-            <br />
-            Open in Microsoft Word to review, accept, or reject changes.
+            <span className="text-surface-400 text-xs">
+              <span className="text-red-400/80">Red strikethrough</span> = deletions
+              <span className="mx-1.5 text-surface-600">·</span>
+              <span className="text-blue-300/80">Blue underline</span> = insertions
+            </span>
           </p>
         </div>
       </div>
@@ -63,7 +63,7 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
         <button
           onClick={onDownload}
           disabled={isDownloading}
-          className="btn-primary flex-1 py-3 px-5 text-sm flex items-center justify-center gap-2.5 focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary flex-1 py-3 px-5 text-sm flex items-center justify-center gap-2 focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isDownloading ? (
             <>

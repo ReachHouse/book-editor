@@ -33,7 +33,7 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
   return (
     <div className="glass-card p-6 sm:p-8 mb-8 animate-scale-in">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl glass-icon flex items-center justify-center">
           <CheckCircle className="w-5 h-5 text-brand-400" />
         </div>
@@ -48,9 +48,9 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
         {ANALYSIS_FIELDS.map(({ key, label, icon: Icon }) => (
           <div
             key={key}
-            className="glass-inner p-3.5 group hover:border-surface-600/15 transition-all duration-300"
+            className="glass-inner p-4 group hover:border-surface-600/15 transition-all duration-300"
           >
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-2 mb-2">
               <Icon className="w-3.5 h-3.5 text-surface-500 group-hover:text-brand-400 transition-colors" />
               <p className="text-surface-500 text-xs font-medium uppercase tracking-wider">{label}</p>
             </div>
@@ -60,11 +60,11 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
       </div>
 
       {/* Processing info */}
-      <div className="info-box-green p-4 mb-5">
+      <div className="info-box-green p-4 mb-6">
         <p className="text-sm text-brand-300/90 leading-relaxed">
           Document will be processed in <strong className="text-brand-300">{analysis.estimatedChunks} sections</strong>
           <span className="mx-1.5 text-brand-600">&#183;</span>
-          Follows <strong className="text-brand-300">Reach Publishers House Style Guide</strong> (UK English)
+          Follows <strong className="text-brand-300">Reach House Style Guide</strong> (UK English)
           <span className="mx-1.5 text-brand-600">&#183;</span>
           Auto-retry on failures (up to 3 attempts per section)
         </p>

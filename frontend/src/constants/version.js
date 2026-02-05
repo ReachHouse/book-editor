@@ -50,6 +50,11 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.43.1 [Bugfix]   - 2026-02-05: Fix 504 timeout on large document downloads — increase frontend DOCX generation timeout from 3 to 5 minutes to match server timeout (large manuscripts with 40+ sections were timing out before generation completed)
+ * v1.43.0 [UI]       - 2026-02-06: Design system standardization — text-[10px]→text-xs, glass-inner p-3.5→p-4, w-11→w-10 buttons, mb-5→mb-6 section spacing, mb-2.5→mb-2, gap-2.5→gap-2, h-1.5→h-2 progress bars, text-xl→text-lg headings, asymmetric padding fixes, consistent surface-400/500 text colors
+ * v1.42.0 [UI]       - 2026-02-06: Rebrand to "Reach House Book Editor" — update title across all pages, standardize typography (remove font-light, consistent text-sm/text-xs sizing, semibold for card titles), rename style guide references to "Reach House Style Guide", update copyright to "Reach House"
+ * v1.41.4 [UI]       - 2026-02-06: ProcessingView alignment — align spinner icon with step indicator icons (matching size w-9/h-9, px-2 padding), fix progress bar percentage positioning (flexbox instead of absolute)
+ * v1.41.3 [Feature]  - 2026-02-06: Admin invite code deletion — add delete button for unused invite codes in Admin Dashboard, backend DELETE endpoint, confirmation dialog, prevents deletion of already-used codes
  * v1.41.2 [Refactor] - 2026-02-05: Code quality fixes — fix critical API bug (completeSetup missing setup_secret), extract shared PasswordStrength component, fix AdminDashboard setTimeout memory leak with useRef cleanup, harden deploy.sh with safe .env parser (452 total)
  * v1.41.1 [Bugfix]   - 2026-02-05: Fix SetupWizard browser autofill bug — use refs to read DOM values on submit; deploy.sh uses .env (auto-loaded by Docker), migrates from .env.local, prevents duplicate entries, secure file permissions (452 total)
  * v1.41.0 [UI]       - 2026-02-05: Production polish release — skip-to-content link for keyboard navigation, prefers-reduced-motion for motion-sensitive users, empty state designs in SavedProjects and InviteCodes, password strength indicator with live visual feedback in RegisterPage and SetupWizard, improved color contrast in AdminDashboard used codes, semantic HTML (main/footer tags), proper aria-describedby for password fields (452 total)
@@ -126,13 +131,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.41.2';
+export const VERSION = '1.43.1';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Refactor';
+export const VERSION_TAG = 'Bugfix';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

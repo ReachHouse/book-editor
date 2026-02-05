@@ -3,7 +3,7 @@
  * STYLE GUIDE MODAL COMPONENT
  * =============================================================================
  *
- * Full-screen modal displaying the complete Reach Publishers House Style Guide.
+ * Full-screen modal displaying the complete Reach House Style Guide.
  *
  * PROPS:
  * ------
@@ -18,7 +18,7 @@ import { BookOpen, X } from 'lucide-react';
 import { FULL_STYLE_GUIDE_DOCUMENT } from '../constants';
 
 /**
- * Modal displaying the complete Reach Publishers style guide.
+ * Modal displaying the complete Reach House style guide.
  * Supports entry and exit animations via isClosing state.
  */
 function StyleGuideModal({ isOpen, onClose }) {
@@ -124,11 +124,11 @@ function StyleGuideModal({ isOpen, onClose }) {
         {/* Header */}
         <div className="px-5 py-4 border-b border-surface-700/20 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg glass-icon flex items-center justify-center">
                 <BookOpen className="w-4 h-4 text-brand-400" aria-hidden="true" />
               </div>
-              <h2 id="style-guide-title" className="text-lg font-bold text-white">Reach Publishers Style Guide</h2>
+              <h2 id="style-guide-title" className="text-lg font-semibold text-white">Reach House Style Guide</h2>
             </div>
             <button
               onClick={handleClose}
@@ -144,7 +144,7 @@ function StyleGuideModal({ isOpen, onClose }) {
         <div className="flex-1 overflow-y-auto p-5">
           <div className="info-box-green p-3 mb-4">
             <p className="text-xs text-brand-300/90">
-              <strong className="text-brand-300">Important:</strong> All edits strictly follow the Reach Publishers House Style Guide.
+              <strong className="text-brand-300">Note:</strong> All edits follow the Reach House Style Guide.
             </p>
           </div>
 

@@ -196,10 +196,10 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
             <FileText className="w-7 h-7 text-brand-400" />
           </div>
           <h1 className="font-display text-3xl font-bold mb-2 text-white tracking-tight">
-            Welcome!
+            Welcome
           </h1>
-          <p className="text-surface-400 text-sm font-light tracking-wide">
-            Let's set up your admin account
+          <p className="text-sm text-surface-400 tracking-wide">
+            Set up your admin account
           </p>
         </div>
 

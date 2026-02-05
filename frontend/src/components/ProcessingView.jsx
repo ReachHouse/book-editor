@@ -48,14 +48,14 @@ function ProcessingView({ progress, debugLog }) {
 
   return (
     <div className="glass-card p-6 sm:p-8 mb-8 animate-fade-in-up">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      {/* Header - px-2 matches step indicator padding for alignment */}
+      <div className="flex items-center justify-between mb-6 px-2">
         <div>
           <h2 className="text-lg font-semibold text-white mb-1">Processing Manuscript</h2>
           <p className="text-sm text-surface-400">{progress.stage}</p>
         </div>
-        <div className="w-10 h-10 rounded-xl glass-icon flex items-center justify-center">
-          <Loader className="w-5 h-5 text-brand-400 animate-spin" />
+        <div className="w-9 h-9 rounded-lg glass-icon flex items-center justify-center">
+          <Loader className="w-4 h-4 text-brand-400 animate-spin" />
         </div>
       </div>
 
@@ -76,7 +76,7 @@ function ProcessingView({ progress, debugLog }) {
               )}
 
               {/* Step */}
-              <div className="flex flex-col items-center gap-1.5">
+              <div className="flex flex-col items-center gap-2">
                 <div className={`
                   w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-500
                   ${isDone
@@ -94,8 +94,8 @@ function ProcessingView({ progress, debugLog }) {
                         : 'text-surface-600'
                   }`} />
                 </div>
-                <span className={`text-[10px] font-medium transition-colors duration-500 ${
-                  isDone || isActive ? 'text-surface-300' : 'text-surface-600'
+                <span className={`text-xs font-medium transition-colors duration-500 ${
+                  isDone || isActive ? 'text-surface-400' : 'text-surface-600'
                 }`}>
                   {step.label}
                 </span>
@@ -112,11 +112,11 @@ function ProcessingView({ progress, debugLog }) {
         </p>
       </div>
 
-      {/* Progress bar */}
-      <div className="relative mb-2">
+      {/* Progress bar with percentage */}
+      <div className="flex items-center gap-3 mb-2">
         {/* Track */}
         <div
-          className="glass-inner rounded-full h-3.5 overflow-hidden"
+          className="flex-1 glass-inner rounded-full h-3.5 overflow-hidden"
           role="progressbar"
           aria-valuenow={percentage}
           aria-valuemin={0}
@@ -133,14 +133,14 @@ function ProcessingView({ progress, debugLog }) {
           </div>
         </div>
 
-        {/* Percentage badge */}
-        <div className="absolute -top-0.5 right-0 text-xs font-semibold text-surface-300 tabular-nums" aria-hidden="true">
+        {/* Percentage */}
+        <span className="text-xs text-surface-500 tabular-nums w-8 text-right" aria-hidden="true">
           {percentage}%
-        </div>
+        </span>
       </div>
 
       {/* Section counter */}
-      <p className="text-xs text-surface-500 text-center mb-5 tabular-nums">
+      <p className="text-xs text-surface-500 text-center mb-6 tabular-nums">
         {progress.current} of {progress.total} sections completed
       </p>
 
