@@ -24,7 +24,7 @@ function ErrorDisplay({ error, debugLog }) {
   if (!error) return null;
 
   return (
-    <div role="alert" className="info-box-red p-4 sm:p-5 mb-8 animate-fade-in-down">
+    <div role="alert" className="info-box-red p-4 mb-8 animate-fade-in-down">
       <div className="flex items-start gap-3 mb-4">
         <div className="w-9 h-9 rounded-lg glass-icon-error flex items-center justify-center flex-shrink-0">
           <AlertCircle className="w-4 h-4 text-red-400" aria-hidden="true" />

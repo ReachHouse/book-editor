@@ -49,7 +49,7 @@ function ProcessingView({ progress, debugLog }) {
   return (
     <div className="glass-card p-6 sm:p-8 mb-8 animate-fade-in-up">
       {/* Header - px-2 matches step indicator padding for alignment */}
-      <div className="flex items-center justify-between mb-5 px-2">
+      <div className="flex items-center justify-between mb-6 px-2">
         <div>
           <h2 className="text-lg font-semibold text-white mb-1">Processing Manuscript</h2>
           <p className="text-sm text-surface-400">{progress.stage}</p>
@@ -76,7 +76,7 @@ function ProcessingView({ progress, debugLog }) {
               )}
 
               {/* Step */}
-              <div className="flex flex-col items-center gap-1.5">
+              <div className="flex flex-col items-center gap-2">
                 <div className={`
                   w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-500
                   ${isDone
@@ -94,8 +94,8 @@ function ProcessingView({ progress, debugLog }) {
                         : 'text-surface-600'
                   }`} />
                 </div>
-                <span className={`text-[10px] font-medium transition-colors duration-500 ${
-                  isDone || isActive ? 'text-surface-300' : 'text-surface-600'
+                <span className={`text-xs font-medium transition-colors duration-500 ${
+                  isDone || isActive ? 'text-surface-400' : 'text-surface-600'
                 }`}>
                   {step.label}
                 </span>
@@ -140,7 +140,7 @@ function ProcessingView({ progress, debugLog }) {
       </div>
 
       {/* Section counter */}
-      <p className="text-xs text-surface-500 text-center mb-5 tabular-nums">
+      <p className="text-xs text-surface-500 text-center mb-6 tabular-nums">
         {progress.current} of {progress.total} sections completed
       </p>
 

@@ -24,7 +24,7 @@ function DebugLog({ logs, title = 'Debug Log', showPulse = false }) {
 
   return (
     <div className="glass-inner p-4 max-h-72 overflow-y-auto" role="log" aria-label={title}>
-      <h3 className="text-xs font-semibold text-surface-400 mb-2.5 flex items-center uppercase tracking-wider">
+      <h3 className="text-xs font-semibold text-surface-400 mb-2 flex items-center uppercase tracking-wider">
         {showPulse && (
           <div className="w-1.5 h-1.5 bg-brand-500 rounded-full mr-2 animate-pulse-soft" />
         )}

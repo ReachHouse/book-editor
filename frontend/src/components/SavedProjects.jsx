@@ -34,7 +34,7 @@ function SavedProjects({
   return (
     <div className="glass-card p-6 sm:p-8 animate-fade-in-up [animation-delay:100ms]">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl glass-icon-neutral flex items-center justify-center">
           <Clock className="w-5 h-5 text-surface-400" aria-hidden="true" />
         </div>
@@ -123,7 +123,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
             <p className="font-medium text-surface-200 text-sm truncate" title={project.fileName}>
               {project.fileName}
             </p>
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium flex-shrink-0 ${
               project.isComplete
                 ? 'bg-brand-600/15 text-brand-400 border border-brand-500/15'
                 : 'bg-blue-600/15 text-blue-400 border border-blue-500/15'
@@ -145,7 +145,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
 
           {/* Mini progress bar for in-progress projects */}
           {!project.isComplete && (
-            <div className="mt-1.5 h-1 rounded-full bg-surface-800/60 overflow-hidden max-w-[200px]">
+            <div className="mt-2 h-1 rounded-full bg-surface-800/60 overflow-hidden max-w-[200px]">
               <div
                 className="h-full rounded-full bg-blue-500/60 transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
@@ -164,7 +164,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
           <button
             onClick={handleConfirmDelete}
             disabled={isDeleting}
-            className="w-11 h-11 flex items-center justify-center rounded-lg bg-red-600/80 hover:bg-red-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-50 focus-ring"
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-600/80 hover:bg-red-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-50 focus-ring"
             aria-label="Confirm delete"
           >
             {isDeleting ? (
@@ -176,7 +176,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
           <button
             onClick={() => setConfirmingDelete(false)}
             disabled={isDeleting}
-            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-surface-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 disabled:opacity-50 focus-ring"
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-surface-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 disabled:opacity-50 focus-ring"
             aria-label="Cancel delete"
           >
             <X className="w-4 h-4" />
@@ -188,7 +188,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
             <button
               onClick={() => onDownload(project)}
               disabled={isDownloading}
-              className="w-11 h-11 flex items-center justify-center rounded-lg bg-brand-600/80 hover:bg-brand-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-40 focus-ring"
+              className="w-10 h-10 flex items-center justify-center rounded-lg bg-brand-600/80 hover:bg-brand-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-40 focus-ring"
               title="Download Word document with Track Changes"
               aria-label="Download Word document with Track Changes"
             >
@@ -203,7 +203,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
           {!project.isComplete && (
             <button
               onClick={() => onResume(project)}
-              className="w-11 h-11 flex items-center justify-center rounded-lg bg-blue-600/80 hover:bg-blue-500 active:scale-95 text-white transition-all duration-200 focus-ring"
+              className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-600/80 hover:bg-blue-500 active:scale-95 text-white transition-all duration-200 focus-ring"
               title="Resume editing from where you left off"
               aria-label="Resume editing from where you left off"
             >
@@ -213,7 +213,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
 
           <button
             onClick={() => setConfirmingDelete(true)}
-            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-red-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-red-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
             title="Delete from storage"
             aria-label="Delete from storage"
           >

@@ -81,7 +81,7 @@ function Header({ onShowStyleGuide, onShowAdmin, user }) {
       )}
 
       {/* Logo mark */}
-      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl glass-icon mb-5">
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl glass-icon mb-6">
         <FileText className="w-7 h-7 text-brand-400" />
       </div>
 
@@ -105,7 +105,7 @@ function Header({ onShowStyleGuide, onShowAdmin, user }) {
       {/* Style Guide Button */}
       <button
         onClick={onShowStyleGuide}
-        className="btn-secondary inline-flex items-center gap-2.5 mt-6 py-2.5 px-5 text-sm focus-ring"
+        className="btn-secondary inline-flex items-center gap-2 mt-6 py-2.5 px-5 text-sm focus-ring"
       >
         <BookOpen className="w-4 h-4 text-brand-400" />
         View Style Guide

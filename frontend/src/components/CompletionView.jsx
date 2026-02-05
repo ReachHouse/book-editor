@@ -29,7 +29,7 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full glass-icon mb-4 animate-glow">
           <CheckCircle className="w-8 h-8 text-brand-400" />
         </div>
-        <h2 className="text-xl font-semibold mb-2 text-white">
+        <h2 className="text-lg font-semibold mb-2 text-white">
           Editing Complete
         </h2>
         <p className="text-sm text-surface-400 max-w-md mx-auto">
@@ -63,7 +63,7 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
         <button
           onClick={onDownload}
           disabled={isDownloading}
-          className="btn-primary flex-1 py-3 px-5 text-sm flex items-center justify-center gap-2.5 focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary flex-1 py-3 px-5 text-sm flex items-center justify-center gap-2 focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isDownloading ? (
             <>

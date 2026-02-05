@@ -3,7 +3,7 @@
  * STYLE GUIDE MODAL COMPONENT
  * =============================================================================
  *
- * Full-screen modal displaying the complete Reach Publishers House Style Guide.
+ * Full-screen modal displaying the complete Reach House Style Guide.
  *
  * PROPS:
  * ------
@@ -18,7 +18,7 @@ import { BookOpen, X } from 'lucide-react';
 import { FULL_STYLE_GUIDE_DOCUMENT } from '../constants';
 
 /**
- * Modal displaying the complete Reach Publishers style guide.
+ * Modal displaying the complete Reach House style guide.
  * Supports entry and exit animations via isClosing state.
  */
 function StyleGuideModal({ isOpen, onClose }) {
@@ -124,7 +124,7 @@ function StyleGuideModal({ isOpen, onClose }) {
         {/* Header */}
         <div className="px-5 py-4 border-b border-surface-700/20 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg glass-icon flex items-center justify-center">
                 <BookOpen className="w-4 h-4 text-brand-400" aria-hidden="true" />
               </div>

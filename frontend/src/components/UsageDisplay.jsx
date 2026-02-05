@@ -99,7 +99,7 @@ function UsageDisplay() {
 
       {/* Expanded details */}
       {expanded && (
-        <div className="mt-3 mx-auto max-w-sm glass-card p-4 space-y-3">
+        <div className="mt-4 mx-auto max-w-sm glass-card p-5 space-y-4">
           {/* Daily usage */}
           <div>
             <div className="flex justify-between text-xs mb-1">
@@ -108,7 +108,7 @@ function UsageDisplay() {
                 {formatTokenCount(usage.daily.total)} / {formatTokenCount(usage.daily.limit)} tokens
               </span>
             </div>
-            <div className="h-1.5 bg-surface-800 rounded-full overflow-hidden">
+            <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${getBarColor(usage.daily.percentage)}`}
                 style={{ width: `${usage.daily.percentage}%` }}
@@ -129,7 +129,7 @@ function UsageDisplay() {
                 {formatTokenCount(usage.monthly.total)} / {formatTokenCount(usage.monthly.limit)} tokens
               </span>
             </div>
-            <div className="h-1.5 bg-surface-800 rounded-full overflow-hidden">
+            <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${getBarColor(usage.monthly.percentage)}`}
                 style={{ width: `${usage.monthly.percentage}%` }}
