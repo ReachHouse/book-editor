@@ -615,16 +615,17 @@ export async function checkSetupRequired() {
  * Only works when no users exist in the database.
  *
  * @param {Object} params - Setup parameters
+ * @param {string} params.setup_secret - Setup secret from deployment environment
  * @param {string} params.username - Admin username (3-30 chars, alphanumeric/-/_)
  * @param {string} params.email - Admin email
  * @param {string} params.password - Admin password (8+ chars, upper/lower/number)
  * @returns {Promise<{ success: boolean, message: string }>}
  */
-export async function completeSetup({ username, email, password }) {
+export async function completeSetup({ setup_secret, username, email, password }) {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/setup/complete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, email, password })
+    body: JSON.stringify({ setup_secret, username, email, password })
   }, 30000);
 
   const data = await response.json().catch(() => ({}));

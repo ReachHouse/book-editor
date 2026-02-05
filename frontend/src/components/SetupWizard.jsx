@@ -23,59 +23,9 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { FileText, Shield, AlertCircle, Loader, CheckCircle, ArrowRight, Key, Lock, X } from 'lucide-react';
+import { FileText, Shield, AlertCircle, Loader, CheckCircle, ArrowRight, Key, Lock } from 'lucide-react';
 import { completeSetup } from '../services/api';
-
-/**
- * Visual password strength indicator showing which requirements are met.
- */
-function PasswordStrength({ password }) {
-  if (!password) {
-    return (
-      <p id="password-requirements" className="text-xs text-surface-500 mt-1">
-        At least 8 characters with uppercase, lowercase, and a number.
-      </p>
-    );
-  }
-
-  const requirements = [
-    { label: '8+ characters', met: password.length >= 8 },
-    { label: 'Uppercase letter', met: /[A-Z]/.test(password) },
-    { label: 'Lowercase letter', met: /[a-z]/.test(password) },
-    { label: 'Number', met: /[0-9]/.test(password) }
-  ];
-
-  const metCount = requirements.filter(r => r.met).length;
-  const strengthPercent = (metCount / requirements.length) * 100;
-  const strengthColor = metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-amber-500' : metCount <= 3 ? 'bg-blue-500' : 'bg-green-500';
-
-  return (
-    <div id="password-requirements" className="mt-2 space-y-2">
-      {/* Strength bar */}
-      <div className="h-1 rounded-full bg-surface-800/60 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-300 ${strengthColor}`}
-          style={{ width: `${strengthPercent}%` }}
-        />
-      </div>
-      {/* Requirements checklist */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-        {requirements.map((req, i) => (
-          <div key={i} className="flex items-center gap-1.5">
-            {req.met ? (
-              <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" aria-hidden="true" />
-            ) : (
-              <X className="w-3 h-3 text-surface-600 flex-shrink-0" aria-hidden="true" />
-            )}
-            <span className={`text-xs ${req.met ? 'text-green-400' : 'text-surface-500'}`}>
-              {req.label}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+import PasswordStrength from './PasswordStrength';
 
 function SetupWizard({ onSetupComplete, setupEnabled = true }) {
   const [setupSecret, setSetupSecret] = useState('');
