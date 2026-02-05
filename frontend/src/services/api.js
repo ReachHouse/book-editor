@@ -352,6 +352,29 @@ export async function downloadDocument(content) {
 }
 
 // =============================================================================
+// USAGE API
+// =============================================================================
+
+/**
+ * Get the current user's usage summary (daily + monthly).
+ *
+ * @returns {Promise<Object>} Usage data with daily/monthly totals, limits, percentages
+ */
+export async function getUsage() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/usage`, {
+    method: 'GET',
+    headers
+  }, 15000);
+
+  if (!response.ok) {
+    throw new Error(`Failed to load usage data (${response.status})`);
+  }
+
+  return await response.json();
+}
+
+// =============================================================================
 // PROJECT API
 // =============================================================================
 

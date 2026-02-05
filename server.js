@@ -59,6 +59,7 @@ const healthRoutes = require('./routes/health');
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
+const usageRoutes = require('./routes/usage');
 const { validateEnvironment } = require('./routes/health');
 const { database } = require('./services/database');
 
@@ -141,6 +142,10 @@ app.use(authRoutes);
 // Project Routes: /api/projects (CRUD for server-side project storage)
 // Requires auth — users can only access their own projects
 app.use(projectRoutes);
+
+// Usage Routes: /api/usage (user usage summary), /api/admin/usage (admin stats)
+// Token usage tracking and limit reporting
+app.use(usageRoutes);
 
 // API Routes: /api/edit-chunk, /api/generate-style-guide, /api/generate-docx
 // Core editing functionality that communicates with Claude AI (requires auth)

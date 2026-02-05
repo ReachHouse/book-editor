@@ -52,4 +52,5 @@ export { default as ErrorDisplay } from './ErrorDisplay';
 export { default as DebugLog } from './DebugLog';
 export { default as LoginPage } from './LoginPage';
 export { default as RegisterPage } from './RegisterPage';
+export { default as UsageDisplay } from './UsageDisplay';
 export { ToastContainer } from './Toast';

@@ -34,6 +34,7 @@ import {
   ErrorDisplay,
   LoginPage,
   RegisterPage,
+  UsageDisplay,
   ToastContainer
 } from './components';
 
@@ -495,6 +496,9 @@ function App() {
 
         {/* Header */}
         <Header onShowStyleGuide={handleShowStyleGuide} user={user} />
+
+        {/* Usage Display */}
+        <UsageDisplay />
 
         {/* Style Guide Modal */}
         <StyleGuideModal

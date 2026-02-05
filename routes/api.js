@@ -32,9 +32,10 @@
 
 const express = require('express');
 const router = express.Router();
-const { editChunk, generateStyleGuide } = require('../services/anthropicService');
+const { editChunk, generateStyleGuide, MODEL } = require('../services/anthropicService');
 const { generateDocxBuffer } = require('../services/document');
 const { requireAuth } = require('../middleware/auth');
+const { database } = require('../services/database');
 
 // =============================================================================
 // INPUT VALIDATION HELPERS
@@ -89,6 +90,64 @@ function validateTextField(value, fieldName, maxLength = MAX_TEXT_LENGTH) {
 }
 
 // =============================================================================
+// USAGE LIMIT HELPERS
+// =============================================================================
+
+/**
+ * Check if a user has exceeded their daily or monthly token limits.
+ *
+ * @param {number} userId - The user's ID
+ * @returns {{ allowed: boolean, reason?: string }} Whether the request is allowed
+ */
+function checkUsageLimits(userId) {
+  const user = database.users.findById(userId);
+  if (!user) return { allowed: false, reason: 'User not found' };
+
+  const daily = database.usageLogs.getDailyUsage(userId);
+  if (daily.total >= user.daily_token_limit) {
+    return {
+      allowed: false,
+      reason: `Daily token limit reached (${user.daily_token_limit.toLocaleString()} tokens). Resets at midnight UTC.`
+    };
+  }
+
+  const monthly = database.usageLogs.getMonthlyUsage(userId);
+  if (monthly.total >= user.monthly_token_limit) {
+    return {
+      allowed: false,
+      reason: `Monthly token limit reached (${user.monthly_token_limit.toLocaleString()} tokens). Resets on the 1st of next month.`
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Log API usage to the database.
+ *
+ * @param {number} userId - The user's ID
+ * @param {string} endpoint - The API endpoint name
+ * @param {Object|null} usage - Token usage from Anthropic API response
+ * @param {string} [projectId] - Optional project ID
+ */
+function logUsage(userId, endpoint, usage, projectId) {
+  if (!usage) return;
+  try {
+    database.usageLogs.create({
+      userId,
+      endpoint,
+      tokensInput: usage.input_tokens || 0,
+      tokensOutput: usage.output_tokens || 0,
+      model: MODEL,
+      projectId: projectId || null
+    });
+  } catch (err) {
+    // Usage logging is non-critical — don't fail the request
+    console.error('Usage logging error:', err.message);
+  }
+}
+
+// =============================================================================
 // EDITING ENDPOINT
 // =============================================================================
 
@@ -116,12 +175,18 @@ function validateTextField(value, fieldName, maxLength = MAX_TEXT_LENGTH) {
  */
 router.post('/api/edit-chunk', requireAuth, async (req, res) => {
   try {
-    const { text, styleGuide, isFirst } = req.body;
+    const { text, styleGuide, isFirst, projectId } = req.body;
 
     // Validate required input with type checking
     const textError = validateTextField(text, 'text');
     if (textError) {
       return res.status(400).json({ error: textError });
+    }
+
+    // Enforce usage limits before making the API call
+    const limitCheck = checkUsageLimits(req.user.userId);
+    if (!limitCheck.allowed) {
+      return res.status(429).json({ error: limitCheck.reason });
     }
 
     // Check API key configuration
@@ -132,8 +197,12 @@ router.post('/api/edit-chunk', requireAuth, async (req, res) => {
     }
 
     // Send to Claude for editing
-    const editedText = await editChunk(text, styleGuide, isFirst);
-    res.json({ editedText });
+    const result = await editChunk(text, styleGuide, isFirst);
+
+    // Log usage
+    logUsage(req.user.userId, '/api/edit-chunk', result.usage, projectId);
+
+    res.json({ editedText: result.text });
 
   } catch (error) {
     console.error('Edit chunk error:', error);
@@ -165,7 +234,7 @@ router.post('/api/edit-chunk', requireAuth, async (req, res) => {
  */
 router.post('/api/generate-style-guide', requireAuth, async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, projectId } = req.body;
 
     // Validate required input with type checking
     const textError = validateTextField(text, 'text');
@@ -173,9 +242,19 @@ router.post('/api/generate-style-guide', requireAuth, async (req, res) => {
       return res.status(400).json({ error: textError });
     }
 
+    // Enforce usage limits before making the API call
+    const limitCheck = checkUsageLimits(req.user.userId);
+    if (!limitCheck.allowed) {
+      return res.status(429).json({ error: limitCheck.reason });
+    }
+
     // Generate style guide from edited text
-    const styleGuide = await generateStyleGuide(text);
-    res.json({ styleGuide });
+    const result = await generateStyleGuide(text);
+
+    // Log usage
+    logUsage(req.user.userId, '/api/generate-style-guide', result.usage, projectId);
+
+    res.json({ styleGuide: result.text });
 
   } catch (error) {
     console.error('Style guide generation error:', error.message);

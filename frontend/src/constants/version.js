@@ -50,6 +50,8 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.28.0 [Feature]  - 2026-02-05: Usage tracking & limits — log token usage per API call, enforce daily/monthly limits (429), usage summary endpoints, admin stats, frontend UsageDisplay with progress bars (471 tests)
+ * v1.27.0 [Feature]  - 2026-02-05: Server-side project storage — CRUD endpoints, SQLite upsert, metadata-only listing, full-project fetch, 50 project limit, frontend API migration (440 tests)
  * v1.26.1 [Bugfix]   - 2026-02-05: Deep audit — fix registration race condition, session datetime format, stale login data, DB update bug, JSON parse errors; add rate limiting on refresh, periodic session cleanup, shared auth constants, logout loading state; clear passwords from state, remove dead code, update tests (396 total)
  * v1.26.0 [Feature]  - 2026-02-05: Full-stack authentication — JWT access/refresh tokens, bcrypt passwords, invite-code registration, login with lockout, auth middleware, AuthContext, LoginPage, RegisterPage, protected API routes, 75 new auth tests (396 total)
  * v1.25.0 [Feature]  - 2026-02-05: SQLite database foundation — schema, migrations, user/session/usage tables, Docker volume persistence, 60 database tests
@@ -105,7 +107,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.27.0';
+export const VERSION = '1.28.0';
 
 /**
  * Tag describing the type of changes in this version

@@ -181,8 +181,11 @@ async function editChunk(text, styleGuide, isFirst) {
     messages: [{ role: 'user', content: text }]
   });
 
-  // Return just the edited text
-  return data.content[0].text;
+  // Return the edited text and usage data
+  return {
+    text: data.content[0].text,
+    usage: data.usage || null
+  };
 }
 
 /**
@@ -233,7 +236,7 @@ async function generateStyleGuide(editedText) {
 
   // Can't generate without API key
   if (!process.env.ANTHROPIC_API_KEY) {
-    return defaultGuide;
+    return { text: defaultGuide, usage: null };
   }
 
   try {
@@ -246,11 +249,14 @@ async function generateStyleGuide(editedText) {
       }]
     });
 
-    return data.content[0].text;
+    return {
+      text: data.content[0].text,
+      usage: data.usage || null
+    };
   } catch (error) {
     // Style guide generation is non-critical - log and return default
     console.error('Style guide generation error:', error.message);
-    return defaultGuide;
+    return { text: defaultGuide, usage: null };
   }
 }
 
