@@ -106,8 +106,9 @@ function App() {
 
   const addLog = useCallback((message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString();
+    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setDebugLog(prev => {
-      const newLog = [...prev, { timestamp, message, type }];
+      const newLog = [...prev, { id, timestamp, message, type }];
       // Limit log entries to prevent memory leak
       if (newLog.length > MAX_LOG_ENTRIES) {
         return newLog.slice(-MAX_LOG_ENTRIES);

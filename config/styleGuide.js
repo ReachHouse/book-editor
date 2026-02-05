@@ -61,4 +61,9 @@ KEY RULES:
 
 CRITICAL: All changes must be highlighted/tracked.`;
 
+// Validate style guide at module load time
+if (!STYLE_GUIDE || typeof STYLE_GUIDE !== 'string' || STYLE_GUIDE.length === 0) {
+  throw new Error('STYLE_GUIDE configuration is invalid or empty');
+}
+
 module.exports = { STYLE_GUIDE };

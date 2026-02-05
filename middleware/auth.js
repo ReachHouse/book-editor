@@ -64,10 +64,19 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
+  // Step 1: Verify token (separate from database operations)
+  let decoded;
   try {
-    const decoded = verifyAccessToken(token);
+    decoded = verifyAccessToken(token);
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' });
+    }
+    return res.status(401).json({ error: 'Invalid token' });
+  }
 
-    // Verify user still exists and is active
+  // Step 2: Verify user exists and is active (database operation)
+  try {
     const user = database.users.findById(decoded.userId);
     if (!user || !user.is_active) {
       return res.status(401).json({ error: 'Account not found or deactivated' });
@@ -82,10 +91,9 @@ function requireAuth(req, res, next) {
 
     next();
   } catch (err) {
-    if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' });
-    }
-    return res.status(401).json({ error: 'Invalid token' });
+    // Database error - log and return 500 (not 401)
+    console.error('Database error in requireAuth:', err.message);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -121,8 +129,18 @@ function optionalAuth(req, res, next) {
     return next();
   }
 
+  // Step 1: Verify token
+  let decoded;
   try {
-    const decoded = verifyAccessToken(token);
+    decoded = verifyAccessToken(token);
+  } catch {
+    // Invalid/expired token - treat as unauthenticated
+    req.user = null;
+    return next();
+  }
+
+  // Step 2: Verify user exists and is active
+  try {
     const user = database.users.findById(decoded.userId);
 
     if (user && user.is_active) {
@@ -134,7 +152,9 @@ function optionalAuth(req, res, next) {
     } else {
       req.user = null;
     }
-  } catch {
+  } catch (err) {
+    // Database error - log but continue as unauthenticated
+    console.error('Database error in optionalAuth:', err.message);
     req.user = null;
   }
 

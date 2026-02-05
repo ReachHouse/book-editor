@@ -13,7 +13,7 @@
  * =============================================================================
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { getUsage } from '../services/api';
 
@@ -49,21 +49,32 @@ function UsageDisplay() {
   const [usage, setUsage] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
-  const fetchUsage = useCallback(async () => {
-    try {
-      const data = await getUsage();
-      setUsage(data);
-    } catch {
-      // Silently fail — usage display is non-critical
-    }
-  }, []);
-
+  // Track mounted state to prevent state updates after unmount
   useEffect(() => {
+    let mounted = true;
+
+    const fetchUsage = async () => {
+      try {
+        const data = await getUsage();
+        if (mounted) {
+          setUsage(data);
+        }
+      } catch {
+        // Silently fail — usage display is non-critical
+      }
+    };
+
+    // Initial fetch
     fetchUsage();
+
     // Refresh usage data every 2 minutes
     const interval = setInterval(fetchUsage, 2 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchUsage]);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   if (!usage) return null;
 
