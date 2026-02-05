@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.41.4 [UI]       - 2026-02-06: ProcessingView alignment — align spinner icon with step indicator icons (matching size w-9/h-9, px-2 padding), fix progress bar percentage positioning (flexbox instead of absolute)
  * v1.41.3 [Feature]  - 2026-02-06: Admin invite code deletion — add delete button for unused invite codes in Admin Dashboard, backend DELETE endpoint, confirmation dialog, prevents deletion of already-used codes
  * v1.41.2 [Refactor] - 2026-02-05: Code quality fixes — fix critical API bug (completeSetup missing setup_secret), extract shared PasswordStrength component, fix AdminDashboard setTimeout memory leak with useRef cleanup, harden deploy.sh with safe .env parser (452 total)
  * v1.41.1 [Bugfix]   - 2026-02-05: Fix SetupWizard browser autofill bug — use refs to read DOM values on submit; deploy.sh uses .env (auto-loaded by Docker), migrates from .env.local, prevents duplicate entries, secure file permissions (452 total)
@@ -127,13 +128,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.41.3';
+export const VERSION = '1.41.4';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Feature';
+export const VERSION_TAG = 'UI';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

@@ -48,14 +48,14 @@ function ProcessingView({ progress, debugLog }) {
 
   return (
     <div className="glass-card p-6 sm:p-8 mb-8 animate-fade-in-up">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      {/* Header - px-2 matches step indicator padding for alignment */}
+      <div className="flex items-center justify-between mb-5 px-2">
         <div>
           <h2 className="text-lg font-semibold text-white mb-1">Processing Manuscript</h2>
           <p className="text-sm text-surface-400">{progress.stage}</p>
         </div>
-        <div className="w-10 h-10 rounded-xl glass-icon flex items-center justify-center">
-          <Loader className="w-5 h-5 text-brand-400 animate-spin" />
+        <div className="w-9 h-9 rounded-lg glass-icon flex items-center justify-center">
+          <Loader className="w-4 h-4 text-brand-400 animate-spin" />
         </div>
       </div>
 
