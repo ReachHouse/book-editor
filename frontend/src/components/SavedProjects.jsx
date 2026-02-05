@@ -3,7 +3,7 @@
  * SAVED PROJECTS COMPONENT
  * =============================================================================
  *
- * Displays a list of previously edited books stored in localStorage.
+ * Displays a list of previously edited books stored in IndexedDB (with localStorage fallback).
  *
  * PROPS:
  * ------
@@ -17,8 +17,8 @@
  * =============================================================================
  */
 
-import React from 'react';
-import { Clock, Download, Play, Trash2, Loader, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, Download, Play, Trash2, Check, X, Loader, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
 import { formatFileName } from '../utils/documentUtils';
 
 /**
@@ -35,15 +35,15 @@ function SavedProjects({
   if (!projects || projects.length === 0) return null;
 
   return (
-    <div className="glass-card p-6 sm:p-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+    <div className="glass-card p-6 sm:p-8 animate-fade-in-up [animation-delay:100ms]">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-xl glass-icon-neutral flex items-center justify-center">
           <Clock className="w-5 h-5 text-surface-400" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white">Previously Edited Books</h2>
-          <p className="text-xs text-surface-500">Download completed books or resume incomplete ones</p>
+          <h2 className="text-lg font-semibold text-white">Previously Edited Books</h2>
+          <p className="text-sm text-surface-400">Download or resume previous edits</p>
         </div>
       </div>
 
@@ -79,12 +79,15 @@ function SavedProjects({
 }
 
 /**
- * Individual project item with status and action buttons.
+ * Individual project item with status badge, mini progress bar, and action buttons.
+ * Includes inline delete confirmation to prevent accidental data loss.
  */
 function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading }) {
-  const progressPercent = Math.round(
-    (project.chunksCompleted / project.totalChunks) * 100
-  );
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const progressPercent = project.totalChunks > 0
+    ? Math.round((project.chunksCompleted / project.totalChunks) * 100)
+    : 0;
 
   const handleDownload = () => {
     const content = project.docContent || {
@@ -95,62 +98,123 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
     onDownload(content);
   };
 
+  const handleConfirmDelete = () => {
+    onDelete(project.id);
+    setConfirmingDelete(false);
+  };
+
   return (
     <div className="group glass-inner p-4 flex items-center justify-between hover:border-surface-600/15 transition-all duration-300">
       {/* Info */}
-      <div className="flex-1 min-w-0 mr-4">
-        <p className="font-medium text-surface-200 text-sm truncate">
-          {project.fileName}
-        </p>
-        <p className="text-xs text-surface-500 mt-0.5">
-          {project.isComplete ? (
-            <span>Completed {new Date(project.timestamp).toLocaleString()}</span>
-          ) : (
-            <span className="tabular-nums">
-              In progress: {project.chunksCompleted}/{project.totalChunks} sections ({progressPercent}%)
+      <div className="flex items-start gap-3 flex-1 min-w-0 mr-4">
+        {/* File icon */}
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+          project.isComplete
+            ? 'bg-brand-600/15 border border-brand-500/15'
+            : 'bg-blue-600/15 border border-blue-500/15'
+        }`}>
+          {project.isComplete
+            ? <CheckCircle className="w-3.5 h-3.5 text-brand-400" />
+            : <FileText className="w-3.5 h-3.5 text-blue-400" />
+          }
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {/* Filename + status badge */}
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="font-medium text-surface-200 text-sm truncate" title={project.fileName}>
+              {project.fileName}
+            </p>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${
+              project.isComplete
+                ? 'bg-brand-600/15 text-brand-400 border border-brand-500/15'
+                : 'bg-blue-600/15 text-blue-400 border border-blue-500/15'
+            }`}>
+              {project.isComplete ? 'Ready' : 'In Progress'}
             </span>
+          </div>
+
+          {/* Status detail */}
+          <p className="text-xs text-surface-500 mt-1">
+            {project.isComplete ? (
+              <span>Completed {new Date(project.timestamp).toLocaleString()}</span>
+            ) : (
+              <span className="tabular-nums">
+                {project.chunksCompleted}/{project.totalChunks} sections ({progressPercent}%)
+              </span>
+            )}
+          </p>
+
+          {/* Mini progress bar for in-progress projects */}
+          {!project.isComplete && (
+            <div className="mt-1.5 h-1 rounded-full bg-surface-800/60 overflow-hidden max-w-[200px]">
+              <div
+                className="h-full rounded-full bg-blue-500/60 transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
           )}
-        </p>
+        </div>
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 flex-shrink-0">
-        {project.isComplete && (
+      {confirmingDelete ? (
+        <div className="flex gap-2 flex-shrink-0 items-center">
+          <span className="text-xs text-surface-400 mr-1">Delete?</span>
           <button
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-brand-600/80 hover:bg-brand-500 text-white transition-all duration-200 disabled:opacity-40 focus-ring"
-            title="Download Word document with Track Changes"
-            aria-label="Download Word document with Track Changes"
+            onClick={handleConfirmDelete}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-red-600/80 hover:bg-red-500 active:scale-95 text-white transition-all duration-200 focus-ring"
+            aria-label="Confirm delete"
           >
-            {isDownloading ? (
-              <Loader className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
+            <Check className="w-4 h-4" />
           </button>
-        )}
-
-        {!project.isComplete && (
           <button
-            onClick={() => onResume(project)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-600/80 hover:bg-blue-500 text-white transition-all duration-200 focus-ring"
-            title="Resume editing from where you left off"
-            aria-label="Resume editing from where you left off"
+            onClick={() => setConfirmingDelete(false)}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-surface-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
+            aria-label="Cancel delete"
           >
-            <Play className="w-4 h-4" />
+            <X className="w-4 h-4" />
           </button>
-        )}
+        </div>
+      ) : (
+        <div className="flex gap-2 flex-shrink-0">
+          {project.isComplete && (
+            <button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="w-11 h-11 flex items-center justify-center rounded-lg bg-brand-600/80 hover:bg-brand-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-40 focus-ring"
+              title="Download Word document with Track Changes"
+              aria-label="Download Word document with Track Changes"
+            >
+              {isDownloading ? (
+                <Loader className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </button>
+          )}
 
-        <button
-          onClick={() => onDelete(project.id)}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-red-600/80 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
-          title="Delete from storage"
-          aria-label="Delete from storage"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
+          {!project.isComplete && (
+            <button
+              onClick={() => onResume(project)}
+              className="w-11 h-11 flex items-center justify-center rounded-lg bg-blue-600/80 hover:bg-blue-500 active:scale-95 text-white transition-all duration-200 focus-ring"
+              title="Resume editing from where you left off"
+              aria-label="Resume editing from where you left off"
+            >
+              <Play className="w-4 h-4" />
+            </button>
+          )}
+
+          <button
+            onClick={() => setConfirmingDelete(true)}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-red-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
+            title="Delete from storage"
+            aria-label="Delete from storage"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

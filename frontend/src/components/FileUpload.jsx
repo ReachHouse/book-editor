@@ -59,6 +59,8 @@ function FileUpload({ onFileSelect }) {
 
   return (
     <div
+      role="region"
+      aria-label="File upload area — drag and drop a Word document or click to browse"
       className={`
         relative rounded-[1.25rem] border-2 border-dashed p-12 sm:p-16 text-center
         transition-all duration-500 ease-out mb-8 animate-fade-in-up group cursor-pointer
@@ -79,6 +81,7 @@ function FileUpload({ onFileSelect }) {
         onChange={handleChange}
         className="hidden"
         id="file-upload"
+        aria-label="Upload Word document"
       />
 
       <label htmlFor="file-upload" className="cursor-pointer block">
@@ -100,12 +103,12 @@ function FileUpload({ onFileSelect }) {
         </div>
 
         {/* Primary text */}
-        <p className="text-xl font-semibold mb-2 text-surface-200">
+        <p className="text-lg font-semibold mb-2 text-surface-200">
           Upload Your Manuscript
         </p>
 
         {/* Format info */}
-        <p className="text-surface-400 text-sm mb-1.5">
+        <p className="text-surface-400 text-sm mb-2">
           Drag and drop or click to browse
         </p>
         <div className="inline-flex items-center gap-1.5 text-surface-500 text-xs">

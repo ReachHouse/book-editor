@@ -40,18 +40,18 @@ describe('ErrorDisplay', () => {
 
     render(<ErrorDisplay error="Test error" debugLog={debugLog} />);
 
-    expect(screen.getByText('Debug Log:')).toBeInTheDocument();
+    expect(screen.getByText('Debug Log')).toBeInTheDocument();
   });
 
   test('does not render debug section when debugLog is empty', () => {
     render(<ErrorDisplay error="Test error" debugLog={[]} />);
 
-    expect(screen.queryByText('Debug Log:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Debug Log')).not.toBeInTheDocument();
   });
 
   test('does not render debug section when debugLog is undefined', () => {
     render(<ErrorDisplay error="Test error" />);
 
-    expect(screen.queryByText('Debug Log:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Debug Log')).not.toBeInTheDocument();
   });
 });

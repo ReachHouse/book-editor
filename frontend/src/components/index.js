@@ -48,3 +48,4 @@ export { default as CompletionView } from './CompletionView';
 export { default as SavedProjects } from './SavedProjects';
 export { default as ErrorDisplay } from './ErrorDisplay';
 export { default as DebugLog } from './DebugLog';
+export { ToastContainer } from './Toast';

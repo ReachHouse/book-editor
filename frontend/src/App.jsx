@@ -21,11 +21,13 @@ import {
   ProcessingView,
   CompletionView,
   SavedProjects,
-  ErrorDisplay
+  ErrorDisplay,
+  ToastContainer
 } from './components';
 
 // Hooks
 import { useProjects } from './hooks/useProjects';
+import { useToast } from './hooks/useToast';
 
 // Services
 import { editChunk, generateStyleGuide, downloadDocument } from './services/api';
@@ -69,8 +71,12 @@ function App() {
     loading: loadingStorage,
     loadProjects,
     saveProject,
-    deleteProject
+    deleteProject,
+    storageInfo
   } = useProjects();
+
+  // Toast notifications
+  const { toasts, addToast, dismissToast } = useToast();
 
   // Ref to prevent duplicate processBook calls (race condition fix)
   const processingRef = useRef(false);
@@ -163,6 +169,11 @@ function App() {
     // Set processing lock
     processingRef.current = true;
 
+    // For resume: set a placeholder file so the upload section stays hidden
+    if (resumeProject) {
+      setFile({ name: resumeProject.fileName });
+    }
+
     // Initialize processing state
     setProcessing(true);
     setError(null);
@@ -172,19 +183,19 @@ function App() {
     const projectId = resumeProject ? resumeProject.id : Date.now().toString();
 
     try {
-      let originalText, chunks, editedChunks, styleGuide, startIndex;
+      let originalText, chunks, editedChunks, styleGuide, startIndex, chunkSize;
 
       if (resumeProject) {
         // Resume existing project
-        addLog(`Resuming: ${resumeProject.fileName}`);
+        addLog(`Resuming editing: ${resumeProject.fileName}`);
 
         if (!resumeProject.editedChunks || !Array.isArray(resumeProject.editedChunks)) {
           throw new Error('Cannot resume: Invalid project data');
         }
 
         originalText = resumeProject.originalText;
-        const chunkSize = resumeProject.chunkSize || CHUNK_SIZES.LEGACY_DEFAULT;
-        addLog(`Using chunk size: ${chunkSize} words`);
+        chunkSize = resumeProject.chunkSize || CHUNK_SIZES.LEGACY_DEFAULT;
+        addLog(`Resuming with original settings`);
 
         const paragraphs = originalText.split(/\n+/).filter(p => p.trim());
         chunks = createChunks(paragraphs, chunkSize);
@@ -205,7 +216,7 @@ function App() {
 
       } else {
         // New document
-        addLog('Starting new document...');
+        addLog('Preparing document for editing...');
 
         if (!file || typeof file.arrayBuffer !== 'function') {
           throw new Error('Invalid file. Please upload again.');
@@ -219,10 +230,11 @@ function App() {
           throw new Error('Document is empty.');
         }
 
-        addLog(`Extracted ${originalText.length} characters`);
+        addLog('Document loaded successfully');
 
+        chunkSize = CHUNK_SIZES.NEW_DOCUMENTS;
         const paragraphs = originalText.split(/\n+/).filter(p => p.trim());
-        chunks = createChunks(paragraphs, CHUNK_SIZES.NEW_DOCUMENTS);
+        chunks = createChunks(paragraphs, chunkSize);
 
         if (!chunks.length) {
           throw new Error('Could not process document.');
@@ -232,13 +244,13 @@ function App() {
         styleGuide = '';
         startIndex = 0;
 
-        addLog(`Created ${chunks.length} sections`);
+        addLog(`Document split into ${chunks.length} sections`);
         setProgress({ current: 0, total: chunks.length, stage: 'Editing...' });
       }
 
       // Process each chunk
       for (let i = startIndex; i < chunks.length; i++) {
-        addLog(`Processing section ${i + 1}/${chunks.length}`);
+        addLog(`Editing section ${i + 1} of ${chunks.length}...`);
         setProgress({
           current: i,
           total: chunks.length,
@@ -256,7 +268,7 @@ function App() {
           throw new Error(`Section ${i + 1} returned empty.`);
         }
 
-        addLog(`Section ${i + 1} complete (${editedChunk.length} chars)`);
+        addLog(`Section ${i + 1} complete`);
         editedChunks.push(editedChunk);
 
         // Generate style guide after first chunk
@@ -271,7 +283,7 @@ function App() {
           timestamp: Date.now(),
           chunksCompleted: i + 1,
           totalChunks: chunks.length,
-          chunkSize: CHUNK_SIZES.NEW_DOCUMENTS,
+          chunkSize,
           editedChunks,
           originalText,
           styleGuide,
@@ -280,7 +292,7 @@ function App() {
       }
 
       // Finalize
-      addLog('All sections complete');
+      addLog('All sections edited successfully');
 
       const fullEditedText = editedChunks.join('\n\n');
       const docContent = {
@@ -299,7 +311,7 @@ function App() {
         timestamp: Date.now(),
         chunksCompleted: chunks.length,
         totalChunks: chunks.length,
-        chunkSize: CHUNK_SIZES.NEW_DOCUMENTS,
+        chunkSize,
         originalText,
         fullEditedText,
         styleGuide,
@@ -308,7 +320,7 @@ function App() {
       });
 
       setEditedContent(docContent);
-      addLog('Complete! File saved.');
+      addLog('Editing complete — ready for download');
       setCompleted(true);
       setProcessing(false);
       processingRef.current = false; // Release processing lock
@@ -336,6 +348,7 @@ function App() {
 
     try {
       await downloadDocument(content);
+      addToast('Document downloaded successfully', 'success');
     } catch (err) {
       console.error('Download error:', err);
       if (err.message.includes('Failed to fetch')) {
@@ -353,12 +366,12 @@ function App() {
   // ============================================================================
 
   const handleResume = (project) => {
-    setFile({ name: project.fileName });
     processBook(project);
   };
 
   const handleDeleteProject = async (projectId) => {
     await deleteProject(projectId);
+    addToast('Project deleted', 'success');
 
     // Clear current content if we deleted the active project
     if (editedContent && editedContent.projectId === projectId) {
@@ -367,13 +380,18 @@ function App() {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setFile(null);
     setAnalysis(null);
     setCompleted(false);
     setEditedContent(null);
+    setError(null);
     setDebugLog([]);
-  };
+  }, []);
+
+  // Stable callbacks for components that only use state setters (safe with empty deps)
+  const handleShowStyleGuide = useCallback(() => setShowStyleGuide(true), []);
+  const handleCloseStyleGuide = useCallback(() => setShowStyleGuide(false), []);
 
   // ============================================================================
   // RENDER
@@ -381,33 +399,36 @@ function App() {
 
   return (
     <div className="min-h-screen bg-surface-950 text-surface-200 relative overflow-hidden">
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
       {/* Ambient background layers */}
       <div className="fixed inset-0 pointer-events-none">
         {/* Base gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-surface-950 via-surface-900/50 to-surface-950" />
         {/* Top ambient glow - green tinted */}
-        <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full opacity-[0.035]" style={{ background: 'radial-gradient(ellipse, #4ade80, transparent 70%)' }} />
+        <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full opacity-[0.035] ambient-glow-green" />
         {/* Bottom ambient warmth */}
-        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02]" style={{ background: 'radial-gradient(ellipse, #60a5fa, transparent 70%)' }} />
-        {/* Subtle noise texture via CSS */}
-        <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")', backgroundRepeat: 'repeat', backgroundSize: '256px 256px' }} />
+        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02] ambient-glow-blue" />
+        {/* Subtle noise texture */}
+        <div className="absolute inset-0 opacity-[0.015] noise-texture" />
       </div>
 
       <div className="relative container mx-auto px-4 sm:px-6 py-10 sm:py-14 max-w-4xl">
 
         {/* Header */}
-        <Header onShowStyleGuide={() => setShowStyleGuide(true)} />
+        <Header onShowStyleGuide={handleShowStyleGuide} />
 
         {/* Style Guide Modal */}
         <StyleGuideModal
           isOpen={showStyleGuide}
-          onClose={() => setShowStyleGuide(false)}
+          onClose={handleCloseStyleGuide}
         />
 
         {/* Loading State */}
         {loadingStorage && (
-          <div className="glass-card p-16 text-center animate-fade-in">
-            <Loader className="w-10 h-10 mx-auto mb-4 text-brand-400 animate-spin" />
+          <div className="glass-card py-10 text-center animate-fade-in" role="status" aria-label="Loading saved projects">
+            <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" aria-hidden="true" />
             <p className="text-surface-400 text-sm">Loading saved projects...</p>
           </div>
         )}
@@ -425,6 +446,7 @@ function App() {
               onResume={handleResume}
               onDelete={handleDeleteProject}
               isDownloading={downloadingDocx}
+              storageInfo={storageInfo}
             />
           </>
         )}
@@ -453,14 +475,14 @@ function App() {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-14 pb-2">
+        <div className="text-center mt-10 pb-2">
           <div className="flex items-center justify-center gap-3 mb-3">
             <div className="h-px w-16 bg-gradient-to-r from-transparent to-surface-700/30" />
             <div className="w-1 h-1 rounded-full bg-surface-700/50" />
             <div className="h-px w-16 bg-gradient-to-l from-transparent to-surface-700/30" />
           </div>
-          <p className="text-xs text-surface-600 mb-0.5">{VERSION_DISPLAY}</p>
-          <p className="text-xs text-surface-500">&copy; {new Date().getFullYear()} Reach Publishers</p>
+          <p className="text-xs text-surface-500 mb-0.5">{VERSION_DISPLAY}</p>
+          <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach Publishers</p>
         </div>
       </div>
     </div>
