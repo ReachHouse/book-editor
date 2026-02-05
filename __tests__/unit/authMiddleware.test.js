@@ -33,6 +33,14 @@ beforeEach(() => {
   dbModule.database.db = db.db;
   dbModule.database.initialized = true;
 
+  // Create test admin user (previously done by _seedDefaults, now manual)
+  db.users.create({
+    username: 'admin',
+    email: 'admin@test.com',
+    password_hash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.BNitPrG6R3rZMK',
+    role: 'admin'
+  });
+
   const middleware = require('../../middleware/auth');
   requireAuth = middleware.requireAuth;
   requireAdmin = middleware.requireAdmin;

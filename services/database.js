@@ -91,8 +91,8 @@ class DatabaseService {
     // Run pending migrations
     this._runMigrations();
 
-    // Seed initial data if tables are empty
-    this._seedDefaults();
+    // Note: No default seeding - first admin is created via /api/setup/complete
+    // This ensures no hardcoded credentials exist in the codebase
 
     this.initialized = true;
   }
@@ -158,61 +158,6 @@ class DatabaseService {
       runMigration();
       console.log(`  Migration ${file} applied`);
     }
-  }
-
-  /**
-   * Seed default data: admin user and initial invite code.
-   * Only runs if the users table is empty (first-time setup).
-   *
-   * Default credentials (override via environment variables):
-   *   ADMIN_USERNAME    (default: admin)
-   *   ADMIN_EMAIL       (default: admin@reachpublishers.com)
-   *   ADMIN_PASSWORD    (default: ChangeMe123!)
-   *   FIRST_INVITE_CODE (default: WELCOME2025)
-   *
-   * Credentials are printed to console on first run for easy reference.
-   *
-   * @private
-   */
-  _seedDefaults() {
-    const userCount = this.db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
-
-    if (userCount > 0) return;
-
-    console.log('  Seeding initial admin user and invite code...');
-
-    // Default admin credentials - simple and memorable for easy first-time setup
-    // Override via environment variables: ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@reachpublishers.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'ChangeMe123!';
-
-    // Store password with a plain-text marker for initial seed.
-    // On first admin login, authService.login() detects the "plain:" prefix
-    // and re-hashes the password with bcrypt automatically.
-    const passwordHash = `plain:${adminPassword}`;
-
-    this.db.prepare(`
-      INSERT INTO users (username, email, password_hash, role)
-      VALUES (?, ?, ?, 'admin')
-    `).run(adminUsername, adminEmail, passwordHash);
-
-    // Default invite code - simple and memorable for first user registration
-    // Override via environment variable: FIRST_INVITE_CODE
-    const inviteCode = process.env.FIRST_INVITE_CODE || 'WELCOME2025';
-    this.db.prepare(`
-      INSERT INTO invite_codes (code, created_by) VALUES (?, 1)
-    `).run(inviteCode);
-
-    console.log('  ═══════════════════════════════════════════════════════════');
-    console.log('  FIRST-TIME SETUP - DEFAULT CREDENTIALS');
-    console.log('  ═══════════════════════════════════════════════════════════');
-    console.log(`  Admin Login:      ${adminUsername}`);
-    console.log(`  Admin Password:   ${adminPassword}`);
-    console.log(`  Invite Code:      ${inviteCode}`);
-    console.log('  ───────────────────────────────────────────────────────────');
-    console.log('  IMPORTANT: Change the admin password after first login!');
-    console.log('  ═══════════════════════════════════════════════════════════');
   }
 
   // ===========================================================================

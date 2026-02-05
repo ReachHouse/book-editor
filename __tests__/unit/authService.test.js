@@ -40,6 +40,19 @@ beforeEach(() => {
   dbModule.database.db = db.db;
   dbModule.database.initialized = true;
 
+  // Seed test data (previously done by _seedDefaults, now manual)
+  // Create an admin user for tests
+  db.users.create({
+    username: 'admin',
+    email: 'admin@test.com',
+    password_hash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.BNitPrG6R3rZMK', // "TestPass123"
+    role: 'admin'
+  });
+
+  // Create invite codes for tests
+  db.inviteCodes.create('TESTCODE1', 1);
+  db.inviteCodes.create('TESTCODE2', 1);
+
   // Now import authService (it will use the overridden database)
   const authModule = require('../../services/authService');
   authService = authModule.authService;
@@ -129,13 +142,12 @@ describe('JWT Tokens', () => {
 // =============================================================================
 
 describe('Registration', () => {
-  // The seed creates an admin user and one invite code.
-  // We need to get the invite code for testing.
+  // Test setup creates admin user and invite codes.
   let validInviteCode;
 
   beforeEach(() => {
-    // Get the seeded invite code
-    const codes = db.inviteCodes.listAll();
+    // Get an available invite code from test setup
+    const codes = db.inviteCodes.listAll().filter(c => c.is_used === 0);
     validInviteCode = codes[0].code;
   });
 
@@ -351,7 +363,7 @@ describe('Login', () => {
   let validInviteCode;
 
   beforeEach(async () => {
-    const codes = db.inviteCodes.listAll();
+    const codes = db.inviteCodes.listAll().filter(c => c.is_used === 0);
     validInviteCode = codes[0].code;
 
     // Register a test user
@@ -441,22 +453,27 @@ describe('Login', () => {
     ).rejects.toThrow('deactivated');
   });
 
-  test('re-hashes plain-text admin password on first login', async () => {
-    // The seeded admin has a "plain:xxx" password
-    const admin = db.users.findByUsername('admin');
-    expect(admin.password_hash.startsWith('plain:')).toBe(true);
+  test('re-hashes plain-text password marker on first login', async () => {
+    // Create a user with plain-text password marker (legacy migration format)
+    db.users.create({
+      username: 'plainuser',
+      email: 'plain@test.com',
+      password_hash: 'plain:MigrationPass1',
+      role: 'user'
+    });
 
-    const plainPassword = admin.password_hash.substring(6);
+    const user = db.users.findByUsername('plainuser');
+    expect(user.password_hash.startsWith('plain:')).toBe(true);
 
     await authService.login({
-      identifier: 'admin',
-      password: plainPassword
+      identifier: 'plainuser',
+      password: 'MigrationPass1'
     });
 
     // After login, password should be bcrypt hashed
-    const updatedAdmin = db.users.findByUsername('admin');
-    expect(updatedAdmin.password_hash.startsWith('plain:')).toBe(false);
-    expect(updatedAdmin.password_hash.startsWith('$2')).toBe(true);
+    const updated = db.users.findByUsername('plainuser');
+    expect(updated.password_hash.startsWith('plain:')).toBe(false);
+    expect(updated.password_hash.startsWith('$2')).toBe(true);
   });
 
   test('resets failed attempts on successful login', async () => {
@@ -499,7 +516,7 @@ describe('Token Refresh', () => {
   let loginResult;
 
   beforeEach(async () => {
-    const codes = db.inviteCodes.listAll();
+    const codes = db.inviteCodes.listAll().filter(c => c.is_used === 0);
     await authService.register({
       username: 'refreshuser',
       email: 'refresh@example.com',
@@ -557,7 +574,7 @@ describe('Token Refresh', () => {
 
 describe('Logout', () => {
   test('invalidates refresh token on logout', async () => {
-    const codes = db.inviteCodes.listAll();
+    const codes = db.inviteCodes.listAll().filter(c => c.is_used === 0);
     await authService.register({
       username: 'logoutuser',
       email: 'logout@example.com',

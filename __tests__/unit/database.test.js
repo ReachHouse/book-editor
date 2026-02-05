@@ -74,18 +74,16 @@ describe('Database Initialization', () => {
     expect(tables).toContain('schema_version');
   });
 
-  test('seeds default admin user', () => {
-    const admin = db.users.findByUsername('admin');
-    expect(admin).toBeTruthy();
-    expect(admin.role).toBe('admin');
-    expect(admin.email).toBe('admin@reachpublishers.com');
+  test('starts with empty users table (no auto-seeding)', () => {
+    // First-time setup is now done via /api/setup/complete wizard
+    const count = db.users.count();
+    expect(count).toBe(0);
   });
 
-  test('seeds initial invite code', () => {
+  test('starts with empty invite codes (no auto-seeding)', () => {
+    // Invite codes are now created by admin via /api/admin/invite-codes
     const codes = db.inviteCodes.listAll();
-    expect(codes.length).toBe(1);
-    expect(codes[0].is_used).toBe(0);
-    expect(codes[0].created_by).toBe(1);
+    expect(codes.length).toBe(0);
   });
 
   test('WAL mode is requested', () => {
@@ -113,14 +111,24 @@ describe('Database Initialization', () => {
 // =============================================================================
 
 describe('Users', () => {
-  test('findById returns seeded admin', () => {
+  // Create a test admin user before each test (previously done by _seedDefaults)
+  beforeEach(() => {
+    db.users.create({
+      username: 'admin',
+      email: 'admin@test.com',
+      password_hash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.BNitPrG6R3rZMK',
+      role: 'admin'
+    });
+  });
+
+  test('findById returns admin', () => {
     const user = db.users.findById(1);
     expect(user).toBeTruthy();
     expect(user.username).toBe('admin');
   });
 
   test('findByEmail is case-insensitive', () => {
-    const user = db.users.findByEmail('ADMIN@REACHPUBLISHERS.COM');
+    const user = db.users.findByEmail('ADMIN@TEST.COM');
     expect(user).toBeTruthy();
     expect(user.username).toBe('admin');
   });
@@ -131,7 +139,7 @@ describe('Users', () => {
   });
 
   test('findByEmailOrUsername finds by email', () => {
-    const user = db.users.findByEmailOrUsername('admin@reachpublishers.com');
+    const user = db.users.findByEmailOrUsername('admin@test.com');
     expect(user).toBeTruthy();
   });
 
@@ -180,7 +188,7 @@ describe('Users', () => {
     expect(() => {
       db.users.create({
         username: 'other',
-        email: 'admin@reachpublishers.com',
+        email: 'admin@test.com', // Same as beforeEach admin
         password_hash: 'hash'
       });
     }).toThrow();
@@ -252,27 +260,59 @@ describe('Users', () => {
 // =============================================================================
 
 describe('Invite Codes', () => {
-  test('findByCode finds the seeded code', () => {
-    const codes = db.inviteCodes.listAll();
-    const found = db.inviteCodes.findByCode(codes[0].code);
+  test('findByCode finds created code', () => {
+    // Create a user first (required for created_by foreign key)
+    db.users.create({
+      username: 'testadmin',
+      email: 'test@example.com',
+      password_hash: 'hash',
+      role: 'admin'
+    });
+
+    // Create a code and then find it
+    const created = db.inviteCodes.create('FINDME123', 1);
+    const found = db.inviteCodes.findByCode('FINDME123');
     expect(found).toBeTruthy();
+    expect(found.id).toBe(created.id);
     expect(found.is_used).toBe(0);
   });
 
   test('create makes a new code', () => {
-    const code = db.inviteCodes.create('TESTCODE123', 1);
+    // Create a user first (required for foreign key)
+    const user = db.users.create({
+      username: 'createadmin',
+      email: 'createadmin@test.com',
+      password_hash: 'hash',
+      role: 'admin'
+    });
+
+    const code = db.inviteCodes.create('TESTCODE123', user.id);
     expect(code.code).toBe('TESTCODE123');
-    expect(code.created_by).toBe(1);
+    expect(code.created_by).toBe(user.id);
     expect(code.is_used).toBe(0);
   });
 
   test('create rejects duplicate code', () => {
-    db.inviteCodes.create('UNIQUE1', 1);
-    expect(() => db.inviteCodes.create('UNIQUE1', 1)).toThrow();
+    const user = db.users.create({
+      username: 'dupadmin',
+      email: 'dupadmin@test.com',
+      password_hash: 'hash',
+      role: 'admin'
+    });
+
+    db.inviteCodes.create('UNIQUE1', user.id);
+    expect(() => db.inviteCodes.create('UNIQUE1', user.id)).toThrow();
   });
 
   test('isValid returns true for unused code', () => {
-    db.inviteCodes.create('VALID1', 1);
+    const user = db.users.create({
+      username: 'validadmin',
+      email: 'validadmin@test.com',
+      password_hash: 'hash',
+      role: 'admin'
+    });
+
+    db.inviteCodes.create('VALID1', user.id);
     expect(db.inviteCodes.isValid('VALID1')).toBe(true);
   });
 
@@ -281,40 +321,73 @@ describe('Invite Codes', () => {
   });
 
   test('markUsed consumes the code', () => {
-    db.inviteCodes.create('USEME', 1);
-    db.users.create({ username: 'newuser', email: 'new@test.com', password_hash: 'h' });
+    // Create admin user to own the invite code
+    const admin = db.users.create({
+      username: 'markadmin',
+      email: 'markadmin@test.com',
+      password_hash: 'hash',
+      role: 'admin'
+    });
 
-    const result = db.inviteCodes.markUsed('USEME', 2);
+    db.inviteCodes.create('USEME', admin.id);
+    const newUser = db.users.create({ username: 'newuser', email: 'new@test.com', password_hash: 'h' });
+
+    const result = db.inviteCodes.markUsed('USEME', newUser.id);
     expect(result).toBe(true);
 
     const code = db.inviteCodes.findByCode('USEME');
     expect(code.is_used).toBe(1);
-    expect(code.used_by).toBe(2);
+    expect(code.used_by).toBe(newUser.id);
     expect(code.used_at).toBeTruthy();
   });
 
   test('markUsed returns false for already-used code', () => {
-    db.inviteCodes.create('ONCE', 1);
-    db.users.create({ username: 'u1', email: 'u1@test.com', password_hash: 'h' });
-    db.inviteCodes.markUsed('ONCE', 2);
+    // Create admin user to own the invite code
+    const admin = db.users.create({
+      username: 'onceadmin',
+      email: 'onceadmin@test.com',
+      password_hash: 'hash',
+      role: 'admin'
+    });
 
-    expect(db.inviteCodes.markUsed('ONCE', 2)).toBe(false);
+    db.inviteCodes.create('ONCE', admin.id);
+    const user = db.users.create({ username: 'u1', email: 'u1@test.com', password_hash: 'h' });
+    db.inviteCodes.markUsed('ONCE', user.id);
+
+    expect(db.inviteCodes.markUsed('ONCE', user.id)).toBe(false);
   });
 
   test('isValid returns false after code is used', () => {
-    db.inviteCodes.create('CHECKME', 1);
-    db.users.create({ username: 'u2', email: 'u2@test.com', password_hash: 'h' });
-    db.inviteCodes.markUsed('CHECKME', 2);
+    // Create admin user to own the invite code
+    const admin = db.users.create({
+      username: 'checkadmin',
+      email: 'checkadmin@test.com',
+      password_hash: 'hash',
+      role: 'admin'
+    });
+
+    db.inviteCodes.create('CHECKME', admin.id);
+
+    // Create user who will use the code
+    const consumer = db.users.create({ username: 'u2', email: 'u2@test.com', password_hash: 'h' });
+    db.inviteCodes.markUsed('CHECKME', consumer.id);
 
     expect(db.inviteCodes.isValid('CHECKME')).toBe(false);
   });
 
   test('listAll returns all codes', () => {
+    // Create a user first (required for foreign key)
+    db.users.create({
+      username: 'listadmin',
+      email: 'listadmin@test.com',
+      password_hash: 'hash',
+      role: 'admin'
+    });
+
     db.inviteCodes.create('A', 1);
     db.inviteCodes.create('B', 1);
     const all = db.inviteCodes.listAll();
-    // 1 seeded + 2 created = 3
-    expect(all.length).toBe(3);
+    expect(all.length).toBe(2);
   });
 });
 
@@ -323,6 +396,16 @@ describe('Invite Codes', () => {
 // =============================================================================
 
 describe('Sessions', () => {
+  // Create a test user before each test (required for foreign key)
+  beforeEach(() => {
+    db.users.create({
+      username: 'sessionuser',
+      email: 'session@test.com',
+      password_hash: 'hash',
+      role: 'user'
+    });
+  });
+
   test('create makes a new session', () => {
     const session = db.sessions.create(1, 'token-abc', '2099-12-31T23:59:59Z');
     expect(session.user_id).toBe(1);
@@ -385,6 +468,16 @@ describe('Sessions', () => {
 // =============================================================================
 
 describe('Usage Logs', () => {
+  // Create a test user before each test (required for foreign key)
+  beforeEach(() => {
+    db.users.create({
+      username: 'usageuser',
+      email: 'usage@test.com',
+      password_hash: 'hash',
+      role: 'user'
+    });
+  });
+
   test('create logs an API call', () => {
     const log = db.usageLogs.create({
       userId: 1,
@@ -520,9 +613,16 @@ describe('Constraints & Edge Cases', () => {
   });
 
   test('unique refresh token constraint', () => {
-    db.sessions.create(1, 'unique-tok', '2099-01-01');
+    // Create user first (required for foreign key)
+    const user = db.users.create({
+      username: 'sessionuser',
+      email: 'session@constraint.com',
+      password_hash: 'hash'
+    });
+
+    db.sessions.create(user.id, 'unique-tok', '2099-01-01');
     expect(() => {
-      db.sessions.create(1, 'unique-tok', '2099-01-01');
+      db.sessions.create(user.id, 'unique-tok', '2099-01-01');
     }).toThrow();
   });
 
@@ -538,11 +638,13 @@ describe('Constraints & Edge Cases', () => {
     const db2 = new DatabaseService();
     db2.init(':memory:');
 
-    // db2 has its own seeded admin but is separate from db
-    expect(db2.users.count()).toBe(1);
+    // Both instances start empty (no auto-seeding)
+    expect(db2.users.count()).toBe(0);
+
+    // Create a user in db
     db.users.create({ username: 'only-in-db1', email: 'only@test.com', password_hash: 'h' });
-    expect(db.users.count()).toBe(2);
-    expect(db2.users.count()).toBe(1);
+    expect(db.users.count()).toBe(1);
+    expect(db2.users.count()).toBe(0); // db2 still empty
 
     db2.close();
   });

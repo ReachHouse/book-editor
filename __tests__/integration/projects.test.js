@@ -22,9 +22,16 @@ const dbModule = require('../../services/database');
 dbModule.database.db = testDb.db;
 dbModule.database.initialized = true;
 
-// Generate a valid auth token for the seeded admin user
+// Create test admin user (previously done by _seedDefaults, now manual)
+const adminUser = testDb.users.create({
+  username: 'admin',
+  email: 'admin@test.com',
+  password_hash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.BNitPrG6R3rZMK',
+  role: 'admin'
+});
+
+// Generate a valid auth token for the admin user
 const { generateAccessToken } = require('../../services/authService');
-const adminUser = testDb.users.findByUsername('admin');
 const authToken = generateAccessToken(adminUser);
 
 // Create a minimal test app with just the routes we need

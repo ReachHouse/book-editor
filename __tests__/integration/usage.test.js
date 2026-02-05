@@ -23,9 +23,16 @@ const dbModule = require('../../services/database');
 dbModule.database.db = testDb.db;
 dbModule.database.initialized = true;
 
-// Generate auth tokens for the seeded admin user and a regular user
+// Create test admin user (previously done by _seedDefaults, now manual)
+const adminUser = testDb.users.create({
+  username: 'admin',
+  email: 'admin@test.com',
+  password_hash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.BNitPrG6R3rZMK',
+  role: 'admin'
+});
+
+// Generate auth tokens for the admin user and a regular user
 const { generateAccessToken } = require('../../services/authService');
-const adminUser = testDb.users.findByUsername('admin');
 const adminToken = generateAccessToken(adminUser);
 
 // Create a regular test user

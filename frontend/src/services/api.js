@@ -580,3 +580,55 @@ export async function adminCreateInviteCode() {
   const data = await response.json();
   return data.code;
 }
+
+// =============================================================================
+// FIRST-TIME SETUP (No auth required - only works when no users exist)
+// =============================================================================
+
+/**
+ * Check if first-time setup is required.
+ * Returns true if the database has no users.
+ *
+ * @returns {Promise<boolean>} True if setup wizard should be shown
+ */
+export async function checkSetupRequired() {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/setup/status`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  }, 10000);
+
+  if (!response.ok) {
+    // On error, assume setup not required (show login instead)
+    console.error('Failed to check setup status');
+    return false;
+  }
+
+  const data = await response.json();
+  return data.needsSetup === true;
+}
+
+/**
+ * Complete first-time setup by creating the initial admin account.
+ * Only works when no users exist in the database.
+ *
+ * @param {Object} params - Setup parameters
+ * @param {string} params.username - Admin username (3-30 chars, alphanumeric/-/_)
+ * @param {string} params.email - Admin email
+ * @param {string} params.password - Admin password (8+ chars, upper/lower/number)
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export async function completeSetup({ username, email, password }) {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/setup/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, email, password })
+  }, 30000);
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || `Setup failed (${response.status})`);
+  }
+
+  return data;
+}

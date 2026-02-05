@@ -12,7 +12,7 @@
  * - If authenticated: shows the editor as before
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Loader } from 'lucide-react';
 import * as mammoth from 'mammoth';
 
@@ -38,13 +38,14 @@ import {
   AdminDashboard,
   ToastContainer
 } from './components';
+import SetupWizard from './components/SetupWizard';
 
 // Hooks
 import { useProjects } from './hooks/useProjects';
 import { useToast } from './hooks/useToast';
 
 // Services
-import { editChunk, generateStyleGuide, downloadDocument } from './services/api';
+import { editChunk, generateStyleGuide, downloadDocument, checkSetupRequired } from './services/api';
 
 // Utils & Constants
 import {
@@ -66,6 +67,34 @@ function App() {
   // Auth state
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const [authPage, setAuthPage] = useState('login'); // 'login' or 'register'
+
+  // Setup wizard state (for first-time setup when no users exist)
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
+
+  // Check if first-time setup is required on mount
+  useEffect(() => {
+    let mounted = true;
+
+    async function checkSetup() {
+      try {
+        const setupRequired = await checkSetupRequired();
+        if (mounted) {
+          setNeedsSetup(setupRequired);
+        }
+      } catch (err) {
+        // On error, assume setup not required (show login)
+        console.error('Failed to check setup status:', err);
+      } finally {
+        if (mounted) {
+          setCheckingSetup(false);
+        }
+      }
+    }
+
+    checkSetup();
+    return () => { mounted = false; };
+  }, []);
 
   // File and analysis state
   const [file, setFile] = useState(null);
@@ -458,6 +487,30 @@ function App() {
   // ============================================================================
   // RENDER
   // ============================================================================
+
+  // Checking setup status
+  if (checkingSetup) {
+    return (
+      <div className="min-h-screen bg-surface-950 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" />
+          <p className="text-surface-400 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // First-time setup required — show setup wizard
+  if (needsSetup) {
+    return (
+      <SetupWizard
+        onSetupComplete={() => {
+          setNeedsSetup(false);
+          setAuthPage('login');
+        }}
+      />
+    );
+  }
 
   // Auth loading state
   if (authLoading) {

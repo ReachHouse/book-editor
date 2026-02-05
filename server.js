@@ -62,6 +62,7 @@ const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const usageRoutes = require('./routes/usage');
 const adminRoutes = require('./routes/admin');
+const setupRoutes = require('./routes/setup');
 const { validateEnvironment } = require('./routes/health');
 const { database } = require('./services/database');
 
@@ -164,6 +165,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Health & Status Routes: /health, /api/status
 // Used for monitoring, deployment verification, and debugging
 app.use(healthRoutes);
+
+// Setup Routes: /api/setup/status, /api/setup/complete
+// First-time setup wizard (only active when no users exist)
+app.use(setupRoutes);
 
 // Auth Routes: /api/auth/register, /api/auth/login, /api/auth/refresh, /api/auth/me, /api/auth/logout
 // User authentication and session management
