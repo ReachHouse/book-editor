@@ -60,8 +60,8 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Invite Code'), { target: { value: 'ABCD1234' } });
     fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'ab' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password1' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Password1' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 
@@ -74,8 +74,8 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Invite Code'), { target: { value: 'ABCD1234' } });
     fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'bad user!' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password1' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Password1' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 
@@ -88,8 +88,8 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Invite Code'), { target: { value: 'ABCD1234' } });
     fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'testuser' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'not-an-email' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password1' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Password1' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 
@@ -118,8 +118,8 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Invite Code'), { target: { value: 'ABCD1234' } });
     fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'testuser' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'differentpass' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password1' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Different1' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 
@@ -129,8 +129,8 @@ describe('RegisterPage', () => {
   test('shows passwords match indicator', () => {
     render(<RegisterPage onSwitchToLogin={mockSwitchToLogin} />);
 
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password1' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Password1' } });
 
     expect(screen.getByText('Passwords match')).toBeInTheDocument();
   });
@@ -143,8 +143,8 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Invite Code'), { target: { value: 'abcd1234' } });
     fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'testuser' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password1' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Password1' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 
@@ -152,7 +152,7 @@ describe('RegisterPage', () => {
       expect(mockRegister).toHaveBeenCalledWith(
         'testuser',
         'test@example.com',
-        'password123',
+        'Password1',
         'ABCD1234' // Invite code is uppercased
       );
     });
@@ -166,8 +166,8 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Invite Code'), { target: { value: 'BADCODE' } });
     fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'testuser' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password1' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Password1' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 
@@ -184,8 +184,8 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Invite Code'), { target: { value: 'ABCD1234' } });
     fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'testuser' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password1' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Password1' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 

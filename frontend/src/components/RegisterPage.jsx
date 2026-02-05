@@ -57,6 +57,21 @@ function RegisterPage({ onSwitchToLogin }) {
       return;
     }
 
+    if (!/[A-Z]/.test(password)) {
+      setError('Password must contain at least one uppercase letter.');
+      return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setError('Password must contain at least one lowercase letter.');
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError('Password must contain at least one number.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
@@ -174,10 +189,13 @@ function RegisterPage({ onSwitchToLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg bg-surface-800/50 border border-surface-700/50 text-surface-200 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-colors"
-              placeholder="Minimum 8 characters"
+              placeholder="Create a strong password"
               autoComplete="new-password"
               disabled={submitting}
             />
+            <p className="text-xs text-surface-500 mt-1">
+              At least 8 characters with uppercase, lowercase, and a number.
+            </p>
           </div>
 
           {/* Confirm password field */}

@@ -143,7 +143,7 @@ describe('Registration', () => {
     const result = await authService.register({
       username: 'newuser',
       email: 'new@example.com',
-      password: 'securePass123',
+      password: 'SecurePass1',
       inviteCode: validInviteCode
     });
 
@@ -161,7 +161,7 @@ describe('Registration', () => {
     await authService.register({
       username: 'newuser',
       email: 'new@example.com',
-      password: 'securePass123',
+      password: 'SecurePass1',
       inviteCode: validInviteCode
     });
 
@@ -173,7 +173,7 @@ describe('Registration', () => {
       authService.register({
         username: 'newuser',
         email: 'new@example.com',
-        password: 'securePass123',
+        password: 'SecurePass1',
         inviteCode: 'INVALID-CODE'
       })
     ).rejects.toThrow('Invalid or already used invite code');
@@ -184,7 +184,7 @@ describe('Registration', () => {
     await authService.register({
       username: 'user1',
       email: 'user1@example.com',
-      password: 'securePass123',
+      password: 'SecurePass1',
       inviteCode: validInviteCode
     });
 
@@ -194,7 +194,7 @@ describe('Registration', () => {
       authService.register({
         username: 'user2',
         email: 'user2@example.com',
-        password: 'securePass123',
+        password: 'SecurePass1',
         inviteCode: validInviteCode
       })
     ).rejects.toThrow('Invalid or already used invite code');
@@ -204,7 +204,7 @@ describe('Registration', () => {
     await authService.register({
       username: 'user1',
       email: 'dup@example.com',
-      password: 'securePass123',
+      password: 'SecurePass1',
       inviteCode: validInviteCode
     });
 
@@ -215,7 +215,7 @@ describe('Registration', () => {
       authService.register({
         username: 'user2',
         email: 'dup@example.com',
-        password: 'securePass123',
+        password: 'SecurePass1',
         inviteCode: code2.code
       })
     ).rejects.toThrow('Email already registered');
@@ -225,7 +225,7 @@ describe('Registration', () => {
     await authService.register({
       username: 'sameuser',
       email: 'first@example.com',
-      password: 'securePass123',
+      password: 'SecurePass1',
       inviteCode: validInviteCode
     });
 
@@ -235,7 +235,7 @@ describe('Registration', () => {
       authService.register({
         username: 'sameuser',
         email: 'second@example.com',
-        password: 'securePass123',
+        password: 'SecurePass1',
         inviteCode: code2.code
       })
     ).rejects.toThrow(/already/i);
@@ -246,7 +246,7 @@ describe('Registration', () => {
       authService.register({
         username: 'ab',
         email: 'new@example.com',
-        password: 'securePass123',
+        password: 'SecurePass1',
         inviteCode: validInviteCode
       })
     ).rejects.toThrow('Username must be 3');
@@ -257,7 +257,7 @@ describe('Registration', () => {
       authService.register({
         username: 'bad user!',
         email: 'new@example.com',
-        password: 'securePass123',
+        password: 'SecurePass1',
         inviteCode: validInviteCode
       })
     ).rejects.toThrow('may only contain');
@@ -268,7 +268,7 @@ describe('Registration', () => {
       authService.register({
         username: 'newuser',
         email: 'not-an-email',
-        password: 'securePass123',
+        password: 'SecurePass1',
         inviteCode: validInviteCode
       })
     ).rejects.toThrow('Invalid email');
@@ -283,6 +283,39 @@ describe('Registration', () => {
         inviteCode: validInviteCode
       })
     ).rejects.toThrow('Password must be at least 8');
+  });
+
+  test('rejects password without uppercase letter', async () => {
+    await expect(
+      authService.register({
+        username: 'newuser',
+        email: 'new@example.com',
+        password: 'lowercase1',
+        inviteCode: validInviteCode
+      })
+    ).rejects.toThrow('Password must contain at least one uppercase letter');
+  });
+
+  test('rejects password without lowercase letter', async () => {
+    await expect(
+      authService.register({
+        username: 'newuser',
+        email: 'new@example.com',
+        password: 'UPPERCASE1',
+        inviteCode: validInviteCode
+      })
+    ).rejects.toThrow('Password must contain at least one lowercase letter');
+  });
+
+  test('rejects password without number', async () => {
+    await expect(
+      authService.register({
+        username: 'newuser',
+        email: 'new@example.com',
+        password: 'NoNumberHere',
+        inviteCode: validInviteCode
+      })
+    ).rejects.toThrow('Password must contain at least one number');
   });
 
   test('rejects missing fields', async () => {
@@ -312,7 +345,7 @@ describe('Login', () => {
     await authService.register({
       username: 'testuser',
       email: 'test@example.com',
-      password: 'securePass123',
+      password: 'SecurePass1',
       inviteCode: validInviteCode
     });
   });
@@ -320,7 +353,7 @@ describe('Login', () => {
   test('logs in with correct email and password', async () => {
     const result = await authService.login({
       identifier: 'test@example.com',
-      password: 'securePass123'
+      password: 'SecurePass1'
     });
 
     expect(result.user).toBeDefined();
@@ -332,7 +365,7 @@ describe('Login', () => {
   test('logs in with correct username and password', async () => {
     const result = await authService.login({
       identifier: 'testuser',
-      password: 'securePass123'
+      password: 'SecurePass1'
     });
 
     expect(result.user.username).toBe('testuser');
@@ -383,7 +416,7 @@ describe('Login', () => {
 
     // 6th attempt should be locked
     await expect(
-      authService.login({ identifier: 'testuser', password: 'securePass123' })
+      authService.login({ identifier: 'testuser', password: 'SecurePass1' })
     ).rejects.toThrow('Account locked');
   });
 
@@ -391,7 +424,7 @@ describe('Login', () => {
     db.users.update(db.users.findByUsername('testuser').id, { is_active: 0 });
 
     await expect(
-      authService.login({ identifier: 'testuser', password: 'securePass123' })
+      authService.login({ identifier: 'testuser', password: 'SecurePass1' })
     ).rejects.toThrow('deactivated');
   });
 
@@ -424,7 +457,7 @@ describe('Login', () => {
     // Successful login
     await authService.login({
       identifier: 'testuser',
-      password: 'securePass123'
+      password: 'SecurePass1'
     });
 
     const user = db.users.findByUsername('testuser');
@@ -436,7 +469,7 @@ describe('Login', () => {
 
     await authService.login({
       identifier: 'testuser',
-      password: 'securePass123'
+      password: 'SecurePass1'
     });
 
     const after = db.users.findByUsername('testuser');
@@ -457,13 +490,13 @@ describe('Token Refresh', () => {
     await authService.register({
       username: 'refreshuser',
       email: 'refresh@example.com',
-      password: 'securePass123',
+      password: 'SecurePass1',
       inviteCode: codes[0].code
     });
 
     loginResult = await authService.login({
       identifier: 'refreshuser',
-      password: 'securePass123'
+      password: 'SecurePass1'
     });
   });
 
@@ -515,13 +548,13 @@ describe('Logout', () => {
     await authService.register({
       username: 'logoutuser',
       email: 'logout@example.com',
-      password: 'securePass123',
+      password: 'SecurePass1',
       inviteCode: codes[0].code
     });
 
     const loginResult = await authService.login({
       identifier: 'logoutuser',
-      password: 'securePass123'
+      password: 'SecurePass1'
     });
 
     authService.logout(loginResult.refreshToken);

@@ -44,6 +44,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
+const helmet = require('helmet');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 
@@ -82,6 +83,34 @@ const PORT = process.env.PORT || 3001;
 // MUST be set before rate limiter for correct IP-based limiting
 // Required for Hostinger/Nginx deployment to log correct client IPs
 app.set('trust proxy', 1);
+
+// Security Headers: Helmet sets various HTTP headers for protection
+// - X-Content-Type-Options: nosniff (prevent MIME sniffing)
+// - X-Frame-Options: DENY (prevent clickjacking)
+// - X-XSS-Protection: 0 (disabled, CSP is preferred)
+// - Strict-Transport-Security: max-age=15552000 (HSTS for HTTPS)
+// - Content-Security-Policy: configured below
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind uses inline styles
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+    }
+  },
+  crossOriginEmbedderPolicy: false, // Required for some browsers with file downloads
+  crossOriginResourcePolicy: { policy: 'same-origin' }
+}));
 
 // CORS: Configure allowed origins based on environment
 // In production, restricts to specific domains; in development, allows localhost
@@ -173,11 +202,22 @@ app.get('*', (req, res) => {
 
 // Express error handler middleware (must have 4 parameters)
 // Catches any unhandled errors from route handlers
-// In development, includes error message; in production, hides details
+// Generates a unique error ID for tracking and user support
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  // Generate a short error ID for tracking (8 hex chars)
+  const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  const timestamp = new Date().toISOString();
+
+  // Log full error details server-side with error ID
+  console.error(`[${timestamp}] Error ${errorId}:`, err.message);
+  if (process.env.NODE_ENV === 'development') {
+    console.error(err.stack);
+  }
+
+  // Return sanitized response with error ID for user support
   res.status(500).json({
     error: 'Internal server error',
+    errorId,
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
