@@ -32,5 +32,8 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# SQLite database (persisted via Docker volume, not in repo)
+data/
+
 # Test coverage
 coverage/

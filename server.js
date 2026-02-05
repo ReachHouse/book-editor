@@ -14,9 +14,11 @@
  *   server.js (this file)     - Express app setup, middleware, and startup
  *   routes/health.js          - Health check and status endpoints
  *   routes/api.js             - Core API endpoints (edit, style guide, docx)
+ *   services/database.js      - SQLite database layer (users, sessions, usage)
  *   services/anthropicService.js - Claude AI API communication
  *   services/diffService.js   - LCS-based diff algorithms for Track Changes
  *   services/document/          - Word document generation with Track Changes
+ *   database/migrations/      - Versioned database schema migrations
  *   config/styleGuide.js      - Reach Publishers House Style Guide
  *
  * DEPLOYMENT:
@@ -52,6 +54,7 @@ const rateLimit = require('express-rate-limit');
 const healthRoutes = require('./routes/health');
 const apiRoutes = require('./routes/api');
 const { validateEnvironment } = require('./routes/health');
+const { database } = require('./services/database');
 
 // =============================================================================
 // EXPRESS APP CONFIGURATION
@@ -163,6 +166,11 @@ app.use((err, req, res, next) => {
 // This checks for required variables like ANTHROPIC_API_KEY
 const envIssues = validateEnvironment();
 
+// Initialize the SQLite database (runs migrations, seeds defaults)
+console.log('Initializing database...');
+database.init();
+console.log('Database ready.');
+
 // Start listening on all network interfaces (0.0.0.0)
 // This is required for Docker container networking
 app.listen(PORT, '0.0.0.0', () => {
@@ -175,6 +183,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  API Key:       ${process.env.ANTHROPIC_API_KEY ? 'Configured' : 'NOT SET'}`);
   console.log(`  Track Changes: Native Word Format`);
   console.log(`  Environment:   ${process.env.NODE_ENV || 'development'}`);
+  console.log(`  Database:      SQLite (${database.initialized ? 'ready' : 'failed'})`);
 
   // Display any configuration warnings
   if (envIssues.length > 0) {
@@ -193,11 +202,13 @@ app.listen(PORT, '0.0.0.0', () => {
 // Handle SIGTERM (Docker stop, Kubernetes pod termination)
 process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully...');
+  database.close();
   process.exit(0);
 });
 
 // Handle SIGINT (Ctrl+C in terminal)
 process.on('SIGINT', () => {
   console.log('SIGINT received. Shutting down gracefully...');
+  database.close();
   process.exit(0);
 });

@@ -26,8 +26,18 @@
 #                    Set before running: export ANTHROPIC_API_KEY=sk-ant-xxx
 #                    If not set, the server will start but editing will fail.
 #
+# ADMIN_PASSWORD:    Optional - Admin password for first-time setup.
+#                    If not set, a random password is generated and printed to logs.
+#
 # NODE_ENV: production (set in compose file)
 # PORT: 3001 (internal port, set in compose file)
+#
+# DATA PERSISTENCE:
+# -----------------
+# A named Docker volume "book-editor-data" stores the SQLite database.
+# This volume persists across container restarts and rebuilds.
+# To backup: docker cp <container>:/app/data/book-editor.db ./backup.db
+# To inspect volume: docker volume inspect book-editor-data
 #
 # PORT MAPPING:
 # -------------
@@ -89,6 +99,11 @@ services:
       # The :- syntax means "use empty string if not set"
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
 
+    # Persistent volume for SQLite database
+    # Data survives container rebuilds and restarts
+    volumes:
+      - book-editor-data:/app/data
+
     # Restart policy: always restart unless manually stopped
     restart: unless-stopped
 
@@ -98,3 +113,7 @@ services:
         limits:
           memory: 2G
           cpus: '1.0'
+
+# Named volumes for persistent data
+volumes:
+  book-editor-data:

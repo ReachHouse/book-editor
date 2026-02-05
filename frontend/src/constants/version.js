@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.25.0 [Feature]  - 2026-02-05: SQLite database foundation — schema, migrations, user/session/usage tables, Docker volume persistence, 60 database tests
  * v1.24.0 [Bugfix]   - 2026-02-05: Request persistent storage to prevent browser eviction, fix migration data loss, warn on non-persistent storage
  * v1.23.0 [Bugfix]   - 2026-02-05: Fix storage display not updating after deletion, increase storage limit to 100MB
  * v1.22.0 [Bugfix]   - 2026-02-04: Fix handleResume stuck state, handleReset stale error, chunkSize legacy resume, progressPercent NaN, stale JSDoc
@@ -102,13 +103,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.24.0';
+export const VERSION = '1.25.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Bugfix';
+export const VERSION_TAG = 'Feature';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
