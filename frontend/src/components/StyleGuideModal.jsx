@@ -24,6 +24,8 @@ import { FULL_STYLE_GUIDE_DOCUMENT } from '../constants';
 function StyleGuideModal({ isOpen, onClose }) {
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef(null);
+  const modalRef = useRef(null);
+  const previousActiveElement = useRef(null);
 
   // Clean up close timeout on unmount to prevent memory leaks
   useEffect(() => {
@@ -38,14 +40,26 @@ function StyleGuideModal({ isOpen, onClose }) {
     setIsClosing(true);
     closeTimeoutRef.current = setTimeout(() => {
       setIsClosing(false);
+      // Restore focus to previously focused element
+      if (previousActiveElement.current) {
+        previousActiveElement.current.focus();
+      }
       onClose();
     }, 200);
   }, [onClose]);
 
-  // Lock body scroll when modal is open
+  // Lock body scroll and manage focus when modal is open
   useEffect(() => {
     if (isOpen) {
+      // Store currently focused element for restoration
+      previousActiveElement.current = document.activeElement;
       document.body.style.overflow = 'hidden';
+      // Focus the modal for screen readers
+      setTimeout(() => {
+        if (modalRef.current) {
+          modalRef.current.focus();
+        }
+      }, 50);
     } else {
       document.body.style.overflow = '';
     }
@@ -54,11 +68,30 @@ function StyleGuideModal({ isOpen, onClose }) {
     };
   }, [isOpen]);
 
-  // Close on Escape key
+  // Close on Escape key and trap focus within modal
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e) => {
-      if (e.key === 'Escape') handleClose();
+      if (e.key === 'Escape') {
+        handleClose();
+        return;
+      }
+      // Focus trap: Tab cycles within modal
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
@@ -68,14 +101,20 @@ function StyleGuideModal({ isOpen, onClose }) {
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
-      {/* Backdrop */}
+      {/* Backdrop - hidden from screen readers */}
       <div
         className="absolute inset-0 bg-surface-950/80 backdrop-blur-md"
         onClick={handleClose}
+        aria-hidden="true"
       />
 
-      {/* Modal */}
+      {/* Modal with proper dialog semantics */}
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="style-guide-title"
+        tabIndex={-1}
         className={`relative glass-card w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}
       >
         {/* Header */}
@@ -83,9 +122,9 @@ function StyleGuideModal({ isOpen, onClose }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg glass-icon flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-brand-400" />
+                <BookOpen className="w-4 h-4 text-brand-400" aria-hidden="true" />
               </div>
-              <h2 className="text-lg font-bold text-white">Reach Publishers Style Guide</h2>
+              <h2 id="style-guide-title" className="text-lg font-bold text-white">Reach Publishers Style Guide</h2>
             </div>
             <button
               onClick={handleClose}
