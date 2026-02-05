@@ -184,6 +184,22 @@ router.post('/api/edit-chunk', requireAuth, async (req, res) => {
       return res.status(400).json({ error: textError });
     }
 
+    // Validate optional fields
+    if (styleGuide !== undefined && styleGuide !== null) {
+      if (typeof styleGuide !== 'string') {
+        return res.status(400).json({ error: 'styleGuide must be a string' });
+      }
+      if (styleGuide.length > 10000) {
+        return res.status(400).json({ error: 'styleGuide exceeds maximum size (10KB)' });
+      }
+    }
+
+    if (projectId !== undefined && projectId !== null) {
+      if (typeof projectId !== 'string' || !projectId.trim()) {
+        return res.status(400).json({ error: 'projectId must be a non-empty string' });
+      }
+    }
+
     // Enforce usage limits before making the API call
     const limitCheck = checkUsageLimits(req.user.userId);
     if (!limitCheck.allowed) {
@@ -241,6 +257,13 @@ router.post('/api/generate-style-guide', requireAuth, async (req, res) => {
     const textError = validateTextField(text, 'text');
     if (textError) {
       return res.status(400).json({ error: textError });
+    }
+
+    // Validate optional projectId
+    if (projectId !== undefined && projectId !== null) {
+      if (typeof projectId !== 'string' || !projectId.trim()) {
+        return res.status(400).json({ error: 'projectId must be a non-empty string' });
+      }
     }
 
     // Enforce usage limits before making the API call

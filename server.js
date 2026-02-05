@@ -113,6 +113,13 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'same-origin' }
 }));
 
+// Permissions-Policy: Restrict browser features the app doesn't need
+// This prevents potential misuse of sensitive APIs
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  next();
+});
+
 // CORS: Configure allowed origins based on environment
 // In production, restricts to specific domains; in development, allows localhost
 const corsOptions = {
@@ -156,7 +163,19 @@ app.use(express.json({ limit: '50mb' }));
 
 // Static Files: Serve the built React frontend from /public
 // The Dockerfile copies the Vite build output here during container build
-app.use(express.static(path.join(__dirname, 'public')));
+// Assets are versioned by Vite (content hash in filename), so can be cached long-term
+// index.html is not cached so updates are picked up immediately
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1y',           // Cache versioned assets for 1 year
+  immutable: true,        // Assets won't change (Vite hashes filenames)
+  index: false            // Don't serve index.html from here (we handle it in SPA fallback)
+}));
+
+// Serve index.html without caching (for SPA updates)
+app.use('/index.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // =============================================================================
 // ROUTE REGISTRATION
@@ -237,8 +256,22 @@ const envIssues = validateEnvironment();
 
 // Initialize the SQLite database (runs migrations, seeds defaults)
 console.log('Initializing database...');
-database.init();
-console.log('Database ready.');
+try {
+  database.init();
+  console.log('Database ready.');
+} catch (err) {
+  console.error('═══════════════════════════════════════════════════════════');
+  console.error('FATAL: Database initialization failed');
+  console.error('═══════════════════════════════════════════════════════════');
+  console.error(`Error: ${err.message}`);
+  console.error('');
+  console.error('Possible causes:');
+  console.error('  - Disk full or no write permission to data directory');
+  console.error('  - Corrupted database file');
+  console.error('  - Invalid DB_PATH environment variable');
+  console.error('═══════════════════════════════════════════════════════════');
+  process.exit(1);
+}
 
 // Periodic cleanup: remove expired sessions every hour.
 // Prevents the sessions table from growing unbounded.

@@ -12,7 +12,7 @@
  * - If authenticated: shows the editor as before
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, Suspense, lazy } from 'react';
 import { Loader } from 'lucide-react';
 import * as mammoth from 'mammoth';
 
@@ -22,7 +22,7 @@ const MAX_LOG_ENTRIES = 500;
 // Auth
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-// Components
+// Components (eagerly loaded - used by most users)
 import {
   Header,
   StyleGuideModal,
@@ -35,10 +35,12 @@ import {
   LoginPage,
   RegisterPage,
   UsageDisplay,
-  AdminDashboard,
   ToastContainer
 } from './components';
-import SetupWizard from './components/SetupWizard';
+
+// Lazy-loaded components (used by few users or one-time setup)
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const SetupWizard = lazy(() => import('./components/SetupWizard'));
 
 // Hooks
 import { useProjects } from './hooks/useProjects';
@@ -70,6 +72,7 @@ function App() {
 
   // Setup wizard state (for first-time setup when no users exist)
   const [needsSetup, setNeedsSetup] = useState(false);
+  const [setupEnabled, setSetupEnabled] = useState(false);
   const [checkingSetup, setCheckingSetup] = useState(true);
 
   // Check if first-time setup is required on mount
@@ -78,9 +81,10 @@ function App() {
 
     async function checkSetup() {
       try {
-        const setupRequired = await checkSetupRequired();
+        const { needsSetup: required, setupEnabled: enabled } = await checkSetupRequired();
         if (mounted) {
-          setNeedsSetup(setupRequired);
+          setNeedsSetup(required);
+          setSetupEnabled(enabled);
         }
       } catch (err) {
         // On error, assume setup not required (show login)
@@ -500,15 +504,22 @@ function App() {
     );
   }
 
-  // First-time setup required — show setup wizard
+  // First-time setup required — show setup wizard (lazy loaded)
   if (needsSetup) {
     return (
-      <SetupWizard
-        onSetupComplete={() => {
-          setNeedsSetup(false);
-          setAuthPage('login');
-        }}
-      />
+      <Suspense fallback={
+        <div className="min-h-screen bg-surface-950 flex items-center justify-center">
+          <Loader className="w-8 h-8 text-brand-400 animate-spin" />
+        </div>
+      }>
+        <SetupWizard
+          setupEnabled={setupEnabled}
+          onSetupComplete={() => {
+            setNeedsSetup(false);
+            setAuthPage('login');
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -535,6 +546,14 @@ function App() {
   // Authenticated — show the editor
   return (
     <div className="min-h-screen bg-surface-950 text-surface-200 relative overflow-hidden">
+      {/* Skip Link for Keyboard Users - appears on first Tab press */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-500 focus:text-white focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-surface-950"
+      >
+        Skip to main content
+      </a>
+
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
@@ -555,6 +574,9 @@ function App() {
         {/* Header */}
         <Header onShowStyleGuide={handleShowStyleGuide} onShowAdmin={handleShowAdmin} user={user} />
 
+        {/* Main Content Area - target for skip link */}
+        <main id="main-content" tabIndex="-1" className="outline-none">
+
         {/* Usage Display */}
         <UsageDisplay />
 
@@ -564,9 +586,15 @@ function App() {
           onClose={handleCloseStyleGuide}
         />
 
-        {/* Admin Dashboard (full-page view for admins) */}
+        {/* Admin Dashboard (full-page view for admins, lazy loaded) */}
         {showAdmin && user?.role === 'admin' ? (
-          <AdminDashboard onClose={handleCloseAdmin} />
+          <Suspense fallback={
+            <div className="glass-card py-10 text-center">
+              <Loader className="w-8 h-8 mx-auto text-brand-400 animate-spin" />
+            </div>
+          }>
+            <AdminDashboard onClose={handleCloseAdmin} />
+          </Suspense>
         ) : (
           <>
             {/* Loading State */}
@@ -618,9 +646,10 @@ function App() {
             )}
           </>
         )}
+        </main>
 
         {/* Footer */}
-        <div className="text-center mt-10 pb-2">
+        <footer className="text-center mt-10 pb-2">
           <div className="flex items-center justify-center gap-3 mb-3">
             <div className="h-px w-16 bg-gradient-to-r from-transparent to-surface-700/30" />
             <div className="w-1 h-1 rounded-full bg-surface-700/50" />
@@ -628,7 +657,7 @@ function App() {
           </div>
           <p className="text-xs text-surface-500 mb-0.5">{VERSION_DISPLAY}</p>
           <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach Publishers</p>
-        </div>
+        </footer>
       </div>
     </div>
   );

@@ -124,8 +124,8 @@ function UsersTab() {
   return (
     <div>
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+        <div role="alert" className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           {error}
         </div>
       )}
@@ -175,8 +175,9 @@ function UsersTab() {
                   onClick={() => handleToggleRole(user)}
                   className="p-1.5 rounded text-surface-500 hover:text-brand-400 hover:bg-surface-800/50 transition-colors"
                   title={user.role === 'admin' ? 'Demote to user' : 'Promote to admin'}
+                  aria-label={user.role === 'admin' ? `Demote ${user.username} to user` : `Promote ${user.username} to admin`}
                 >
-                  {user.role === 'admin' ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                  {user.role === 'admin' ? <ShieldOff className="w-4 h-4" aria-hidden="true" /> : <Shield className="w-4 h-4" aria-hidden="true" />}
                 </button>
                 <button
                   onClick={() => handleToggleActive(user)}
@@ -186,13 +187,16 @@ function UsersTab() {
                       : 'text-amber-400 hover:text-green-400 hover:bg-surface-800/50'
                   }`}
                   title={user.isActive ? 'Deactivate' : 'Reactivate'}
+                  aria-label={user.isActive ? `Deactivate ${user.username}` : `Reactivate ${user.username}`}
                 >
-                  <AlertTriangle className="w-4 h-4" />
+                  <AlertTriangle className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => setEditingUser(editingUser === user.id ? null : user.id)}
                   className="p-1.5 rounded text-surface-500 hover:text-surface-300 hover:bg-surface-800/50 transition-colors text-xs"
                   title="Edit limits"
+                  aria-label={`Edit token limits for ${user.username}`}
+                  aria-expanded={editingUser === user.id}
                 >
                   Limits
                 </button>
@@ -200,8 +204,9 @@ function UsersTab() {
                   onClick={() => setConfirmDelete(user.id)}
                   className="p-1.5 rounded text-surface-500 hover:text-red-400 hover:bg-surface-800/50 transition-colors"
                   title="Delete user"
+                  aria-label={`Delete ${user.username}`}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -259,31 +264,39 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
   const isMonthlyValid = isValidLimit(monthly);
   const canSave = isDailyValid && isMonthlyValid;
 
+  // Generate unique ids for form fields
+  const dailyId = `daily-limit-${React.useId ? React.useId() : Math.random().toString(36).slice(2)}`;
+  const monthlyId = `monthly-limit-${React.useId ? React.useId() : Math.random().toString(36).slice(2)}`;
+
   return (
     <div className="mt-3 p-3 rounded-lg bg-surface-800/50 border border-surface-700/50">
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
-          <label className="text-xs text-surface-400 block mb-1">Daily Token Limit</label>
+          <label htmlFor={dailyId} className="text-xs text-surface-400 block mb-1">Daily Token Limit</label>
           <input
+            id={dailyId}
             type="number"
             value={daily}
             onChange={(e) => setDaily(e.target.value)}
-            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none ${
+            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
               isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
             }`}
             min="0"
+            aria-invalid={!isDailyValid}
           />
         </div>
         <div>
-          <label className="text-xs text-surface-400 block mb-1">Monthly Token Limit</label>
+          <label htmlFor={monthlyId} className="text-xs text-surface-400 block mb-1">Monthly Token Limit</label>
           <input
+            id={monthlyId}
             type="number"
             value={monthly}
             onChange={(e) => setMonthly(e.target.value)}
-            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none ${
+            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
               isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
             }`}
             min="0"
+            aria-invalid={!isMonthlyValid}
           />
         </div>
       </div>
@@ -378,8 +391,8 @@ function InviteCodesTab() {
   return (
     <div>
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+        <div role="alert" className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           {error}
         </div>
       )}
@@ -402,6 +415,31 @@ function InviteCodesTab() {
         </button>
       </div>
 
+      {/* Empty State */}
+      {codes.length === 0 && (
+        <div className="glass-card p-8 text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-surface-800/50 border border-surface-700/30 flex items-center justify-center">
+            <KeyRound className="w-6 h-6 text-surface-500" aria-hidden="true" />
+          </div>
+          <p className="text-surface-400 text-sm mb-1">No invite codes yet</p>
+          <p className="text-surface-500 text-xs mb-4">
+            Generate invite codes for new users to register with.
+          </p>
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="inline-flex items-center gap-1.5 text-sm text-brand-400 hover:text-brand-300 transition-colors py-2 px-4 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 disabled:opacity-50"
+          >
+            {generating ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
+            Generate First Code
+          </button>
+        </div>
+      )}
+
       {/* Unused codes */}
       {unusedCodes.length > 0 && (
         <div className="mb-4">
@@ -419,11 +457,12 @@ function InviteCodesTab() {
                   onClick={() => handleCopy(code.code, code.id)}
                   className="p-1.5 rounded text-surface-500 hover:text-brand-400 hover:bg-surface-800/50 transition-colors"
                   title="Copy to clipboard"
+                  aria-label={copiedId === code.id ? 'Copied!' : `Copy invite code ${code.code}`}
                 >
                   {copiedId === code.id ? (
-                    <Check className="w-4 h-4 text-green-400" />
+                    <Check className="w-4 h-4 text-green-400" aria-hidden="true" />
                   ) : (
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-4 h-4" aria-hidden="true" />
                   )}
                 </button>
               </div>
@@ -438,12 +477,12 @@ function InviteCodesTab() {
           <h4 className="text-xs text-surface-500 uppercase tracking-wider mb-2">Used</h4>
           <div className="space-y-2">
             {usedCodes.map(code => (
-              <div key={code.id} className="glass-card p-3 opacity-60">
+              <div key={code.id} className="glass-card p-3 opacity-75">
                 <div className="flex items-center justify-between">
-                  <code className="text-sm font-mono text-surface-500 line-through">{code.code}</code>
-                  <span className="text-xs text-surface-600">Used by {code.usedBy || 'unknown'}</span>
+                  <code className="text-sm font-mono text-surface-400 line-through">{code.code}</code>
+                  <span className="text-xs text-surface-500">Used by {code.usedBy || 'unknown'}</span>
                 </div>
-                <p className="text-xs text-surface-600 mt-0.5">
+                <p className="text-xs text-surface-500 mt-0.5">
                   Created {formatDate(code.createdAt)} | Used {formatDate(code.usedAt)}
                 </p>
               </div>
@@ -486,30 +525,40 @@ function AdminDashboard({ onClose }) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 p-1 rounded-lg bg-surface-800/30">
+      {/* Tabs with proper ARIA roles */}
+      <div role="tablist" aria-label="Admin sections" className="flex gap-1 mb-6 p-1 rounded-lg bg-surface-800/30">
         {tabs.map(tab => {
           const Icon = tab.icon;
+          const isSelected = activeTab === tab.id;
           return (
             <button
               key={tab.id}
+              id={`tab-${tab.id}`}
+              role="tab"
+              aria-selected={isSelected}
+              aria-controls={`tabpanel-${tab.id}`}
+              tabIndex={isSelected ? 0 : -1}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm transition-colors ${
-                activeTab === tab.id
+                isSelected
                   ? 'bg-surface-800 text-surface-200 shadow-sm'
                   : 'text-surface-500 hover:text-surface-300'
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-4 h-4" aria-hidden="true" />
               {tab.label}
             </button>
           );
         })}
       </div>
 
-      {/* Tab content */}
-      {activeTab === 'users' && <UsersTab />}
-      {activeTab === 'codes' && <InviteCodesTab />}
+      {/* Tab content panels */}
+      <div role="tabpanel" id="tabpanel-users" aria-labelledby="tab-users" hidden={activeTab !== 'users'}>
+        {activeTab === 'users' && <UsersTab />}
+      </div>
+      <div role="tabpanel" id="tabpanel-codes" aria-labelledby="tab-codes" hidden={activeTab !== 'codes'}>
+        {activeTab === 'codes' && <InviteCodesTab />}
+      </div>
     </div>
   );
 }

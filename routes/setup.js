@@ -4,21 +4,31 @@
  * =============================================================================
  *
  * Provides a secure first-time setup wizard for creating the initial admin
- * account. These endpoints ONLY work when the database has zero users.
+ * account. These endpoints ONLY work when the database has zero users AND
+ * a valid setup secret is provided.
  *
  * SECURITY MEASURES:
  * ------------------
  * 1. Endpoints disabled once any user exists (checked on every request)
- * 2. Uses database transaction for atomic user creation
- * 3. Applies same validation as regular registration (username, email, password)
- * 4. Passwords hashed with bcrypt before storage
- * 5. No sensitive data leaked in responses
- * 6. Setup completion logged for audit trail
+ * 2. SETUP_SECRET environment variable required to complete setup
+ *    - Prevents attackers from racing to create admin on fresh deployments
+ *    - Secret is set in deployment environment, known only to deployer
+ * 3. Uses database transaction for atomic user creation
+ * 4. Applies same validation as regular registration (username, email, password)
+ * 5. Passwords hashed with bcrypt before storage
+ * 6. No sensitive data leaked in responses
+ * 7. Setup completion logged for audit trail
+ *
+ * DEPLOYMENT NOTE:
+ * ----------------
+ * You MUST set SETUP_SECRET in your environment before deploying.
+ * Without this secret, the setup wizard cannot be completed, protecting
+ * against unauthorized admin account creation on public deployments.
  *
  * ENDPOINTS:
  * ----------
  * GET  /api/setup/status   - Check if first-time setup is needed
- * POST /api/setup/complete - Create the first admin account
+ * POST /api/setup/complete - Create the first admin account (requires setup_secret)
  *
  * =============================================================================
  */
@@ -42,6 +52,45 @@ const BCRYPT_SALT_ROUNDS = 10;
 function isSetupRequired() {
   const count = database.users.count();
   return count === 0;
+}
+
+/**
+ * Validate the setup secret against the environment variable.
+ * The SETUP_SECRET must be set in the environment for setup to work.
+ *
+ * @param {string} providedSecret - Secret provided by user
+ * @returns {{ valid: boolean, error?: string }}
+ */
+function validateSetupSecret(providedSecret) {
+  const envSecret = process.env.SETUP_SECRET;
+
+  // SECURITY: If no SETUP_SECRET is configured, setup is completely disabled
+  // This prevents accidental exposure on misconfigured deployments
+  if (!envSecret) {
+    return {
+      valid: false,
+      error: 'Setup is disabled. SETUP_SECRET environment variable not configured.'
+    };
+  }
+
+  if (!providedSecret || typeof providedSecret !== 'string') {
+    return { valid: false, error: 'Setup secret is required' };
+  }
+
+  // Constant-time comparison to prevent timing attacks
+  const secretBuffer = Buffer.from(envSecret);
+  const providedBuffer = Buffer.from(providedSecret);
+
+  if (secretBuffer.length !== providedBuffer.length) {
+    return { valid: false, error: 'Invalid setup secret' };
+  }
+
+  const crypto = require('crypto');
+  if (!crypto.timingSafeEqual(secretBuffer, providedBuffer)) {
+    return { valid: false, error: 'Invalid setup secret' };
+  }
+
+  return { valid: true };
 }
 
 /**
@@ -134,13 +183,15 @@ function validatePassword(password) {
  *
  * Check if first-time setup is required.
  * Returns { needsSetup: true } if no users exist.
+ * Also indicates whether setup is properly configured (SETUP_SECRET set).
  *
- * Response: { needsSetup: boolean }
+ * Response: { needsSetup: boolean, setupEnabled: boolean }
  */
 router.get('/api/setup/status', (req, res) => {
   try {
     const needsSetup = isSetupRequired();
-    res.json({ needsSetup });
+    const setupEnabled = !!process.env.SETUP_SECRET;
+    res.json({ needsSetup, setupEnabled });
   } catch (err) {
     console.error('Setup status check error:', err.message);
     res.status(500).json({ error: 'Failed to check setup status' });
@@ -150,21 +201,23 @@ router.get('/api/setup/status', (req, res) => {
 /**
  * POST /api/setup/complete
  *
- * Create the first admin account. This endpoint ONLY works when
- * the database has zero users. Once any user exists, this returns 403.
+ * Create the first admin account. This endpoint ONLY works when:
+ * 1. The database has zero users
+ * 2. A valid setup_secret matching SETUP_SECRET env var is provided
  *
  * Request body:
  *   {
- *     username: string,  // 3-30 chars, alphanumeric/-/_
- *     email: string,     // valid email, max 254 chars
- *     password: string   // 8+ chars, uppercase, lowercase, number
+ *     username: string,      // 3-30 chars, alphanumeric/-/_
+ *     email: string,         // valid email, max 254 chars
+ *     password: string,      // 8+ chars, uppercase, lowercase, number
+ *     setup_secret: string   // must match SETUP_SECRET environment variable
  *   }
  *
  * Response: { success: true, message: string }
  *
  * Errors:
- *   400 - Validation failed
- *   403 - Setup already completed (users exist)
+ *   400 - Validation failed (including invalid setup secret)
+ *   403 - Setup already completed (users exist) or setup disabled
  *   500 - Server error
  */
 router.post('/api/setup/complete', async (req, res) => {
@@ -179,7 +232,15 @@ router.post('/api/setup/complete', async (req, res) => {
       });
     }
 
-    const { username, email, password } = req.body;
+    const { username, email, password, setup_secret } = req.body;
+
+    // SECURITY: Validate setup secret FIRST before any other processing
+    // This is the critical protection against unauthorized setup attempts
+    const secretCheck = validateSetupSecret(setup_secret);
+    if (!secretCheck.valid) {
+      console.warn('Setup attempt blocked: invalid setup secret');
+      return res.status(403).json({ error: secretCheck.error });
+    }
 
     // Validate all inputs
     const usernameCheck = validateUsername(username);

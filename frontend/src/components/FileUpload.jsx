@@ -113,17 +113,21 @@ function FileUpload({ onFileSelect }) {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Hidden file input */}
+      {/* Hidden file input with focus styles passed to label */}
       <input
         type="file"
         accept=".doc,.docx"
         onChange={handleChange}
-        className="hidden"
+        className="sr-only peer"
         id="file-upload"
         aria-label="Upload Word document"
+        aria-describedby={error ? 'file-upload-error' : undefined}
       />
 
-      <label htmlFor="file-upload" className="cursor-pointer block">
+      <label
+        htmlFor="file-upload"
+        className="cursor-pointer block rounded-xl peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-900"
+      >
         {/* Upload icon with animated ring */}
         <div className="relative inline-flex items-center justify-center mb-6">
           <div className={`
@@ -158,7 +162,7 @@ function FileUpload({ onFileSelect }) {
 
       {/* Error message */}
       {error && (
-        <div className="mt-4 text-sm text-red-400" role="alert">
+        <div id="file-upload-error" className="mt-4 text-sm text-red-400" role="alert">
           {error}
         </div>
       )}

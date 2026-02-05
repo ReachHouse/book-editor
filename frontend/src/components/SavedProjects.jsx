@@ -29,34 +29,51 @@ function SavedProjects({
   onDelete,
   isDownloading
 }) {
-  if (!projects || projects.length === 0) return null;
+  const hasProjects = projects && projects.length > 0;
 
   return (
     <div className="glass-card p-6 sm:p-8 animate-fade-in-up [animation-delay:100ms]">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-xl glass-icon-neutral flex items-center justify-center">
-          <Clock className="w-5 h-5 text-surface-400" />
+          <Clock className="w-5 h-5 text-surface-400" aria-hidden="true" />
         </div>
         <div>
           <h2 className="text-lg font-semibold text-white">Previously Edited Books</h2>
-          <p className="text-sm text-surface-400">Download or resume previous edits</p>
+          <p className="text-sm text-surface-400">
+            {hasProjects ? 'Download or resume previous edits' : 'Your edited books will appear here'}
+          </p>
         </div>
       </div>
 
+      {/* Empty State */}
+      {!hasProjects && (
+        <div className="glass-inner p-8 text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-surface-800/50 border border-surface-700/30 flex items-center justify-center">
+            <FileText className="w-6 h-6 text-surface-500" aria-hidden="true" />
+          </div>
+          <p className="text-surface-400 text-sm mb-1">No projects yet</p>
+          <p className="text-surface-500 text-xs">
+            Upload a Word document above to get started with AI-powered editing.
+          </p>
+        </div>
+      )}
+
       {/* Project List */}
-      <div className="space-y-2">
-        {projects.map((project) => (
-          <ProjectItem
-            key={project.id}
-            project={project}
-            onDownload={onDownload}
-            onResume={onResume}
-            onDelete={onDelete}
-            isDownloading={isDownloading}
-          />
-        ))}
-      </div>
+      {hasProjects && (
+        <div className="space-y-2">
+          {projects.map((project) => (
+            <ProjectItem
+              key={project.id}
+              project={project}
+              onDownload={onDownload}
+              onResume={onResume}
+              onDelete={onDelete}
+              isDownloading={isDownloading}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -9,21 +9,76 @@
  * SECURITY:
  * ---------
  * - Only displayed when /api/setup/status returns { needsSetup: true }
+ * - Requires SETUP_SECRET environment variable to be configured on server
+ * - User must provide matching setup secret to complete setup
  * - Backend enforces that setup endpoints only work with zero users
  * - Uses same validation as regular registration (password complexity, etc.)
  *
  * PROPS:
  * ------
  * @param {function} onSetupComplete - Callback when setup finishes successfully
+ * @param {boolean} setupEnabled - Whether SETUP_SECRET is configured on server
  *
  * =============================================================================
  */
 
 import React, { useState } from 'react';
-import { FileText, Shield, AlertCircle, Loader, CheckCircle, ArrowRight } from 'lucide-react';
+import { FileText, Shield, AlertCircle, Loader, CheckCircle, ArrowRight, Key, Lock, X } from 'lucide-react';
 import { completeSetup } from '../services/api';
 
-function SetupWizard({ onSetupComplete }) {
+/**
+ * Visual password strength indicator showing which requirements are met.
+ */
+function PasswordStrength({ password }) {
+  if (!password) {
+    return (
+      <p id="password-requirements" className="text-xs text-surface-500 mt-1">
+        At least 8 characters with uppercase, lowercase, and a number.
+      </p>
+    );
+  }
+
+  const requirements = [
+    { label: '8+ characters', met: password.length >= 8 },
+    { label: 'Uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'Lowercase letter', met: /[a-z]/.test(password) },
+    { label: 'Number', met: /[0-9]/.test(password) }
+  ];
+
+  const metCount = requirements.filter(r => r.met).length;
+  const strengthPercent = (metCount / requirements.length) * 100;
+  const strengthColor = metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-amber-500' : metCount <= 3 ? 'bg-blue-500' : 'bg-green-500';
+
+  return (
+    <div id="password-requirements" className="mt-2 space-y-2">
+      {/* Strength bar */}
+      <div className="h-1 rounded-full bg-surface-800/60 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-300 ${strengthColor}`}
+          style={{ width: `${strengthPercent}%` }}
+        />
+      </div>
+      {/* Requirements checklist */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        {requirements.map((req, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            {req.met ? (
+              <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" aria-hidden="true" />
+            ) : (
+              <X className="w-3 h-3 text-surface-600 flex-shrink-0" aria-hidden="true" />
+            )}
+            <span className={`text-xs ${req.met ? 'text-green-400' : 'text-surface-500'}`}>
+              {req.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SetupWizard({ onSetupComplete, setupEnabled = true }) {
+  const [setupSecret, setSetupSecret] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +92,11 @@ function SetupWizard({ onSetupComplete }) {
     setError('');
 
     // Client-side validation (mirrors backend validation)
+    if (!setupSecret.trim()) {
+      setError('Setup secret is required. Check your deployment environment variables.');
+      return;
+    }
+
     if (!username.trim() || !email.trim() || !password) {
       setError('All fields are required.');
       return;
@@ -85,12 +145,14 @@ function SetupWizard({ onSetupComplete }) {
     setSubmitting(true);
     try {
       await completeSetup({
+        setup_secret: setupSecret.trim(),
         username: username.trim(),
         email: email.trim(),
         password
       });
 
       // Clear sensitive data
+      setSetupSecret('');
       setPassword('');
       setConfirmPassword('');
       setSuccess(true);
@@ -169,6 +231,20 @@ function SetupWizard({ onSetupComplete }) {
           </div>
         </div>
 
+        {/* Warning if setup is not enabled */}
+        {!setupEnabled && (
+          <div className="flex items-start gap-3 mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 animate-fade-in" role="alert">
+            <Lock className="w-5 h-5 text-red-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm text-red-300 font-medium mb-1">Setup Not Configured</p>
+              <p className="text-xs text-surface-400">
+                The <code className="bg-surface-800 px-1 rounded">SETUP_SECRET</code> environment variable is not set.
+                Setup cannot proceed until this is configured in your deployment.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Setup form */}
         <form onSubmit={handleSubmit} noValidate className="glass-card p-6 sm:p-8 animate-fade-in">
           {/* Error message */}
@@ -178,6 +254,32 @@ function SetupWizard({ onSetupComplete }) {
               <p className="text-sm text-red-300">{error}</p>
             </div>
           )}
+
+          {/* Setup Secret field */}
+          <div className="mb-4">
+            <label htmlFor="setup-secret" className="block text-sm font-medium text-surface-300 mb-1.5">
+              <span className="flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                Setup Secret
+              </span>
+            </label>
+            <input
+              id="setup-secret"
+              type="password"
+              value={setupSecret}
+              onChange={(e) => setSetupSecret(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg bg-surface-800/50 border border-amber-500/30 text-surface-200 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/40 transition-colors"
+              placeholder="Enter your deployment setup secret"
+              autoComplete="off"
+              autoFocus
+              disabled={submitting || !setupEnabled}
+            />
+            <p className="text-xs text-surface-500 mt-1">
+              This is the SETUP_SECRET from your server environment. Only you should know this.
+            </p>
+          </div>
+
+          <hr className="border-surface-700/30 my-5" />
 
           {/* Username field */}
           <div className="mb-4">
@@ -192,8 +294,7 @@ function SetupWizard({ onSetupComplete }) {
               className="w-full px-3 py-2.5 rounded-lg bg-surface-800/50 border border-surface-700/50 text-surface-200 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-colors"
               placeholder="admin"
               autoComplete="username"
-              autoFocus
-              disabled={submitting}
+              disabled={submitting || !setupEnabled}
             />
             <p className="text-xs text-surface-500 mt-1">
               3-30 characters: letters, numbers, hyphens, underscores
@@ -213,11 +314,11 @@ function SetupWizard({ onSetupComplete }) {
               className="w-full px-3 py-2.5 rounded-lg bg-surface-800/50 border border-surface-700/50 text-surface-200 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-colors"
               placeholder="admin@yourcompany.com"
               autoComplete="email"
-              disabled={submitting}
+              disabled={submitting || !setupEnabled}
             />
           </div>
 
-          {/* Password field */}
+          {/* Password field with strength indicator */}
           <div className="mb-4">
             <label htmlFor="setup-password" className="block text-sm font-medium text-surface-300 mb-1.5">
               Password
@@ -230,11 +331,10 @@ function SetupWizard({ onSetupComplete }) {
               className="w-full px-3 py-2.5 rounded-lg bg-surface-800/50 border border-surface-700/50 text-surface-200 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-colors"
               placeholder="Create a strong password"
               autoComplete="new-password"
-              disabled={submitting}
+              disabled={submitting || !setupEnabled}
+              aria-describedby="password-requirements"
             />
-            <p className="text-xs text-surface-500 mt-1">
-              At least 8 characters with uppercase, lowercase, and a number.
-            </p>
+            <PasswordStrength password={password} />
           </div>
 
           {/* Confirm password field */}
@@ -250,7 +350,7 @@ function SetupWizard({ onSetupComplete }) {
               className="w-full px-3 py-2.5 rounded-lg bg-surface-800/50 border border-surface-700/50 text-surface-200 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-colors"
               placeholder="Re-enter your password"
               autoComplete="new-password"
-              disabled={submitting}
+              disabled={submitting || !setupEnabled}
             />
             {password && confirmPassword && password === confirmPassword && (
               <div className="flex items-center gap-1 mt-1">
@@ -263,7 +363,7 @@ function SetupWizard({ onSetupComplete }) {
           {/* Submit button */}
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !setupEnabled}
             className="w-full btn-primary flex items-center justify-center gap-2 py-2.5 text-sm font-medium focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (

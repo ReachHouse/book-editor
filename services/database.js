@@ -511,6 +511,58 @@ class DatabaseService {
           FROM usage_logs
         `).get();
         return row;
+      },
+
+      /**
+       * Get daily usage for ALL users in a single query.
+       * Returns a Map of userId -> { input, output, total }
+       * @returns {Map<number, { input: number, output: number, total: number }>}
+       */
+      getAllDailyUsage() {
+        const rows = db.prepare(`
+          SELECT
+            user_id,
+            COALESCE(SUM(tokens_input), 0) AS input,
+            COALESCE(SUM(tokens_output), 0) AS output
+          FROM usage_logs
+          WHERE created_at >= date('now')
+          GROUP BY user_id
+        `).all();
+        const map = new Map();
+        for (const row of rows) {
+          map.set(row.user_id, {
+            input: row.input,
+            output: row.output,
+            total: row.input + row.output
+          });
+        }
+        return map;
+      },
+
+      /**
+       * Get monthly usage for ALL users in a single query.
+       * Returns a Map of userId -> { input, output, total }
+       * @returns {Map<number, { input: number, output: number, total: number }>}
+       */
+      getAllMonthlyUsage() {
+        const rows = db.prepare(`
+          SELECT
+            user_id,
+            COALESCE(SUM(tokens_input), 0) AS input,
+            COALESCE(SUM(tokens_output), 0) AS output
+          FROM usage_logs
+          WHERE created_at >= date('now', 'start of month')
+          GROUP BY user_id
+        `).all();
+        const map = new Map();
+        for (const row of rows) {
+          map.set(row.user_id, {
+            input: row.input,
+            output: row.output,
+            total: row.input + row.output
+          });
+        }
+        return map;
       }
     };
   }
@@ -641,6 +693,24 @@ class DatabaseService {
         return db.prepare(
           'SELECT COUNT(*) AS count FROM projects WHERE user_id = ?'
         ).get(userId).count;
+      },
+
+      /**
+       * Get project counts for ALL users in a single query.
+       * Returns a Map of userId -> count
+       * @returns {Map<number, number>}
+       */
+      getAllCounts() {
+        const rows = db.prepare(`
+          SELECT user_id, COUNT(*) AS count
+          FROM projects
+          GROUP BY user_id
+        `).all();
+        const map = new Map();
+        for (const row of rows) {
+          map.set(row.user_id, row.count);
+        }
+        return map;
       }
     };
   }

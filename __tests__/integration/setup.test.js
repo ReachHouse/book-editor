@@ -7,12 +7,16 @@
  * KEY SECURITY TESTS:
  * - Setup endpoints only work when no users exist
  * - Once a user exists, setup returns 403
+ * - SETUP_SECRET is required to complete setup (prevents unauthorized admin creation)
  * - Password validation is enforced
  * - Username/email validation is enforced
  */
 
 const request = require('supertest');
 const express = require('express');
+
+// Test setup secret - used for valid setup requests
+const TEST_SETUP_SECRET = 'test-setup-secret-12345';
 
 // Create fresh database for setup tests
 let testDb;
@@ -23,8 +27,9 @@ describe('Setup API Routes', () => {
     // Reset module cache for fresh imports each test
     jest.resetModules();
 
-    // Set test JWT secret
+    // Set test secrets
     process.env.JWT_SECRET = 'test-setup-integration-secret';
+    process.env.SETUP_SECRET = TEST_SETUP_SECRET;
 
     // Re-require modules after cache reset
     const { DatabaseService } = require('../../services/database');
@@ -50,14 +55,15 @@ describe('Setup API Routes', () => {
       testDb.close();
     }
     delete process.env.JWT_SECRET;
+    delete process.env.SETUP_SECRET;
   });
 
   describe('GET /api/setup/status', () => {
-    test('returns needsSetup: true when no users exist', async () => {
+    test('returns needsSetup: true and setupEnabled: true when no users exist and SETUP_SECRET is set', async () => {
       const res = await request(app).get('/api/setup/status');
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ needsSetup: true });
+      expect(res.body).toEqual({ needsSetup: true, setupEnabled: true });
     });
 
     test('returns needsSetup: false when users exist', async () => {
@@ -72,15 +78,43 @@ describe('Setup API Routes', () => {
       const res = await request(app).get('/api/setup/status');
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ needsSetup: false });
+      expect(res.body.needsSetup).toBe(false);
+    });
+
+    test('returns setupEnabled: false when SETUP_SECRET is not set', async () => {
+      // Reset modules and recreate app without SETUP_SECRET
+      jest.resetModules();
+      delete process.env.SETUP_SECRET;
+      process.env.JWT_SECRET = 'test-jwt';
+
+      const { DatabaseService } = require('../../services/database');
+      const testDbLocal = new DatabaseService();
+      testDbLocal.init(':memory:');
+
+      const dbModule = require('../../services/database');
+      dbModule.database.db = testDbLocal.db;
+      dbModule.database.initialized = true;
+
+      const localApp = express();
+      localApp.use(express.json({ limit: '50mb' }));
+      const setupRoutes = require('../../routes/setup');
+      localApp.use(setupRoutes);
+
+      const res = await request(localApp).get('/api/setup/status');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ needsSetup: true, setupEnabled: false });
+
+      testDbLocal.close();
     });
   });
 
   describe('POST /api/setup/complete', () => {
-    test('creates admin user when no users exist', async () => {
+    test('creates admin user when valid setup_secret is provided', async () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'myadmin',
           email: 'admin@test.com',
           password: 'SecurePass123'
@@ -97,6 +131,67 @@ describe('Setup API Routes', () => {
       expect(user.email).toBe('admin@test.com');
     });
 
+    test('returns 403 when setup_secret is missing', async () => {
+      const res = await request(app)
+        .post('/api/setup/complete')
+        .send({
+          username: 'myadmin',
+          email: 'admin@test.com',
+          password: 'SecurePass123'
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toContain('Setup secret is required');
+    });
+
+    test('returns 403 when setup_secret is invalid', async () => {
+      const res = await request(app)
+        .post('/api/setup/complete')
+        .send({
+          setup_secret: 'wrong-secret',
+          username: 'myadmin',
+          email: 'admin@test.com',
+          password: 'SecurePass123'
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toContain('Invalid setup secret');
+    });
+
+    test('returns 403 when SETUP_SECRET env var is not configured', async () => {
+      // Reset modules and recreate app without SETUP_SECRET
+      jest.resetModules();
+      delete process.env.SETUP_SECRET;
+      process.env.JWT_SECRET = 'test-jwt';
+
+      const { DatabaseService } = require('../../services/database');
+      const testDbLocal = new DatabaseService();
+      testDbLocal.init(':memory:');
+
+      const dbModule = require('../../services/database');
+      dbModule.database.db = testDbLocal.db;
+      dbModule.database.initialized = true;
+
+      const localApp = express();
+      localApp.use(express.json({ limit: '50mb' }));
+      const setupRoutes = require('../../routes/setup');
+      localApp.use(setupRoutes);
+
+      const res = await request(localApp)
+        .post('/api/setup/complete')
+        .send({
+          setup_secret: 'any-secret',
+          username: 'myadmin',
+          email: 'admin@test.com',
+          password: 'SecurePass123'
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toContain('SETUP_SECRET');
+
+      testDbLocal.close();
+    });
+
     test('returns 403 when users already exist', async () => {
       // Create a user first
       testDb.users.create({
@@ -109,6 +204,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'newadmin',
           email: 'new@example.com',
           password: 'SecurePass123'
@@ -122,6 +218,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'ab', // too short
           email: 'admin@test.com',
           password: 'SecurePass123'
@@ -135,6 +232,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'bad user!', // invalid chars
           email: 'admin@test.com',
           password: 'SecurePass123'
@@ -148,6 +246,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'validuser',
           email: 'notanemail',
           password: 'SecurePass123'
@@ -161,6 +260,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'validuser',
           email: 'valid@test.com',
           password: 'Short1'
@@ -174,6 +274,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'validuser',
           email: 'valid@test.com',
           password: 'lowercase123'
@@ -187,6 +288,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'validuser',
           email: 'valid@test.com',
           password: 'UPPERCASE123'
@@ -200,6 +302,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'validuser',
           email: 'valid@test.com',
           password: 'NoNumbersHere'
@@ -214,6 +317,7 @@ describe('Setup API Routes', () => {
       const res1 = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'validuser',
           email: 'valid@test.com'
         });
@@ -223,6 +327,7 @@ describe('Setup API Routes', () => {
       const res2 = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           email: 'valid@test.com',
           password: 'SecurePass123'
         });
@@ -232,6 +337,7 @@ describe('Setup API Routes', () => {
       const res3 = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'validuser',
           password: 'SecurePass123'
         });
@@ -242,6 +348,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'myadmin',
           email: 'admin@test.com',
           password: 'SecurePass123'
@@ -258,6 +365,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: 'myadmin',
           email: '  Admin@TEST.com  ',
           password: 'SecurePass123'
@@ -273,6 +381,7 @@ describe('Setup API Routes', () => {
       const res = await request(app)
         .post('/api/setup/complete')
         .send({
+          setup_secret: TEST_SETUP_SECRET,
           username: '  myadmin  ',
           email: 'admin@test.com',
           password: 'SecurePass123'

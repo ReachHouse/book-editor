@@ -50,6 +50,13 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.41.0 [UI]       - 2026-02-05: Production polish release — skip-to-content link for keyboard navigation, prefers-reduced-motion for motion-sensitive users, empty state designs in SavedProjects and InviteCodes, password strength indicator with live visual feedback in RegisterPage and SetupWizard, improved color contrast in AdminDashboard used codes, semantic HTML (main/footer tags), proper aria-describedby for password fields (452 total)
+ * v1.40.2 [Config]   - 2026-02-05: Automated deployment — deploy.sh now auto-generates SETUP_SECRET and JWT_SECRET, stores in .env.local, displays secret prominently on first deployment for easy setup wizard completion (452 total)
+ * v1.40.1 [Security] - 2026-02-05: CRITICAL FIX — setup wizard now requires SETUP_SECRET env var to prevent unauthorized admin account creation on fresh deployments, timing-safe secret comparison, frontend displays setup disabled warning, 4 new security tests (452 total)
+ * v1.40.0 [UI]       - 2026-02-05: Accessibility & polish — focus trap in StyleGuideModal, ARIA tab roles in AdminDashboard, aria-labels on icon buttons, role="alert" on error containers, form label associations with htmlFor/id, visible focus indicators with peer-focus-visible, ErrorDisplay role="alert" (448 total)
+ * v1.39.5 [Docs]     - 2026-02-05: Polish release — add 6 tests for new batch query methods (getAllDailyUsage, getAllMonthlyUsage, getAllCounts), verify code comments, cleanup (448 total)
+ * v1.39.0 [Refactor] - 2026-02-05: Performance optimizations — fix N+1 queries in admin endpoints (3→1 batch queries), React.lazy for AdminDashboard/SetupWizard, static asset caching (1 year for versioned files), optimistic updates in useProjects (442 total)
+ * v1.38.0 [Security] - 2026-02-05: Security & reliability hardening — Permissions-Policy header, input validation for fullEditedText/styleGuide/projectId, DB health check in /health endpoint, graceful DB init error handling, .env.example documentation (442 total)
  * v1.37.0 [Bugfix]   - 2026-02-05: Regression archaeology — fix authService.js input normalization (trim/lowercase email, uppercase invite code) to match setup.js, align bcrypt salt rounds (setup.js 12→10 to match authService.js), verify all modules load cleanly, API↔service↔DB contract alignment (550 total)
  * v1.36.0 [Feature]  - 2026-02-05: First-run setup wizard — browser-based admin account creation when no users exist, no hardcoded credentials, secure /api/setup endpoints with validation, SetupWizard component, 15 new tests (550 total)
  * v1.35.0 [Config]   - 2026-02-05: Simple default credentials — admin password defaults to "ChangeMe123!" and invite code to "WELCOME2025" for easy first-time setup, no digging through logs (535 total)
@@ -117,13 +124,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.37.0';
+export const VERSION = '1.41.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Bugfix';
+export const VERSION_TAG = 'UI';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

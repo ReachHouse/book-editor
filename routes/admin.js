@@ -39,12 +39,18 @@ const { database } = require('../services/database');
  */
 router.get('/api/admin/users', requireAdmin, (req, res) => {
   try {
+    // Fetch all data in batch queries (3 queries total instead of 1 + 3N)
     const allUsers = database.users.listAll();
+    const dailyUsageMap = database.usageLogs.getAllDailyUsage();
+    const monthlyUsageMap = database.usageLogs.getAllMonthlyUsage();
+    const projectCountMap = database.projects.getAllCounts();
+
+    const defaultUsage = { input: 0, output: 0, total: 0 };
 
     const users = allUsers.map(user => {
-      const daily = database.usageLogs.getDailyUsage(user.id);
-      const monthly = database.usageLogs.getMonthlyUsage(user.id);
-      const projectCount = database.projects.count(user.id);
+      const daily = dailyUsageMap.get(user.id) || defaultUsage;
+      const monthly = monthlyUsageMap.get(user.id) || defaultUsage;
+      const projectCount = projectCountMap.get(user.id) || 0;
 
       return {
         id: user.id,
@@ -236,21 +242,19 @@ router.get('/api/admin/invite-codes', requireAdmin, (req, res) => {
   try {
     const allCodes = database.inviteCodes.listAll();
 
-    const codes = allCodes.map(code => {
-      // Look up creator and consumer usernames
-      const creator = code.created_by ? database.users.findById(code.created_by) : null;
-      const consumer = code.used_by ? database.users.findById(code.used_by) : null;
+    // Pre-fetch all users once and build a lookup map (2 queries instead of 1 + 2N)
+    const allUsers = database.users.listAll();
+    const userMap = new Map(allUsers.map(u => [u.id, u.username]));
 
-      return {
-        id: code.id,
-        code: code.code,
-        isUsed: code.is_used === 1,
-        createdBy: creator ? creator.username : null,
-        usedBy: consumer ? consumer.username : null,
-        createdAt: code.created_at,
-        usedAt: code.used_at
-      };
-    });
+    const codes = allCodes.map(code => ({
+      id: code.id,
+      code: code.code,
+      isUsed: code.is_used === 1,
+      createdBy: code.created_by ? userMap.get(code.created_by) || null : null,
+      usedBy: code.used_by ? userMap.get(code.used_by) || null : null,
+      createdAt: code.created_at,
+      usedAt: code.used_at
+    }));
 
     res.json({ codes });
   } catch (err) {

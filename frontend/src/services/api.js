@@ -587,9 +587,9 @@ export async function adminCreateInviteCode() {
 
 /**
  * Check if first-time setup is required.
- * Returns true if the database has no users.
+ * Returns setup status including whether setup is needed and if it's enabled.
  *
- * @returns {Promise<boolean>} True if setup wizard should be shown
+ * @returns {Promise<{ needsSetup: boolean, setupEnabled: boolean }>} Setup status
  */
 export async function checkSetupRequired() {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/setup/status`, {
@@ -600,11 +600,14 @@ export async function checkSetupRequired() {
   if (!response.ok) {
     // On error, assume setup not required (show login instead)
     console.error('Failed to check setup status');
-    return false;
+    return { needsSetup: false, setupEnabled: false };
   }
 
   const data = await response.json();
-  return data.needsSetup === true;
+  return {
+    needsSetup: data.needsSetup === true,
+    setupEnabled: data.setupEnabled === true
+  };
 }
 
 /**

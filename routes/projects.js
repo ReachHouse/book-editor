@@ -175,9 +175,18 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
 
-    // Validate text size
+    // Validate text sizes (both original and edited must be within limits)
     if (originalText && originalText.length > MAX_PROJECT_TEXT_LENGTH) {
-      return res.status(400).json({ error: 'Project text exceeds maximum size' });
+      return res.status(400).json({ error: 'Original text exceeds maximum size' });
+    }
+    if (fullEditedText && fullEditedText.length > MAX_PROJECT_TEXT_LENGTH) {
+      return res.status(400).json({ error: 'Edited text exceeds maximum size' });
+    }
+    if (styleGuide && styleGuide.length > 10000) {
+      return res.status(400).json({ error: 'Style guide exceeds maximum size (10KB)' });
+    }
+    if (fileName.length > 255) {
+      return res.status(400).json({ error: 'File name exceeds maximum length (255 chars)' });
     }
 
     // Check project limit (only for new projects)
