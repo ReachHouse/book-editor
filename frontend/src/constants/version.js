@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.41.1 [Bugfix]   - 2026-02-05: Fix SetupWizard browser autofill bug — use refs to read actual DOM values on submit, handles cases where browser autofill populates fields without triggering React onChange events (452 total)
  * v1.41.0 [UI]       - 2026-02-05: Production polish release — skip-to-content link for keyboard navigation, prefers-reduced-motion for motion-sensitive users, empty state designs in SavedProjects and InviteCodes, password strength indicator with live visual feedback in RegisterPage and SetupWizard, improved color contrast in AdminDashboard used codes, semantic HTML (main/footer tags), proper aria-describedby for password fields (452 total)
  * v1.40.2 [Config]   - 2026-02-05: Automated deployment — deploy.sh now auto-generates SETUP_SECRET and JWT_SECRET, stores in .env.local, displays secret prominently on first deployment for easy setup wizard completion (452 total)
  * v1.40.1 [Security] - 2026-02-05: CRITICAL FIX — setup wizard now requires SETUP_SECRET env var to prevent unauthorized admin account creation on fresh deployments, timing-safe secret comparison, frontend displays setup disabled warning, 4 new security tests (452 total)
@@ -124,13 +125,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.41.0';
+export const VERSION = '1.41.1';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'UI';
+export const VERSION_TAG = 'Bugfix';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
