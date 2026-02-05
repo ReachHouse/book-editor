@@ -546,6 +546,14 @@ function App() {
   // Authenticated — show the editor
   return (
     <div className="min-h-screen bg-surface-950 text-surface-200 relative overflow-hidden">
+      {/* Skip Link for Keyboard Users - appears on first Tab press */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-500 focus:text-white focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-surface-950"
+      >
+        Skip to main content
+      </a>
+
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
@@ -565,6 +573,9 @@ function App() {
 
         {/* Header */}
         <Header onShowStyleGuide={handleShowStyleGuide} onShowAdmin={handleShowAdmin} user={user} />
+
+        {/* Main Content Area - target for skip link */}
+        <main id="main-content" tabIndex="-1" className="outline-none">
 
         {/* Usage Display */}
         <UsageDisplay />
@@ -635,9 +646,10 @@ function App() {
             )}
           </>
         )}
+        </main>
 
         {/* Footer */}
-        <div className="text-center mt-10 pb-2">
+        <footer className="text-center mt-10 pb-2">
           <div className="flex items-center justify-center gap-3 mb-3">
             <div className="h-px w-16 bg-gradient-to-r from-transparent to-surface-700/30" />
             <div className="w-1 h-1 rounded-full bg-surface-700/50" />
@@ -645,7 +657,7 @@ function App() {
           </div>
           <p className="text-xs text-surface-500 mb-0.5">{VERSION_DISPLAY}</p>
           <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach Publishers</p>
-        </div>
+        </footer>
       </div>
     </div>
   );

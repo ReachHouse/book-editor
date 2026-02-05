@@ -415,6 +415,31 @@ function InviteCodesTab() {
         </button>
       </div>
 
+      {/* Empty State */}
+      {codes.length === 0 && (
+        <div className="glass-card p-8 text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-surface-800/50 border border-surface-700/30 flex items-center justify-center">
+            <KeyRound className="w-6 h-6 text-surface-500" aria-hidden="true" />
+          </div>
+          <p className="text-surface-400 text-sm mb-1">No invite codes yet</p>
+          <p className="text-surface-500 text-xs mb-4">
+            Generate invite codes for new users to register with.
+          </p>
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="inline-flex items-center gap-1.5 text-sm text-brand-400 hover:text-brand-300 transition-colors py-2 px-4 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 disabled:opacity-50"
+          >
+            {generating ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
+            Generate First Code
+          </button>
+        </div>
+      )}
+
       {/* Unused codes */}
       {unusedCodes.length > 0 && (
         <div className="mb-4">
@@ -452,12 +477,12 @@ function InviteCodesTab() {
           <h4 className="text-xs text-surface-500 uppercase tracking-wider mb-2">Used</h4>
           <div className="space-y-2">
             {usedCodes.map(code => (
-              <div key={code.id} className="glass-card p-3 opacity-60">
+              <div key={code.id} className="glass-card p-3 opacity-75">
                 <div className="flex items-center justify-between">
-                  <code className="text-sm font-mono text-surface-500 line-through">{code.code}</code>
-                  <span className="text-xs text-surface-600">Used by {code.usedBy || 'unknown'}</span>
+                  <code className="text-sm font-mono text-surface-400 line-through">{code.code}</code>
+                  <span className="text-xs text-surface-500">Used by {code.usedBy || 'unknown'}</span>
                 </div>
-                <p className="text-xs text-surface-600 mt-0.5">
+                <p className="text-xs text-surface-500 mt-0.5">
                   Created {formatDate(code.createdAt)} | Used {formatDate(code.usedAt)}
                 </p>
               </div>

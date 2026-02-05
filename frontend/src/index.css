@@ -281,3 +281,50 @@
     transform: translateY(0);
   }
 }
+
+/* ============================================================
+   REDUCED MOTION SUPPORT
+   Respects user preference for reduced motion (accessibility).
+   Disables/reduces animations for users with motion sensitivity.
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all CSS animations globally */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Keep spinners functional but faster */
+  .animate-spin {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  /* Disable stagger animations */
+  .stagger-children > * {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Disable progress shimmer */
+  .progress-shimmer {
+    animation: none !important;
+    background: transparent !important;
+  }
+
+  /* Disable hover transforms */
+  .btn-primary:hover,
+  .btn-secondary:hover {
+    transform: none !important;
+  }
+
+  .btn-primary:active,
+  .btn-secondary:active {
+    transform: none !important;
+  }
+}
