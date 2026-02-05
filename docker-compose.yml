@@ -26,8 +26,10 @@
 #                    Set before running: export ANTHROPIC_API_KEY=sk-ant-xxx
 #                    If not set, the server will start but editing will fail.
 #
-# ADMIN_PASSWORD:    Optional - Admin password for first-time setup.
-#                    If not set, a random password is generated and printed to logs.
+# SETUP_SECRET:      Required for first-time setup - Secret to authorize admin creation.
+#                    CRITICAL: Without this, attackers could create admin accounts!
+#                    The deploy.sh script generates this automatically.
+#                    You'll enter this secret in the setup wizard.
 #
 # JWT_SECRET:        Optional - Secret key for signing JWT tokens.
 #                    If not set, a random key is generated (tokens won't survive restarts).
@@ -102,6 +104,9 @@ services:
       # API key from host environment (required for Claude API)
       # The :- syntax means "use empty string if not set"
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Setup secret for first-time admin creation (CRITICAL for security)
+      # Generated automatically by deploy.sh, stored in .env.local
+      - SETUP_SECRET=${SETUP_SECRET:-}
       # JWT signing secret (set for persistent auth across restarts)
       - JWT_SECRET=${JWT_SECRET:-}
 

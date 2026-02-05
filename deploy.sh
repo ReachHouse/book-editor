@@ -6,6 +6,13 @@
 # This script handles deploying updates to the Book Editor application.
 # It pulls the latest code from GitHub and rebuilds the Docker container.
 #
+# SECURITY:
+# ---------
+# On first deployment, this script automatically generates a SETUP_SECRET.
+# This secret is required to create the admin account via the setup wizard.
+# The secret is stored in .env.local and displayed once during first deployment.
+# SAVE THIS SECRET - you'll need it to complete the setup wizard!
+#
 # FIRST-TIME SETUP:
 # -----------------
 # 1. SSH into your Hostinger VPS
@@ -25,6 +32,9 @@
 # 6. Run initial deployment:
 #      ./deploy.sh
 #
+# 7. IMPORTANT: Save the SETUP_SECRET displayed during first deployment!
+#    You'll need it to create your admin account.
+#
 # SUBSEQUENT UPDATES:
 # -------------------
 # After pushing code changes to GitHub, simply run:
@@ -33,11 +43,12 @@
 #
 # WHAT THIS SCRIPT DOES:
 # ----------------------
-# 1. Pulls latest code from GitHub (main branch)
-# 2. Tags current image as "previous" for rollback
-# 3. Stops the running container
-# 4. Rebuilds the Docker image
-# 5. Starts the container and shows logs
+# 1. Generates SETUP_SECRET and JWT_SECRET if not exists (first deployment only)
+# 2. Pulls latest code from GitHub (main branch)
+# 3. Tags current image as "previous" for rollback
+# 4. Stops the running container
+# 5. Rebuilds the Docker image
+# 6. Starts the container and shows logs
 #
 # ROLLBACK:
 # ---------
@@ -54,6 +65,8 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}========================================${NC}"
@@ -81,6 +94,50 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
+# =============================================================================
+# SECURITY SECRETS MANAGEMENT
+# =============================================================================
+# Check for .env.local file (stores persistent secrets)
+# This file is gitignored and persists across deployments
+
+ENV_LOCAL_FILE=".env.local"
+FIRST_TIME_SETUP=false
+
+# Load existing secrets if .env.local exists
+if [ -f "$ENV_LOCAL_FILE" ]; then
+    echo -e "${GREEN}Loading existing secrets from .env.local...${NC}"
+    source "$ENV_LOCAL_FILE"
+else
+    FIRST_TIME_SETUP=true
+    echo -e "${YELLOW}First-time deployment detected!${NC}"
+    echo ""
+fi
+
+# Generate SETUP_SECRET if not set
+if [ -z "$SETUP_SECRET" ]; then
+    echo -e "${GREEN}Generating SETUP_SECRET...${NC}"
+    SETUP_SECRET=$(openssl rand -hex 32)
+    echo "SETUP_SECRET=$SETUP_SECRET" >> "$ENV_LOCAL_FILE"
+    echo -e "${GREEN}SETUP_SECRET generated and saved to .env.local${NC}"
+fi
+
+# Generate JWT_SECRET if not set
+if [ -z "$JWT_SECRET" ]; then
+    echo -e "${GREEN}Generating JWT_SECRET...${NC}"
+    JWT_SECRET=$(openssl rand -hex 64)
+    echo "JWT_SECRET=$JWT_SECRET" >> "$ENV_LOCAL_FILE"
+    echo -e "${GREEN}JWT_SECRET generated and saved to .env.local${NC}"
+fi
+
+# Export secrets for docker-compose
+export SETUP_SECRET
+export JWT_SECRET
+
+# Secure the .env.local file (readable only by owner)
+chmod 600 "$ENV_LOCAL_FILE" 2>/dev/null || true
+
+echo ""
+
 # Check for API key
 if [ -z "$ANTHROPIC_API_KEY" ]; then
     echo -e "${YELLOW}WARNING: ANTHROPIC_API_KEY is not set!${NC}"
@@ -89,8 +146,12 @@ if [ -z "$ANTHROPIC_API_KEY" ]; then
     echo ""
 fi
 
+# =============================================================================
+# DEPLOYMENT STEPS
+# =============================================================================
+
 # Step 1: Pull latest code
-echo -e "${GREEN}[1/4] Pulling latest code from GitHub...${NC}"
+echo -e "${GREEN}[1/5] Pulling latest code from GitHub...${NC}"
 git fetch origin main
 git reset --hard origin/main
 echo -e "      Current version: $(grep -oP "VERSION = '\K[^']+" frontend/src/constants/version.js 2>/dev/null || echo 'unknown')"
@@ -133,13 +194,41 @@ echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Deployment Complete!${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
+
+# =============================================================================
+# FIRST-TIME SETUP INSTRUCTIONS
+# =============================================================================
+if [ "$FIRST_TIME_SETUP" = true ]; then
+    echo -e "${BOLD}${CYAN}========================================${NC}"
+    echo -e "${BOLD}${CYAN}  FIRST-TIME SETUP - READ CAREFULLY!${NC}"
+    echo -e "${BOLD}${CYAN}========================================${NC}"
+    echo ""
+    echo -e "${BOLD}${YELLOW}Your SETUP_SECRET has been generated:${NC}"
+    echo ""
+    echo -e "  ${BOLD}${GREEN}$SETUP_SECRET${NC}"
+    echo ""
+    echo -e "${BOLD}${RED}>>> SAVE THIS SECRET NOW! <<<${NC}"
+    echo ""
+    echo "You will need this secret to create your admin account."
+    echo "It is stored in .env.local but won't be displayed again."
+    echo ""
+    echo -e "${BOLD}To complete setup:${NC}"
+    echo "  1. Go to http://your-vps-ip:3002"
+    echo "  2. Enter the SETUP_SECRET above"
+    echo "  3. Create your admin username, email, and password"
+    echo ""
+    echo -e "${CYAN}========================================${NC}"
+    echo ""
+fi
+
 echo "Access the app at: http://your-vps-ip:3002"
 echo ""
 echo "Useful commands:"
-echo "  View logs:     docker compose logs -f"
-echo "  Stop:          docker compose down"
-echo "  Restart:       docker compose restart"
-echo "  Rollback:      docker tag book-editor:previous book-editor:latest && docker compose up -d"
+echo "  View logs:        docker compose logs -f"
+echo "  Stop:             docker compose down"
+echo "  Restart:          docker compose restart"
+echo "  Rollback:         docker tag book-editor:previous book-editor:latest && docker compose up -d"
+echo "  View secrets:     cat .env.local"
 echo ""
 
 # Show recent logs
