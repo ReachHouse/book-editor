@@ -10,6 +10,7 @@ const {
   createTrackedParagraph,
   generateDocxBuffer
 } = require('../../services/document');
+const { createHighlightedInsertedRuns } = require('../../services/document/formatting');
 
 // =============================================================================
 // generateDocxBuffer Tests (Main API)
@@ -305,5 +306,43 @@ describe('performance', () => {
 
     // Should complete in under 5 seconds
     expect(endTime - startTime).toBeLessThan(5000);
+  });
+});
+
+// =============================================================================
+// Formatting Stats Counter Tests (v1.44.2)
+// =============================================================================
+
+describe('formatting stats counter', () => {
+  test('increments totalFormattingChanges for each italic section', () => {
+    const stats = { totalFormattingChanges: 0 };
+    createHighlightedInsertedRuns('The *status quo* and *prima facie* case', 1, new Date(), stats);
+    expect(stats.totalFormattingChanges).toBe(2);
+  });
+
+  test('does not increment when no italics present', () => {
+    const stats = { totalFormattingChanges: 0 };
+    createHighlightedInsertedRuns('Plain text without any formatting', 1, new Date(), stats);
+    expect(stats.totalFormattingChanges).toBe(0);
+  });
+
+  test('handles single italic section', () => {
+    const stats = { totalFormattingChanges: 0 };
+    createHighlightedInsertedRuns('Read *The Great Gatsby* last summer', 1, new Date(), stats);
+    expect(stats.totalFormattingChanges).toBe(1);
+  });
+
+  test('works without stats parameter (backwards compatible)', () => {
+    // Should not throw when stats is not provided
+    expect(() => {
+      createHighlightedInsertedRuns('The *status quo* must change', 1, new Date());
+    }).not.toThrow();
+  });
+
+  test('handles empty text', () => {
+    const stats = { totalFormattingChanges: 0 };
+    const result = createHighlightedInsertedRuns('', 1, new Date(), stats);
+    expect(stats.totalFormattingChanges).toBe(0);
+    expect(result.runs).toHaveLength(0);
   });
 });

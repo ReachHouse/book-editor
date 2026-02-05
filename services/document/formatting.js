@@ -68,13 +68,22 @@ function createInsertedRunWithOptions(text, revisionId, dateObj, italics) {
  * @param {string} text - Text to insert (may contain *italic* markers)
  * @param {number} revisionId - Starting revision ID
  * @param {Date} dateObj - Date for the revision
+ * @param {Object} [stats] - Optional stats context to track formatting changes
  * @returns {Object} { runs: Array<InsertedTextRun>, nextRevisionId: number }
  */
-function createHighlightedInsertedRuns(text, revisionId, dateObj) {
+function createHighlightedInsertedRuns(text, revisionId, dateObj, stats) {
   if (!text) return { runs: [], nextRevisionId: revisionId };
 
   // Check for *italics* markers
   const hasItalics = /\*[^*]+\*/.test(text);
+
+  // Track formatting changes in stats if provided
+  if (hasItalics && stats) {
+    const matches = text.match(/\*[^*]+\*/g);
+    if (matches) {
+      stats.totalFormattingChanges += matches.length;
+    }
+  }
 
   if (!hasItalics) {
     return {
