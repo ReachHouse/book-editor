@@ -104,6 +104,14 @@ ENV_FILE=".env"
 OLD_ENV_FILE=".env.local"
 FIRST_TIME_SETUP=false
 
+# Warn if both files exist (user may have orphaned secrets)
+if [ -f "$OLD_ENV_FILE" ] && [ -f "$ENV_FILE" ]; then
+    echo -e "${YELLOW}WARNING: Both .env and .env.local exist!${NC}"
+    echo -e "Using .env - check .env.local for any secrets you need to migrate manually."
+    echo -e "Consider removing .env.local after verifying: rm .env.local"
+    echo ""
+fi
+
 # Migrate from old .env.local if it exists and .env doesn't
 if [ -f "$OLD_ENV_FILE" ] && [ ! -f "$ENV_FILE" ]; then
     echo -e "${YELLOW}Migrating secrets from .env.local to .env...${NC}"
@@ -111,27 +119,54 @@ if [ -f "$OLD_ENV_FILE" ] && [ ! -f "$ENV_FILE" ]; then
     echo -e "${GREEN}Migration complete${NC}"
 fi
 
+# Safely parse .env file (avoids executing arbitrary code via source)
+# Only reads KEY=VALUE lines, ignores comments and empty lines
+load_env_file() {
+    local file="$1"
+    if [ ! -f "$file" ]; then
+        return 1
+    fi
+    while IFS='=' read -r key value || [ -n "$key" ]; do
+        # Skip empty lines and comments
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        # Remove leading/trailing whitespace from key
+        key=$(echo "$key" | xargs)
+        # Remove surrounding quotes from value if present
+        value="${value%\"}"
+        value="${value#\"}"
+        value="${value%\'}"
+        value="${value#\'}"
+        # Export the variable
+        export "$key=$value"
+    done < "$file"
+}
+
 # Load existing secrets if .env exists
 if [ -f "$ENV_FILE" ]; then
     echo -e "${GREEN}Loading existing secrets from .env...${NC}"
-    # Use set -a to export all variables, then source, then set +a
-    set -a
-    source "$ENV_FILE"
-    set +a
+    load_env_file "$ENV_FILE"
 else
     FIRST_TIME_SETUP=true
     echo -e "${YELLOW}First-time deployment detected!${NC}"
     echo ""
 fi
 
-# Helper function to safely add a variable to .env (prevents duplicates)
+# Helper function to safely add/update a variable in .env (prevents duplicates)
+# Uses # as sed delimiter since hex values never contain #
 add_env_var() {
     local var_name="$1"
     local var_value="$2"
+
+    # Validate inputs
+    if [ -z "$var_name" ] || [ -z "$var_value" ]; then
+        echo -e "${RED}ERROR: Cannot save empty variable name or value${NC}"
+        return 1
+    fi
+
     # Check if variable already exists in file
     if [ -f "$ENV_FILE" ] && grep -q "^${var_name}=" "$ENV_FILE"; then
-        # Variable exists, update it in place
-        sed -i "s|^${var_name}=.*|${var_name}=${var_value}|" "$ENV_FILE"
+        # Variable exists, update it in place (use # delimiter - safe for hex)
+        sed -i "s#^${var_name}=.*#${var_name}=${var_value}#" "$ENV_FILE"
     else
         # Variable doesn't exist, append it
         echo "${var_name}=${var_value}" >> "$ENV_FILE"
@@ -142,6 +177,13 @@ add_env_var() {
 if [ -z "$SETUP_SECRET" ]; then
     echo -e "${GREEN}Generating SETUP_SECRET...${NC}"
     SETUP_SECRET=$(openssl rand -hex 32)
+
+    # Verify generation succeeded
+    if [ -z "$SETUP_SECRET" ] || [ ${#SETUP_SECRET} -ne 64 ]; then
+        echo -e "${RED}ERROR: Failed to generate SETUP_SECRET (openssl failed?)${NC}"
+        exit 1
+    fi
+
     add_env_var "SETUP_SECRET" "$SETUP_SECRET"
     echo -e "${GREEN}SETUP_SECRET generated and saved to .env${NC}"
     FIRST_TIME_SETUP=true
@@ -151,6 +193,13 @@ fi
 if [ -z "$JWT_SECRET" ]; then
     echo -e "${GREEN}Generating JWT_SECRET...${NC}"
     JWT_SECRET=$(openssl rand -hex 64)
+
+    # Verify generation succeeded
+    if [ -z "$JWT_SECRET" ] || [ ${#JWT_SECRET} -ne 128 ]; then
+        echo -e "${RED}ERROR: Failed to generate JWT_SECRET (openssl failed?)${NC}"
+        exit 1
+    fi
+
     add_env_var "JWT_SECRET" "$JWT_SECRET"
     echo -e "${GREEN}JWT_SECRET generated and saved to .env${NC}"
 fi
@@ -158,6 +207,14 @@ fi
 # Export secrets for docker-compose
 export SETUP_SECRET
 export JWT_SECRET
+
+# Final validation - ensure secrets are set
+if [ -z "$SETUP_SECRET" ] || [ -z "$JWT_SECRET" ]; then
+    echo -e "${RED}ERROR: Secrets are not properly configured!${NC}"
+    echo "SETUP_SECRET length: ${#SETUP_SECRET}"
+    echo "JWT_SECRET length: ${#JWT_SECRET}"
+    exit 1
+fi
 
 # Secure the .env file (readable only by owner)
 if [ -f "$ENV_FILE" ]; then
