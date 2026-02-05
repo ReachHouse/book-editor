@@ -101,31 +101,57 @@ fi
 # This file is gitignored and persists across deployments.
 
 ENV_FILE=".env"
+OLD_ENV_FILE=".env.local"
 FIRST_TIME_SETUP=false
+
+# Migrate from old .env.local if it exists and .env doesn't
+if [ -f "$OLD_ENV_FILE" ] && [ ! -f "$ENV_FILE" ]; then
+    echo -e "${YELLOW}Migrating secrets from .env.local to .env...${NC}"
+    mv "$OLD_ENV_FILE" "$ENV_FILE"
+    echo -e "${GREEN}Migration complete${NC}"
+fi
 
 # Load existing secrets if .env exists
 if [ -f "$ENV_FILE" ]; then
     echo -e "${GREEN}Loading existing secrets from .env...${NC}"
+    # Use set -a to export all variables, then source, then set +a
+    set -a
     source "$ENV_FILE"
+    set +a
 else
     FIRST_TIME_SETUP=true
     echo -e "${YELLOW}First-time deployment detected!${NC}"
     echo ""
 fi
 
+# Helper function to safely add a variable to .env (prevents duplicates)
+add_env_var() {
+    local var_name="$1"
+    local var_value="$2"
+    # Check if variable already exists in file
+    if [ -f "$ENV_FILE" ] && grep -q "^${var_name}=" "$ENV_FILE"; then
+        # Variable exists, update it in place
+        sed -i "s|^${var_name}=.*|${var_name}=${var_value}|" "$ENV_FILE"
+    else
+        # Variable doesn't exist, append it
+        echo "${var_name}=${var_value}" >> "$ENV_FILE"
+    fi
+}
+
 # Generate SETUP_SECRET if not set
 if [ -z "$SETUP_SECRET" ]; then
     echo -e "${GREEN}Generating SETUP_SECRET...${NC}"
     SETUP_SECRET=$(openssl rand -hex 32)
-    echo "SETUP_SECRET=$SETUP_SECRET" >> "$ENV_FILE"
+    add_env_var "SETUP_SECRET" "$SETUP_SECRET"
     echo -e "${GREEN}SETUP_SECRET generated and saved to .env${NC}"
+    FIRST_TIME_SETUP=true
 fi
 
 # Generate JWT_SECRET if not set
 if [ -z "$JWT_SECRET" ]; then
     echo -e "${GREEN}Generating JWT_SECRET...${NC}"
     JWT_SECRET=$(openssl rand -hex 64)
-    echo "JWT_SECRET=$JWT_SECRET" >> "$ENV_FILE"
+    add_env_var "JWT_SECRET" "$JWT_SECRET"
     echo -e "${GREEN}JWT_SECRET generated and saved to .env${NC}"
 fi
 
@@ -134,7 +160,9 @@ export SETUP_SECRET
 export JWT_SECRET
 
 # Secure the .env file (readable only by owner)
-chmod 600 "$ENV_FILE" 2>/dev/null || true
+if [ -f "$ENV_FILE" ]; then
+    chmod 600 "$ENV_FILE"
+fi
 
 echo ""
 

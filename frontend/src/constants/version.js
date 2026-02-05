@@ -50,9 +50,9 @@
  *
  * VERSION HISTORY:
  * ----------------
- * v1.41.1 [Bugfix]   - 2026-02-05: Fix SetupWizard browser autofill bug — use refs to read actual DOM values on submit; deploy.sh now uses .env instead of .env.local (Docker Compose auto-loads .env files) for reliable SETUP_SECRET/JWT_SECRET loading (452 total)
+ * v1.41.1 [Bugfix]   - 2026-02-05: Fix SetupWizard browser autofill bug — use refs to read DOM values on submit; deploy.sh uses .env (auto-loaded by Docker), migrates from .env.local, prevents duplicate entries, secure file permissions (452 total)
  * v1.41.0 [UI]       - 2026-02-05: Production polish release — skip-to-content link for keyboard navigation, prefers-reduced-motion for motion-sensitive users, empty state designs in SavedProjects and InviteCodes, password strength indicator with live visual feedback in RegisterPage and SetupWizard, improved color contrast in AdminDashboard used codes, semantic HTML (main/footer tags), proper aria-describedby for password fields (452 total)
- * v1.40.2 [Config]   - 2026-02-05: Automated deployment — deploy.sh now auto-generates SETUP_SECRET and JWT_SECRET, stores in .env.local, displays secret prominently on first deployment for easy setup wizard completion (452 total)
+ * v1.40.2 [Config]   - 2026-02-05: Automated deployment — deploy.sh now auto-generates SETUP_SECRET and JWT_SECRET, stores in .env, displays secret prominently on first deployment for easy setup wizard completion (452 total)
  * v1.40.1 [Security] - 2026-02-05: CRITICAL FIX — setup wizard now requires SETUP_SECRET env var to prevent unauthorized admin account creation on fresh deployments, timing-safe secret comparison, frontend displays setup disabled warning, 4 new security tests (452 total)
  * v1.40.0 [UI]       - 2026-02-05: Accessibility & polish — focus trap in StyleGuideModal, ARIA tab roles in AdminDashboard, aria-labels on icon buttons, role="alert" on error containers, form label associations with htmlFor/id, visible focus indicators with peer-focus-visible, ErrorDisplay role="alert" (448 total)
  * v1.39.5 [Docs]     - 2026-02-05: Polish release — add 6 tests for new batch query methods (getAllDailyUsage, getAllMonthlyUsage, getAllCounts), verify code comments, cleanup (448 total)
