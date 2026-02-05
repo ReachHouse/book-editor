@@ -12,7 +12,7 @@
  * - If authenticated: shows the editor as before
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, Suspense, lazy } from 'react';
 import { Loader } from 'lucide-react';
 import * as mammoth from 'mammoth';
 
@@ -22,7 +22,7 @@ const MAX_LOG_ENTRIES = 500;
 // Auth
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-// Components
+// Components (eagerly loaded - used by most users)
 import {
   Header,
   StyleGuideModal,
@@ -35,10 +35,12 @@ import {
   LoginPage,
   RegisterPage,
   UsageDisplay,
-  AdminDashboard,
   ToastContainer
 } from './components';
-import SetupWizard from './components/SetupWizard';
+
+// Lazy-loaded components (used by few users or one-time setup)
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const SetupWizard = lazy(() => import('./components/SetupWizard'));
 
 // Hooks
 import { useProjects } from './hooks/useProjects';
@@ -500,15 +502,21 @@ function App() {
     );
   }
 
-  // First-time setup required — show setup wizard
+  // First-time setup required — show setup wizard (lazy loaded)
   if (needsSetup) {
     return (
-      <SetupWizard
-        onSetupComplete={() => {
-          setNeedsSetup(false);
-          setAuthPage('login');
-        }}
-      />
+      <Suspense fallback={
+        <div className="min-h-screen bg-surface-950 flex items-center justify-center">
+          <Loader className="w-8 h-8 text-brand-400 animate-spin" />
+        </div>
+      }>
+        <SetupWizard
+          onSetupComplete={() => {
+            setNeedsSetup(false);
+            setAuthPage('login');
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -564,9 +572,15 @@ function App() {
           onClose={handleCloseStyleGuide}
         />
 
-        {/* Admin Dashboard (full-page view for admins) */}
+        {/* Admin Dashboard (full-page view for admins, lazy loaded) */}
         {showAdmin && user?.role === 'admin' ? (
-          <AdminDashboard onClose={handleCloseAdmin} />
+          <Suspense fallback={
+            <div className="glass-card py-10 text-center">
+              <Loader className="w-8 h-8 mx-auto text-brand-400 animate-spin" />
+            </div>
+          }>
+            <AdminDashboard onClose={handleCloseAdmin} />
+          </Suspense>
         ) : (
           <>
             {/* Loading State */}

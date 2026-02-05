@@ -163,7 +163,19 @@ app.use(express.json({ limit: '50mb' }));
 
 // Static Files: Serve the built React frontend from /public
 // The Dockerfile copies the Vite build output here during container build
-app.use(express.static(path.join(__dirname, 'public')));
+// Assets are versioned by Vite (content hash in filename), so can be cached long-term
+// index.html is not cached so updates are picked up immediately
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1y',           // Cache versioned assets for 1 year
+  immutable: true,        // Assets won't change (Vite hashes filenames)
+  index: false            // Don't serve index.html from here (we handle it in SPA fallback)
+}));
+
+// Serve index.html without caching (for SPA updates)
+app.use('/index.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // =============================================================================
 // ROUTE REGISTRATION

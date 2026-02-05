@@ -125,13 +125,17 @@ router.get('/api/usage/history', requireAuth, (req, res) => {
  */
 router.get('/api/admin/usage', requireAdmin, (req, res) => {
   try {
+    // Fetch all data in batch queries (4 queries total instead of 1 + 2N)
     const systemStats = database.usageLogs.getSystemStats();
-
-    // Get per-user usage summaries
     const allUsers = database.users.listAll();
+    const dailyUsageMap = database.usageLogs.getAllDailyUsage();
+    const monthlyUsageMap = database.usageLogs.getAllMonthlyUsage();
+
+    const defaultUsage = { input: 0, output: 0, total: 0 };
+
     const userUsage = allUsers.map(user => {
-      const daily = database.usageLogs.getDailyUsage(user.id);
-      const monthly = database.usageLogs.getMonthlyUsage(user.id);
+      const daily = dailyUsageMap.get(user.id) || defaultUsage;
+      const monthly = monthlyUsageMap.get(user.id) || defaultUsage;
 
       return {
         id: user.id,

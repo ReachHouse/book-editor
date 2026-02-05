@@ -76,32 +76,61 @@ export function useProjects() {
 
   /**
    * Save or update a project on the server.
+   * Uses optimistic local update to avoid reloading the full list after each save.
    *
    * @param {Object} projectData - Project data to save (must have 'id' field)
    * @throws {Error} If save fails
    */
   const saveProject = useCallback(async (projectData) => {
     try {
-      await saveProjectApi(projectData);
-      await loadProjects();
+      const result = await saveProjectApi(projectData);
+      // Optimistically update local state instead of reloading full list
+      // This avoids N API calls during editing (one per chunk save)
+      setSavedProjects(prev => {
+        const exists = prev.some(p => p.id === projectData.id);
+        if (exists) {
+          // Update existing project metadata
+          return prev.map(p => p.id === projectData.id ? {
+            ...p,
+            ...result.project,
+            timestamp: Date.now()
+          } : p);
+        } else {
+          // Add new project at the beginning (most recent first)
+          return [{
+            id: projectData.id,
+            fileName: projectData.fileName,
+            isComplete: projectData.isComplete || false,
+            chunksCompleted: projectData.chunksCompleted || 0,
+            totalChunks: projectData.totalChunks || 0,
+            chunkSize: projectData.chunkSize || 2000,
+            timestamp: Date.now(),
+            ...result.project
+          }, ...prev];
+        }
+      });
     } catch (err) {
       console.error('Failed to save project:', err);
       throw err;
     }
-  }, [loadProjects]);
+  }, []);
 
   /**
    * Delete a project by ID.
+   * Uses optimistic local update to avoid reloading the full list.
    *
    * @param {string} projectId - The ID of the project to delete
    * @throws {Error} If deletion fails
    */
   const deleteProject = useCallback(async (projectId) => {
+    // Optimistically remove from local state immediately
+    setSavedProjects(prev => prev.filter(p => p.id !== projectId));
     try {
       await deleteProjectApi(projectId);
-      await loadProjects();
     } catch (err) {
+      // On failure, reload the list to restore correct state
       console.error('Failed to delete project:', err);
+      await loadProjects();
       throw err;
     }
   }, [loadProjects]);

@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.39.0 [Refactor] - 2026-02-05: Performance optimizations — fix N+1 queries in admin endpoints (3→1 batch queries), React.lazy for AdminDashboard/SetupWizard, static asset caching (1 year for versioned files), optimistic updates in useProjects (442 total)
  * v1.38.0 [Security] - 2026-02-05: Security & reliability hardening — Permissions-Policy header, input validation for fullEditedText/styleGuide/projectId, DB health check in /health endpoint, graceful DB init error handling, .env.example documentation (442 total)
  * v1.37.0 [Bugfix]   - 2026-02-05: Regression archaeology — fix authService.js input normalization (trim/lowercase email, uppercase invite code) to match setup.js, align bcrypt salt rounds (setup.js 12→10 to match authService.js), verify all modules load cleanly, API↔service↔DB contract alignment (550 total)
  * v1.36.0 [Feature]  - 2026-02-05: First-run setup wizard — browser-based admin account creation when no users exist, no hardcoded credentials, secure /api/setup endpoints with validation, SetupWizard component, 15 new tests (550 total)
@@ -118,13 +119,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.38.0';
+export const VERSION = '1.39.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Security';
+export const VERSION_TAG = 'Refactor';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
