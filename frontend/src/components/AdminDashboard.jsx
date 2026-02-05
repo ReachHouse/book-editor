@@ -18,7 +18,7 @@
  * =============================================================================
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Users, KeyRound, ArrowLeft, RefreshCw, Plus, Shield, ShieldOff,
   Trash2, Copy, Check, AlertTriangle, Loader
@@ -329,6 +329,16 @@ function InviteCodesTab() {
   const [error, setError] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const copyTimeoutRef = useRef(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const loadCodes = useCallback(async () => {
     setLoading(true);
@@ -359,10 +369,15 @@ function InviteCodesTab() {
   };
 
   const handleCopy = async (code, id) => {
+    // Clear any existing timeout
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current);
+    }
+
     try {
       await navigator.clipboard.writeText(code);
       setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
     } catch {
       // Fallback for non-HTTPS
       const textArea = document.createElement('textarea');
@@ -372,7 +387,7 @@ function InviteCodesTab() {
       document.execCommand('copy');
       document.body.removeChild(textArea);
       setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
     }
   };
 

@@ -115,18 +115,26 @@ function ProcessingView({ progress, debugLog }) {
       {/* Progress bar */}
       <div className="relative mb-2">
         {/* Track */}
-        <div className="glass-inner rounded-full h-3.5 overflow-hidden">
+        <div
+          className="glass-inner rounded-full h-3.5 overflow-hidden"
+          role="progressbar"
+          aria-valuenow={percentage}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Editing progress: ${progress.current} of ${progress.total} sections completed`}
+        >
           {/* Fill */}
           <div
             className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden progress-fill"
             style={{ width: `${percentage}%` }}
+            aria-hidden="true"
           >
             <div className="absolute inset-0 progress-shimmer" />
           </div>
         </div>
 
         {/* Percentage badge */}
-        <div className="absolute -top-0.5 right-0 text-xs font-semibold text-surface-300 tabular-nums">
+        <div className="absolute -top-0.5 right-0 text-xs font-semibold text-surface-300 tabular-nums" aria-hidden="true">
           {percentage}%
         </div>
       </div>

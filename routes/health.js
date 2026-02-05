@@ -40,8 +40,10 @@ const { database } = require('../services/database');
  * Validate required environment variables.
  *
  * Checks for:
- * - ANTHROPIC_API_KEY existence
- * - ANTHROPIC_API_KEY format (should start with sk-ant-)
+ * - ANTHROPIC_API_KEY existence and format
+ * - JWT_SECRET (tokens won't persist across restarts without it)
+ * - SETUP_SECRET (required for first-time admin setup)
+ * - NODE_ENV (warn if not production)
  *
  * Called at server startup and on health check requests.
  *
@@ -56,6 +58,23 @@ function validateEnvironment() {
   } else if (!process.env.ANTHROPIC_API_KEY.startsWith('sk-ant-')) {
     // Check API key format (Anthropic keys start with sk-ant-)
     issues.push('ANTHROPIC_API_KEY appears to be invalid (should start with sk-ant-)');
+  }
+
+  // Check JWT_SECRET for token persistence
+  if (!process.env.JWT_SECRET) {
+    issues.push('JWT_SECRET is not set (tokens will not persist across restarts)');
+  } else if (process.env.JWT_SECRET.length < 32) {
+    issues.push('JWT_SECRET is too short (should be at least 32 characters)');
+  }
+
+  // Check SETUP_SECRET for first-time setup
+  if (!process.env.SETUP_SECRET) {
+    issues.push('SETUP_SECRET is not set (first-time setup wizard will be disabled)');
+  }
+
+  // Warn if not in production mode
+  if (process.env.NODE_ENV !== 'production') {
+    issues.push(`NODE_ENV is "${process.env.NODE_ENV || 'undefined'}" (should be "production" for deployment)`);
   }
 
   return issues;

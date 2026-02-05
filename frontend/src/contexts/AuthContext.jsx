@@ -45,6 +45,32 @@ import { API_BASE_URL, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
 
 const AuthContext = createContext(null);
 
+/** Default timeout for auth requests (15 seconds) */
+const AUTH_TIMEOUT_MS = 15000;
+
+/**
+ * Fetch wrapper with timeout support using AbortController.
+ *
+ * @param {string} url - URL to fetch
+ * @param {Object} options - Fetch options
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns {Promise<Response>}
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = AUTH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
  * Decode a JWT payload without verifying the signature.
  * Used to check expiry on the client side.
@@ -137,7 +163,7 @@ export function AuthProvider({ children }) {
     // Start the refresh and store the promise
     refreshingRef.current = (async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/api/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken })
@@ -175,7 +201,7 @@ export function AuthProvider({ children }) {
    * @throws {Error} If login fails
    */
   const login = useCallback(async (identifier, password) => {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier, password })
@@ -209,7 +235,7 @@ export function AuthProvider({ children }) {
    * @throws {Error} If registration fails
    */
   const register = useCallback(async (username, email, password, inviteCode) => {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, email, password, inviteCode })
@@ -240,11 +266,11 @@ export function AuthProvider({ children }) {
 
     // Best-effort server-side logout (don't block on failure)
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      await fetchWithTimeout(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken })
-      });
+      }, 5000); // Shorter timeout for logout
     } catch {
       // Server unreachable — clear locally anyway
     }
@@ -276,7 +302,7 @@ export function AuthProvider({ children }) {
 
         if (validToken) {
           // Fetch fresh user profile
-          const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          const response = await fetchWithTimeout(`${API_BASE_URL}/api/auth/me`, {
             headers: { 'Authorization': `Bearer ${validToken}` }
           });
 

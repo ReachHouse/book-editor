@@ -121,11 +121,11 @@ app.use((req, res, next) => {
 });
 
 // CORS: Configure allowed origins based on environment
-// In production, restricts to specific domains; in development, allows localhost
+// In production, restricts to specific domains; in development, allows localhost only
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
     ? (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
-    : true, // Allow all origins in development
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3002'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400 // Cache preflight for 24 hours
@@ -158,8 +158,8 @@ app.use((req, res, next) => {
 });
 
 // JSON Parser: Accept large payloads for manuscript processing
-// 50MB limit accommodates large documents with full text content
-app.use(express.json({ limit: '50mb' }));
+// 10MB limit accommodates large documents while preventing abuse
+app.use(express.json({ limit: '10mb' }));
 
 // Static Files: Serve the built React frontend from /public
 // The Dockerfile copies the Vite build output here during container build

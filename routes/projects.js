@@ -189,33 +189,41 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'File name exceeds maximum length (255 chars)' });
     }
 
-    // Check project limit (only for new projects)
-    const existing = database.projects.findById(projectId, userId);
-    if (!existing) {
-      const count = database.projects.count(userId);
-      if (count >= MAX_PROJECTS_PER_USER) {
-        return res.status(400).json({
-          error: `Maximum ${MAX_PROJECTS_PER_USER} projects allowed. Delete old projects to make room.`
-        });
+    // Use transaction for atomic check-and-save to prevent race conditions
+    // where two concurrent requests could both pass the limit check
+    const saved = database.transaction(() => {
+      // Check project limit (only for new projects)
+      const existing = database.projects.findById(projectId, userId);
+      if (!existing) {
+        const count = database.projects.count(userId);
+        if (count >= MAX_PROJECTS_PER_USER) {
+          const error = new Error(`Maximum ${MAX_PROJECTS_PER_USER} projects allowed. Delete old projects to make room.`);
+          error.status = 400;
+          throw error;
+        }
       }
-    }
 
-    const saved = database.projects.save(userId, {
-      id: projectId,
-      fileName,
-      isComplete: !!isComplete,
-      chunksCompleted: chunksCompleted || 0,
-      totalChunks: totalChunks || 0,
-      chunkSize: chunkSize || 2000,
-      originalText: originalText || null,
-      editedChunks: editedChunks || null,
-      fullEditedText: fullEditedText || null,
-      styleGuide: styleGuide || null,
-      docContent: docContent || null
+      return database.projects.save(userId, {
+        id: projectId,
+        fileName,
+        isComplete: !!isComplete,
+        chunksCompleted: chunksCompleted || 0,
+        totalChunks: totalChunks || 0,
+        chunkSize: chunkSize || 2000,
+        originalText: originalText || null,
+        editedChunks: editedChunks || null,
+        fullEditedText: fullEditedText || null,
+        styleGuide: styleGuide || null,
+        docContent: docContent || null
+      });
     });
 
     res.json({ project: formatProjectMeta(saved) });
   } catch (err) {
+    // Handle known errors with custom status codes
+    if (err.status) {
+      return res.status(err.status).json({ error: err.message });
+    }
     console.error('Save project error:', err.message);
     res.status(500).json({ error: 'Failed to save project' });
   }

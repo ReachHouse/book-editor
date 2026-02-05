@@ -237,14 +237,11 @@ const authService = {
       }
 
       // Check for existing users with same email or username
+      // SECURITY: Use generic error message to prevent user enumeration
       const existingEmail = database.users.findByEmail(normalizedEmail);
-      if (existingEmail) {
-        throw Object.assign(new Error('Email already registered'), { status: 409 });
-      }
-
       const existingUsername = database.users.findByUsername(normalizedUsername);
-      if (existingUsername) {
-        throw Object.assign(new Error('Username already taken'), { status: 409 });
+      if (existingEmail || existingUsername) {
+        throw Object.assign(new Error('An account with this email or username already exists'), { status: 409 });
       }
 
       const newUser = database.users.create({
