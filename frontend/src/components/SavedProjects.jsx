@@ -61,6 +61,13 @@ function SavedProjects({
         </div>
       )}
 
+      {/* Non-persistent storage warning */}
+      {storageInfo && storageInfo.isPersistent === false && (
+        <p className="text-xs text-surface-500 mb-4">
+          Your browser may clear saved projects over time. Download completed books promptly.
+        </p>
+      )}
+
       {/* Project List */}
       <div className="space-y-2">
         {projects.map((project) => (
