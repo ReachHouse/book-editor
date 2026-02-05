@@ -561,6 +561,38 @@ describe('Usage Logs', () => {
     expect(stats.uniqueUsers).toBe(2);
   });
 
+  test('getAllDailyUsage returns Map of all users usage', () => {
+    db.usageLogs.create({ userId: 1, endpoint: 'e', tokensInput: 100, tokensOutput: 200 });
+    db.usageLogs.create({ userId: 1, endpoint: 'e', tokensInput: 50, tokensOutput: 50 });
+
+    db.users.create({ username: 'user2', email: 'u2@test.com', password_hash: 'h' });
+    db.usageLogs.create({ userId: 2, endpoint: 'e', tokensInput: 300, tokensOutput: 400 });
+
+    const usageMap = db.usageLogs.getAllDailyUsage();
+    expect(usageMap instanceof Map).toBe(true);
+    expect(usageMap.get(1)).toEqual({ input: 150, output: 250, total: 400 });
+    expect(usageMap.get(2)).toEqual({ input: 300, output: 400, total: 700 });
+    expect(usageMap.get(999)).toBeUndefined(); // non-existent user
+  });
+
+  test('getAllMonthlyUsage returns Map of all users usage', () => {
+    db.usageLogs.create({ userId: 1, endpoint: 'e', tokensInput: 1000, tokensOutput: 2000 });
+
+    db.users.create({ username: 'user2', email: 'u2@test.com', password_hash: 'h' });
+    db.usageLogs.create({ userId: 2, endpoint: 'e', tokensInput: 500, tokensOutput: 500 });
+
+    const usageMap = db.usageLogs.getAllMonthlyUsage();
+    expect(usageMap instanceof Map).toBe(true);
+    expect(usageMap.get(1)).toEqual({ input: 1000, output: 2000, total: 3000 });
+    expect(usageMap.get(2)).toEqual({ input: 500, output: 500, total: 1000 });
+  });
+
+  test('getAllDailyUsage returns empty Map when no usage', () => {
+    const usageMap = db.usageLogs.getAllDailyUsage();
+    expect(usageMap instanceof Map).toBe(true);
+    expect(usageMap.size).toBe(0);
+  });
+
   test('cascading delete: deleting user removes their usage logs', () => {
     db.users.create({ username: 'tempuser', email: 'tmp@test.com', password_hash: 'h' });
     db.usageLogs.create({ userId: 2, endpoint: 'test' });
@@ -568,6 +600,48 @@ describe('Usage Logs', () => {
     db.users.delete(2);
     const history = db.usageLogs.getHistory(2);
     expect(history.length).toBe(0);
+  });
+});
+
+// =============================================================================
+// PROJECTS BATCH QUERIES
+// =============================================================================
+
+describe('Projects Batch Queries', () => {
+  beforeEach(() => {
+    // Create test users
+    db.users.create({ username: 'projuser1', email: 'proj1@test.com', password_hash: 'hash' });
+    db.users.create({ username: 'projuser2', email: 'proj2@test.com', password_hash: 'hash' });
+  });
+
+  test('getAllCounts returns Map of all users project counts', () => {
+    // Create projects for user 1
+    db.projects.save(1, { id: 'proj-1a', fileName: 'doc1.docx' });
+    db.projects.save(1, { id: 'proj-1b', fileName: 'doc2.docx' });
+    db.projects.save(1, { id: 'proj-1c', fileName: 'doc3.docx' });
+
+    // Create projects for user 2
+    db.projects.save(2, { id: 'proj-2a', fileName: 'file1.docx' });
+
+    const countsMap = db.projects.getAllCounts();
+    expect(countsMap instanceof Map).toBe(true);
+    expect(countsMap.get(1)).toBe(3);
+    expect(countsMap.get(2)).toBe(1);
+    expect(countsMap.get(999)).toBeUndefined(); // non-existent user
+  });
+
+  test('getAllCounts returns empty Map when no projects', () => {
+    const countsMap = db.projects.getAllCounts();
+    expect(countsMap instanceof Map).toBe(true);
+    expect(countsMap.size).toBe(0);
+  });
+
+  test('count returns correct count for single user', () => {
+    db.projects.save(1, { id: 'proj-1', fileName: 'doc.docx' });
+    db.projects.save(1, { id: 'proj-2', fileName: 'doc2.docx' });
+
+    expect(db.projects.count(1)).toBe(2);
+    expect(db.projects.count(2)).toBe(0); // user 2 has no projects
   });
 });
 
