@@ -274,6 +274,19 @@ describe('Registration', () => {
     ).rejects.toThrow('Invalid email');
   });
 
+  test('rejects email exceeding 254 characters', async () => {
+    // RFC 5321 specifies max 254 characters for email addresses
+    const longEmail = 'a'.repeat(250) + '@b.co'; // 256 characters
+    await expect(
+      authService.register({
+        username: 'newuser',
+        email: longEmail,
+        password: 'SecurePass1',
+        inviteCode: validInviteCode
+      })
+    ).rejects.toThrow('Email address too long');
+  });
+
   test('rejects short password', async () => {
     await expect(
       authService.register({

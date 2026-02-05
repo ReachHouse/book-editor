@@ -62,6 +62,23 @@ function formatProjectMeta(row) {
 }
 
 /**
+ * Safely parse JSON with fallback for corrupted data.
+ *
+ * @param {string|null} json - JSON string to parse
+ * @param {*} fallback - Fallback value if parsing fails
+ * @returns {*} Parsed value or fallback
+ */
+function safeJsonParse(json, fallback) {
+  if (!json) return fallback;
+  try {
+    return JSON.parse(json);
+  } catch (err) {
+    console.error('JSON parse error in project data:', err.message);
+    return fallback;
+  }
+}
+
+/**
  * Format a database row into a full project object (including text content).
  *
  * @param {Object} row - Database row with all columns
@@ -72,10 +89,10 @@ function formatProjectFull(row) {
   return {
     ...meta,
     originalText: row.original_text,
-    editedChunks: row.edited_chunks ? JSON.parse(row.edited_chunks) : [],
+    editedChunks: safeJsonParse(row.edited_chunks, []),
     fullEditedText: row.full_edited_text,
     styleGuide: row.style_guide,
-    docContent: row.doc_content ? JSON.parse(row.doc_content) : null
+    docContent: safeJsonParse(row.doc_content, null)
   };
 }
 

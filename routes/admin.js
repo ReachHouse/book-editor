@@ -136,10 +136,16 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
       fields.is_active = isActive ? 1 : 0;
     }
 
+    // Maximum token limit (100 million) - prevents unreasonable values
+    const MAX_TOKEN_LIMIT = 100000000;
+
     if (dailyTokenLimit !== undefined) {
       const limit = parseInt(dailyTokenLimit, 10);
       if (isNaN(limit) || limit < 0) {
         return res.status(400).json({ error: 'Daily token limit must be a non-negative number' });
+      }
+      if (limit > MAX_TOKEN_LIMIT) {
+        return res.status(400).json({ error: `Daily token limit cannot exceed ${MAX_TOKEN_LIMIT.toLocaleString()}` });
       }
       fields.daily_token_limit = limit;
     }
@@ -148,6 +154,9 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
       const limit = parseInt(monthlyTokenLimit, 10);
       if (isNaN(limit) || limit < 0) {
         return res.status(400).json({ error: 'Monthly token limit must be a non-negative number' });
+      }
+      if (limit > MAX_TOKEN_LIMIT) {
+        return res.status(400).json({ error: `Monthly token limit cannot exceed ${MAX_TOKEN_LIMIT.toLocaleString()}` });
       }
       fields.monthly_token_limit = limit;
     }

@@ -258,6 +258,21 @@ describe('PUT /api/admin/users/:id', () => {
     expect(res.body.error).toContain('non-negative');
   });
 
+  test('returns 400 for token limit exceeding maximum', async () => {
+    // Maximum is 100 million tokens
+    const res = await adminPut(`/api/admin/users/${regularUser.id}`)
+      .send({ dailyTokenLimit: 100000001 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('cannot exceed');
+  });
+
+  test('returns 400 for monthly token limit exceeding maximum', async () => {
+    const res = await adminPut(`/api/admin/users/${regularUser.id}`)
+      .send({ monthlyTokenLimit: 200000000 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('cannot exceed');
+  });
+
   test('prevents admin from changing own role', async () => {
     const res = await adminPut(`/api/admin/users/${adminUser.id}`)
       .send({ role: 'user' });

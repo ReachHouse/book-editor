@@ -223,6 +223,11 @@ router.get('/api/auth/me', requireAuth, (req, res) => {
  */
 router.post('/api/auth/logout', (req, res) => {
   const { refreshToken } = req.body;
+  // Validate input - logout should have a token to invalidate
+  if (!refreshToken || typeof refreshToken !== 'string') {
+    // Still return success - no need to reveal whether token existed
+    return res.json({ message: 'Logged out successfully' });
+  }
   authService.logout(refreshToken);
   res.json({ message: 'Logged out successfully' });
 });

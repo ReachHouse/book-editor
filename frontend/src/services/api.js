@@ -343,12 +343,17 @@ export async function downloadDocument(content) {
   const a = document.createElement('a');
   a.href = url;
   a.download = content.fileName;
-  document.body.appendChild(a);
-  a.click();
 
-  // Clean up
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    document.body.appendChild(a);
+    a.click();
+  } finally {
+    // Always clean up to prevent memory leaks
+    if (a.parentNode) {
+      document.body.removeChild(a);
+    }
+    URL.revokeObjectURL(url);
+  }
 }
 
 // =============================================================================

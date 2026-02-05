@@ -200,6 +200,11 @@ const authService = {
       throw Object.assign(new Error('Invalid email format'), { status: 400 });
     }
 
+    // RFC 5321 specifies max 254 characters for email addresses
+    if (email.length > 254) {
+      throw Object.assign(new Error('Email address too long (max 254 characters)'), { status: 400 });
+    }
+
     if (password.length < 8) {
       throw Object.assign(new Error('Password must be at least 8 characters'), { status: 400 });
     }
@@ -296,9 +301,10 @@ const authService = {
 
     // Check lockout
     if (user.locked_until) {
+      const now = new Date();
       const lockExpiry = new Date(user.locked_until);
-      if (lockExpiry > new Date()) {
-        const minutesLeft = Math.ceil((lockExpiry - new Date()) / 60000);
+      if (lockExpiry > now) {
+        const minutesLeft = Math.ceil((lockExpiry - now) / 60000);
         throw Object.assign(
           new Error(`Account locked. Try again in ${minutesLeft} minute(s).`),
           { status: 429 }

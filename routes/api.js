@@ -175,7 +175,8 @@ function logUsage(userId, endpoint, usage, projectId) {
  */
 router.post('/api/edit-chunk', requireAuth, async (req, res) => {
   try {
-    const { text, styleGuide, isFirst, projectId } = req.body;
+    const { text, styleGuide, projectId } = req.body;
+    const isFirst = req.body.isFirst === true; // Explicitly default to false
 
     // Validate required input with type checking
     const textError = validateTextField(text, 'text');
@@ -308,10 +309,12 @@ router.post('/api/generate-docx', requireAuth, async (req, res) => {
       return res.status(400).json({ error: editedError });
     }
 
-    // Log generation start (useful for debugging)
-    console.log('Generating document with Native Track Changes...');
-    console.log('Original length:', originalText.length, 'characters');
-    console.log('Edited length:', editedText.length, 'characters');
+    // Log generation start (development only to avoid log spam)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Generating document with Native Track Changes...');
+      console.log('Original length:', originalText.length, 'characters');
+      console.log('Edited length:', editedText.length, 'characters');
+    }
 
     // Generate the .docx buffer
     const buffer = await generateDocxBuffer(originalText, editedText);
@@ -332,7 +335,9 @@ router.post('/api/generate-docx', requireAuth, async (req, res) => {
     // Send the binary buffer
     res.send(buffer);
 
-    console.log('Document generated successfully:', outputFileName);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Document generated successfully:', outputFileName);
+    }
 
   } catch (error) {
     console.error('Document generation error:', error);

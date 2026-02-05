@@ -178,6 +178,22 @@ describe('GET /api/projects/:id', () => {
     expect(res.body.editedChunks).toEqual([]);
     expect(res.body.docContent).toBeNull();
   });
+
+  test('handles corrupted JSON data gracefully', async () => {
+    // Insert corrupted JSON directly into the database
+    const db = testDb.getDb();
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO projects (id, user_id, file_name, edited_chunks, doc_content, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('corrupt1', adminUser.id, 'test.docx', 'not valid json {', 'also { not valid', now, now);
+
+    const res = await authGet('/api/projects/corrupt1');
+    expect(res.status).toBe(200);
+    // Should return fallback values instead of crashing
+    expect(res.body.editedChunks).toEqual([]);
+    expect(res.body.docContent).toBeNull();
+  });
 });
 
 // =============================================================================
