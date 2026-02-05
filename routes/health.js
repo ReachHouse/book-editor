@@ -30,6 +30,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { database } = require('../services/database');
 
 // =============================================================================
 // ENVIRONMENT VALIDATION
@@ -78,10 +79,27 @@ function validateEnvironment() {
 router.get('/health', (req, res) => {
   const envIssues = validateEnvironment();
 
+  // Check database connectivity
+  let dbHealthy = false;
+  try {
+    if (database.initialized && database.db) {
+      // Run a simple query to verify DB is responsive
+      database.db.prepare('SELECT 1').get();
+      dbHealthy = true;
+    }
+  } catch (err) {
+    envIssues.push(`Database error: ${err.message}`);
+  }
+
+  if (!dbHealthy && !envIssues.some(i => i.includes('Database'))) {
+    envIssues.push('Database not initialized');
+  }
+
   res.json({
     status: envIssues.length === 0 ? 'ok' : 'warning',
     message: 'Book Editor Backend is running',
     apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,
+    databaseHealthy: dbHealthy,
     issues: envIssues.length > 0 ? envIssues : undefined
   });
 });

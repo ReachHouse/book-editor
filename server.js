@@ -113,6 +113,13 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'same-origin' }
 }));
 
+// Permissions-Policy: Restrict browser features the app doesn't need
+// This prevents potential misuse of sensitive APIs
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  next();
+});
+
 // CORS: Configure allowed origins based on environment
 // In production, restricts to specific domains; in development, allows localhost
 const corsOptions = {
@@ -237,8 +244,22 @@ const envIssues = validateEnvironment();
 
 // Initialize the SQLite database (runs migrations, seeds defaults)
 console.log('Initializing database...');
-database.init();
-console.log('Database ready.');
+try {
+  database.init();
+  console.log('Database ready.');
+} catch (err) {
+  console.error('═══════════════════════════════════════════════════════════');
+  console.error('FATAL: Database initialization failed');
+  console.error('═══════════════════════════════════════════════════════════');
+  console.error(`Error: ${err.message}`);
+  console.error('');
+  console.error('Possible causes:');
+  console.error('  - Disk full or no write permission to data directory');
+  console.error('  - Corrupted database file');
+  console.error('  - Invalid DB_PATH environment variable');
+  console.error('═══════════════════════════════════════════════════════════');
+  process.exit(1);
+}
 
 // Periodic cleanup: remove expired sessions every hour.
 // Prevents the sessions table from growing unbounded.
