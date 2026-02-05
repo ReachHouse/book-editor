@@ -164,12 +164,13 @@ class DatabaseService {
    * Seed default data: admin user and initial invite code.
    * Only runs if the users table is empty (first-time setup).
    *
-   * Admin credentials are set via environment variables:
-   *   ADMIN_USERNAME (default: admin)
-   *   ADMIN_EMAIL    (default: admin@reachpublishers.com)
-   *   ADMIN_PASSWORD (default: randomly generated, printed to console)
+   * Default credentials (override via environment variables):
+   *   ADMIN_USERNAME    (default: admin)
+   *   ADMIN_EMAIL       (default: admin@reachpublishers.com)
+   *   ADMIN_PASSWORD    (default: ChangeMe123!)
+   *   FIRST_INVITE_CODE (default: WELCOME2025)
    *
-   * The initial invite code is printed to console for first user registration.
+   * Credentials are printed to console on first run for easy reference.
    *
    * @private
    */
@@ -180,10 +181,11 @@ class DatabaseService {
 
     console.log('  Seeding initial admin user and invite code...');
 
-    // Generate admin password if not provided
+    // Default admin credentials - simple and memorable for easy first-time setup
+    // Override via environment variables: ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@reachpublishers.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex');
+    const adminPassword = process.env.ADMIN_PASSWORD || 'ChangeMe123!';
 
     // Store password with a plain-text marker for initial seed.
     // On first admin login, authService.login() detects the "plain:" prefix
@@ -195,19 +197,22 @@ class DatabaseService {
       VALUES (?, ?, ?, 'admin')
     `).run(adminUsername, adminEmail, passwordHash);
 
-    // Generate initial invite code
-    const inviteCode = crypto.randomBytes(8).toString('hex').toUpperCase();
+    // Default invite code - simple and memorable for first user registration
+    // Override via environment variable: FIRST_INVITE_CODE
+    const inviteCode = process.env.FIRST_INVITE_CODE || 'WELCOME2025';
     this.db.prepare(`
       INSERT INTO invite_codes (code, created_by) VALUES (?, 1)
     `).run(inviteCode);
 
-    console.log('  ─────────────────────────────────────────────');
-    console.log(`  Admin user created: ${adminUsername}`);
-    if (!process.env.ADMIN_PASSWORD) {
-      console.log(`  Admin password: ${adminPassword}`);
-    }
-    console.log(`  First invite code: ${inviteCode}`);
-    console.log('  ─────────────────────────────────────────────');
+    console.log('  ═══════════════════════════════════════════════════════════');
+    console.log('  FIRST-TIME SETUP - DEFAULT CREDENTIALS');
+    console.log('  ═══════════════════════════════════════════════════════════');
+    console.log(`  Admin Login:      ${adminUsername}`);
+    console.log(`  Admin Password:   ${adminPassword}`);
+    console.log(`  Invite Code:      ${inviteCode}`);
+    console.log('  ───────────────────────────────────────────────────────────');
+    console.log('  IMPORTANT: Change the admin password after first login!');
+    console.log('  ═══════════════════════════════════════════════════════════');
   }
 
   // ===========================================================================
