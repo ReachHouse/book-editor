@@ -188,20 +188,25 @@ const authService = {
       throw Object.assign(new Error('All fields are required'), { status: 400 });
     }
 
-    if (username.length < 3 || username.length > 30) {
+    // Normalize inputs (trim whitespace, lowercase email)
+    const normalizedUsername = username.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedInviteCode = inviteCode.trim().toUpperCase();
+
+    if (normalizedUsername.length < 3 || normalizedUsername.length > 30) {
       throw Object.assign(new Error('Username must be 3–30 characters'), { status: 400 });
     }
 
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(normalizedUsername)) {
       throw Object.assign(new Error('Username may only contain letters, numbers, hyphens, and underscores'), { status: 400 });
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       throw Object.assign(new Error('Invalid email format'), { status: 400 });
     }
 
     // RFC 5321 specifies max 254 characters for email addresses
-    if (email.length > 254) {
+    if (normalizedEmail.length > 254) {
       throw Object.assign(new Error('Email address too long (max 254 characters)'), { status: 400 });
     }
 
@@ -227,30 +232,30 @@ const authService = {
     // race conditions (e.g., two concurrent requests using the same invite code).
     const user = database.transaction(() => {
       // Check invite code validity
-      if (!database.inviteCodes.isValid(inviteCode)) {
+      if (!database.inviteCodes.isValid(normalizedInviteCode)) {
         throw Object.assign(new Error('Invalid or already used invite code'), { status: 400 });
       }
 
       // Check for existing users with same email or username
-      const existingEmail = database.users.findByEmail(email);
+      const existingEmail = database.users.findByEmail(normalizedEmail);
       if (existingEmail) {
         throw Object.assign(new Error('Email already registered'), { status: 409 });
       }
 
-      const existingUsername = database.users.findByUsername(username);
+      const existingUsername = database.users.findByUsername(normalizedUsername);
       if (existingUsername) {
         throw Object.assign(new Error('Username already taken'), { status: 409 });
       }
 
       const newUser = database.users.create({
-        username,
-        email,
+        username: normalizedUsername,
+        email: normalizedEmail,
         password_hash: passwordHash,
         role: 'user'
       });
 
       // Mark invite code as used and verify it succeeded
-      const marked = database.inviteCodes.markUsed(inviteCode, newUser.id);
+      const marked = database.inviteCodes.markUsed(normalizedInviteCode, newUser.id);
       if (!marked) {
         throw Object.assign(new Error('Failed to use invite code'), { status: 500 });
       }
