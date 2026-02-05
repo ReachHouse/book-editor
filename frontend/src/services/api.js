@@ -465,3 +465,113 @@ export async function deleteProjectApi(projectId) {
     throw new Error(`Failed to delete project (${response.status})`);
   }
 }
+
+// =============================================================================
+// ADMIN API
+// =============================================================================
+
+/**
+ * List all users with usage data (admin only).
+ *
+ * @returns {Promise<Array>} Array of user objects
+ */
+export async function adminListUsers() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/users`, {
+    method: 'GET',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to load users (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.users;
+}
+
+/**
+ * Update a user's role, limits, or active status (admin only).
+ *
+ * @param {number} userId - User ID to update
+ * @param {Object} fields - Fields to update
+ * @returns {Promise<Object>} Updated user object
+ */
+export async function adminUpdateUser(userId, fields) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/users/${userId}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(fields)
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to update user (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.user;
+}
+
+/**
+ * Delete a user (admin only).
+ *
+ * @param {number} userId - User ID to delete
+ * @returns {Promise<void>}
+ */
+export async function adminDeleteUser(userId) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to delete user (${response.status})`);
+  }
+}
+
+/**
+ * List all invite codes (admin only).
+ *
+ * @returns {Promise<Array>} Array of invite code objects
+ */
+export async function adminListInviteCodes() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/invite-codes`, {
+    method: 'GET',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to load invite codes (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.codes;
+}
+
+/**
+ * Generate a new invite code (admin only).
+ *
+ * @returns {Promise<Object>} The generated invite code object
+ */
+export async function adminCreateInviteCode() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/invite-codes`, {
+    method: 'POST',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to generate invite code (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.code;
+}

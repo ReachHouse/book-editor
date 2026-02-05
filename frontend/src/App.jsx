@@ -35,6 +35,7 @@ import {
   LoginPage,
   RegisterPage,
   UsageDisplay,
+  AdminDashboard,
   ToastContainer
 } from './components';
 
@@ -80,6 +81,7 @@ function App() {
   const [error, setError] = useState(null);
   const [debugLog, setDebugLog] = useState([]);
   const [showStyleGuide, setShowStyleGuide] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
 
   // Projects hook (server-backed storage)
@@ -449,6 +451,8 @@ function App() {
   // Stable callbacks for components that only use state setters (safe with empty deps)
   const handleShowStyleGuide = useCallback(() => setShowStyleGuide(true), []);
   const handleCloseStyleGuide = useCallback(() => setShowStyleGuide(false), []);
+  const handleShowAdmin = useCallback(() => setShowAdmin(true), []);
+  const handleCloseAdmin = useCallback(() => setShowAdmin(false), []);
 
   // ============================================================================
   // RENDER
@@ -495,7 +499,7 @@ function App() {
       <div className="relative container mx-auto px-4 sm:px-6 py-10 sm:py-14 max-w-4xl">
 
         {/* Header */}
-        <Header onShowStyleGuide={handleShowStyleGuide} user={user} />
+        <Header onShowStyleGuide={handleShowStyleGuide} onShowAdmin={handleShowAdmin} user={user} />
 
         {/* Usage Display */}
         <UsageDisplay />
@@ -506,52 +510,59 @@ function App() {
           onClose={handleCloseStyleGuide}
         />
 
-        {/* Loading State */}
-        {loadingStorage && (
-          <div className="glass-card py-10 text-center animate-fade-in" role="status" aria-label="Loading saved projects">
-            <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" aria-hidden="true" />
-            <p className="text-surface-400 text-sm">Loading saved projects...</p>
-          </div>
-        )}
-
-        {/* Error Display */}
-        <ErrorDisplay error={error} debugLog={debugLog} />
-
-        {/* Upload Section */}
-        {!file && !loadingStorage && (
+        {/* Admin Dashboard (full-page view for admins) */}
+        {showAdmin && user?.role === 'admin' ? (
+          <AdminDashboard onClose={handleCloseAdmin} />
+        ) : (
           <>
-            <FileUpload onFileSelect={handleFileUpload} />
-            <SavedProjects
-              projects={savedProjects}
-              onDownload={handleProjectDownload}
-              onResume={handleResume}
-              onDelete={handleDeleteProject}
-              isDownloading={downloadingDocx}
-            />
+            {/* Loading State */}
+            {loadingStorage && (
+              <div className="glass-card py-10 text-center animate-fade-in" role="status" aria-label="Loading saved projects">
+                <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" aria-hidden="true" />
+                <p className="text-surface-400 text-sm">Loading saved projects...</p>
+              </div>
+            )}
+
+            {/* Error Display */}
+            <ErrorDisplay error={error} debugLog={debugLog} />
+
+            {/* Upload Section */}
+            {!file && !loadingStorage && (
+              <>
+                <FileUpload onFileSelect={handleFileUpload} />
+                <SavedProjects
+                  projects={savedProjects}
+                  onDownload={handleProjectDownload}
+                  onResume={handleResume}
+                  onDelete={handleDeleteProject}
+                  isDownloading={downloadingDocx}
+                />
+              </>
+            )}
+
+            {/* Analysis Results */}
+            {analysis && !processing && !completed && (
+              <DocumentAnalysis
+                analysis={analysis}
+                onStartEditing={() => processBook()}
+                onCancel={handleReset}
+              />
+            )}
+
+            {/* Processing Display */}
+            {processing && (
+              <ProcessingView progress={progress} debugLog={debugLog} />
+            )}
+
+            {/* Completion Display */}
+            {completed && (
+              <CompletionView
+                onDownload={() => handleDownload(editedContent)}
+                onEditAnother={handleReset}
+                isDownloading={downloadingDocx}
+              />
+            )}
           </>
-        )}
-
-        {/* Analysis Results */}
-        {analysis && !processing && !completed && (
-          <DocumentAnalysis
-            analysis={analysis}
-            onStartEditing={() => processBook()}
-            onCancel={handleReset}
-          />
-        )}
-
-        {/* Processing Display */}
-        {processing && (
-          <ProcessingView progress={progress} debugLog={debugLog} />
-        )}
-
-        {/* Completion Display */}
-        {completed && (
-          <CompletionView
-            onDownload={() => handleDownload(editedContent)}
-            onEditAnother={handleReset}
-            isDownloading={downloadingDocx}
-          />
         )}
 
         {/* Footer */}

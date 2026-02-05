@@ -60,6 +60,7 @@ const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const usageRoutes = require('./routes/usage');
+const adminRoutes = require('./routes/admin');
 const { validateEnvironment } = require('./routes/health');
 const { database } = require('./services/database');
 
@@ -146,6 +147,10 @@ app.use(projectRoutes);
 // Usage Routes: /api/usage (user usage summary), /api/admin/usage (admin stats)
 // Token usage tracking and limit reporting
 app.use(usageRoutes);
+
+// Admin Routes: /api/admin/users, /api/admin/invite-codes
+// User management and invite code generation (admin only)
+app.use(adminRoutes);
 
 // API Routes: /api/edit-chunk, /api/generate-style-guide, /api/generate-docx
 // Core editing functionality that communicates with Claude AI (requires auth)

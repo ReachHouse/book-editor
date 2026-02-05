@@ -15,7 +15,7 @@
  */
 
 import React, { useState } from 'react';
-import { FileText, BookOpen, LogOut, Loader, User } from 'lucide-react';
+import { FileText, BookOpen, LogOut, Loader, User, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -25,7 +25,7 @@ import { useAuth } from '../contexts/AuthContext';
  * @param {function} props.onShowStyleGuide - Called when user clicks style guide button
  * @param {Object} [props.user] - Current authenticated user
  */
-function Header({ onShowStyleGuide, user }) {
+function Header({ onShowStyleGuide, onShowAdmin, user }) {
   const { logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -52,6 +52,16 @@ function Header({ onShowStyleGuide, user }) {
               </span>
             )}
           </div>
+          {user.role === 'admin' && onShowAdmin && (
+            <button
+              onClick={onShowAdmin}
+              className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-300 transition-colors py-1 px-2 rounded hover:bg-surface-800/50"
+              aria-label="Admin dashboard"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Admin
+            </button>
+          )}
           <button
             onClick={handleLogout}
             disabled={loggingOut}
