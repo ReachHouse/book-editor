@@ -62,9 +62,9 @@ function LoginPage({ onSwitchToRegister }) {
             <FileText className="w-7 h-7 text-brand-400" />
           </div>
           <h1 className="font-display text-3xl font-bold mb-2 text-white tracking-tight">
-            Book Editor
+            Reach House Book Editor
           </h1>
-          <p className="text-surface-400 text-sm font-light tracking-wide">
+          <p className="text-sm text-surface-400 tracking-wide">
             Sign in to your account
           </p>
         </div>
@@ -149,7 +149,7 @@ function LoginPage({ onSwitchToRegister }) {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach Publishers</p>
+          <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach House</p>
         </div>
       </div>
     </div>

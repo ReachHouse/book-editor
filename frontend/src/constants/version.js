@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.42.0 [UI]       - 2026-02-06: Rebrand to "Reach House Book Editor" — update title across all pages, standardize typography (remove font-light, consistent text-sm/text-xs sizing, semibold for card titles), rename style guide references to "Reach House Style Guide", update copyright to "Reach House"
  * v1.41.4 [UI]       - 2026-02-06: ProcessingView alignment — align spinner icon with step indicator icons (matching size w-9/h-9, px-2 padding), fix progress bar percentage positioning (flexbox instead of absolute)
  * v1.41.3 [Feature]  - 2026-02-06: Admin invite code deletion — add delete button for unused invite codes in Admin Dashboard, backend DELETE endpoint, confirmation dialog, prevents deletion of already-used codes
  * v1.41.2 [Refactor] - 2026-02-05: Code quality fixes — fix critical API bug (completeSetup missing setup_secret), extract shared PasswordStrength component, fix AdminDashboard setTimeout memory leak with useRef cleanup, harden deploy.sh with safe .env parser (452 total)
@@ -128,7 +129,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.41.4';
+export const VERSION = '1.42.0';
 
 /**
  * Tag describing the type of changes in this version

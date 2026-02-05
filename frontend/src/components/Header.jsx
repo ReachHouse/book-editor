@@ -86,8 +86,8 @@ function Header({ onShowStyleGuide, onShowAdmin, user }) {
       </div>
 
       {/* Title - serif font for editorial identity */}
-      <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2 text-white tracking-tight">
-        Professional Book Editor
+      <h1 className="font-display text-3xl font-bold mb-2 text-white tracking-tight">
+        Reach House Book Editor
       </h1>
 
       {/* Subtle decorative line */}
@@ -98,17 +98,17 @@ function Header({ onShowStyleGuide, onShowAdmin, user }) {
       </div>
 
       {/* Subtitle */}
-      <p className="text-surface-400 text-sm mb-6 font-light tracking-wide">
+      <p className="text-sm text-surface-400 tracking-wide">
         AI-powered manuscript editing with tracked changes
       </p>
 
       {/* Style Guide Button */}
       <button
         onClick={onShowStyleGuide}
-        className="btn-secondary inline-flex items-center gap-2.5 py-2.5 px-5 text-sm focus-ring"
+        className="btn-secondary inline-flex items-center gap-2.5 mt-6 py-2.5 px-5 text-sm focus-ring"
       >
         <BookOpen className="w-4 h-4 text-brand-400" />
-        View Reach Publishers Style Guide
+        View Style Guide
       </button>
     </div>
   );

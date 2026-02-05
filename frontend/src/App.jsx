@@ -1,5 +1,5 @@
 /**
- * Reach Publishers Book Editor - Main Application
+ * Reach House Book Editor - Main Application
  *
  * AI-powered manuscript editing with native Word Track Changes support.
  * Refactored for maintainability with modular components and services.
@@ -656,7 +656,7 @@ function App() {
             <div className="h-px w-16 bg-gradient-to-l from-transparent to-surface-700/30" />
           </div>
           <p className="text-xs text-surface-500 mb-0.5">{VERSION_DISPLAY}</p>
-          <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach Publishers</p>
+          <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach House</p>
         </footer>
       </div>
     </div>

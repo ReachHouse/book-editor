@@ -64,7 +64,7 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
         <p className="text-sm text-brand-300/90 leading-relaxed">
           Document will be processed in <strong className="text-brand-300">{analysis.estimatedChunks} sections</strong>
           <span className="mx-1.5 text-brand-600">&#183;</span>
-          Follows <strong className="text-brand-300">Reach Publishers House Style Guide</strong> (UK English)
+          Follows <strong className="text-brand-300">Reach House Style Guide</strong> (UK English)
           <span className="mx-1.5 text-brand-600">&#183;</span>
           Auto-retry on failures (up to 3 attempts per section)
         </p>

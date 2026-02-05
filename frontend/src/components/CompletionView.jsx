@@ -29,11 +29,11 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full glass-icon mb-4 animate-glow">
           <CheckCircle className="w-8 h-8 text-brand-400" />
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-white">
+        <h2 className="text-xl font-semibold mb-2 text-white">
           Editing Complete
         </h2>
         <p className="text-sm text-surface-400 max-w-md mx-auto">
-          Manuscript professionally edited following Reach Publishers House Style Guide.
+          Manuscript edited following the Reach House Style Guide.
         </p>
       </div>
 

@@ -110,7 +110,7 @@ function RegisterPage({ onSwitchToLogin }) {
           <h1 className="font-display text-3xl font-bold mb-2 text-white tracking-tight">
             Create Account
           </h1>
-          <p className="text-surface-400 text-sm font-light tracking-wide">
+          <p className="text-sm text-surface-400 tracking-wide">
             Register with your invite code
           </p>
         </div>
@@ -259,7 +259,7 @@ function RegisterPage({ onSwitchToLogin }) {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach Publishers</p>
+          <p className="text-xs text-surface-600">&copy; {new Date().getFullYear()} Reach House</p>
         </div>
       </div>
     </div>
