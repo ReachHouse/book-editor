@@ -167,11 +167,11 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!fileName || typeof fileName !== 'string') {
-      return res.status(400).json({ error: 'fileName is required' });
+    if (!fileName || typeof fileName !== 'string' || !fileName.trim()) {
+      return res.status(400).json({ error: 'fileName is required and cannot be empty' });
     }
 
-    if (!projectId || typeof projectId !== 'string') {
+    if (!projectId || typeof projectId !== 'string' || !projectId.trim()) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
 

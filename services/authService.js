@@ -376,8 +376,9 @@ const authService = {
       throw Object.assign(new Error('Invalid refresh token'), { status: 401 });
     }
 
-    // Check expiry
-    if (new Date(session.expires_at) < new Date()) {
+    // Check expiry (use consistent timestamp to avoid race conditions)
+    const now = new Date();
+    if (new Date(session.expires_at) < now) {
       database.sessions.deleteByToken(refreshToken);
       throw Object.assign(new Error('Refresh token expired'), { status: 401 });
     }

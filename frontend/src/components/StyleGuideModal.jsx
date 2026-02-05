@@ -13,7 +13,7 @@
  * =============================================================================
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { BookOpen, X } from 'lucide-react';
 import { FULL_STYLE_GUIDE_DOCUMENT } from '../constants';
 
@@ -23,10 +23,20 @@ import { FULL_STYLE_GUIDE_DOCUMENT } from '../constants';
  */
 function StyleGuideModal({ isOpen, onClose }) {
   const [isClosing, setIsClosing] = useState(false);
+  const closeTimeoutRef = useRef(null);
+
+  // Clean up close timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleClose = useCallback(() => {
     setIsClosing(true);
-    setTimeout(() => {
+    closeTimeoutRef.current = setTimeout(() => {
       setIsClosing(false);
       onClose();
     }, 200);

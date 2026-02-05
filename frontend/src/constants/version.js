@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.32.0 [Bugfix]   - 2026-02-05: Production hardening — graceful shutdown with interval cleanup, uncaughtException/unhandledRejection handlers, server error listener, consistent token expiry timestamps, JSON serialization error handling, null check on project save, frontend setTimeout cleanup in useToast and StyleGuideModal (535 total)
  * v1.31.0 [Bugfix]   - 2026-02-05: Deep audit & polish — safeJsonParse for corrupted DB data, fix date reuse in login lockout, email length validation (254 max), token limit upper bounds (100M max), logout validation, conditional console logging, URL memory leak fix in downloadDocument, 4 new regression tests (535 total)
  * v1.30.0 [Security] - 2026-02-05: Security hardening — Helmet.js security headers (CSP, X-Frame-Options, HSTS), stronger password requirements (uppercase, lowercase, number), error IDs for debugging, frontend password validation, 6 new tests (531 total)
  * v1.29.1 [Bugfix]   - 2026-02-05: Deep audit — fix negative limit parameter in usage history endpoint, add LimitEditor client-side validation, update Header JSDoc, add regression tests (528 total)
@@ -111,7 +112,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.31.0';
+export const VERSION = '1.32.0';
 
 /**
  * Tag describing the type of changes in this version

@@ -238,7 +238,7 @@ console.log('Database ready.');
 // Periodic cleanup: remove expired sessions every hour.
 // Prevents the sessions table from growing unbounded.
 const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
-setInterval(() => {
+const cleanupIntervalId = setInterval(() => {
   try {
     const deleted = database.sessions.deleteExpired();
     if (deleted > 0) {
@@ -251,7 +251,7 @@ setInterval(() => {
 
 // Start listening on all network interfaces (0.0.0.0)
 // This is required for Docker container networking
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   // Startup banner with configuration summary
   console.log('==================================================');
   console.log('  Reach Publishers Book Editor');
@@ -274,20 +274,71 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('==================================================');
 });
 
+// Handle server startup errors (port in use, binding failures)
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Error: Port ${PORT} is already in use`);
+  } else {
+    console.error('Server startup error:', err.message);
+  }
+  process.exit(1);
+});
+
 // =============================================================================
 // GRACEFUL SHUTDOWN HANDLERS
 // =============================================================================
 
-// Handle SIGTERM (Docker stop, Kubernetes pod termination)
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Shutting down gracefully...');
-  database.close();
+/**
+ * Gracefully shuts down the server.
+ * Clears intervals, closes connections, and exits cleanly.
+ *
+ * @param {string} signal - The signal that triggered shutdown (SIGTERM, SIGINT, etc.)
+ */
+function gracefulShutdown(signal) {
+  console.log(`${signal} received. Shutting down gracefully...`);
+
+  // Clear the session cleanup interval
+  clearInterval(cleanupIntervalId);
+
+  // Close the HTTP server (stop accepting new connections)
+  server.close(() => {
+    console.log('HTTP server closed.');
+  });
+
+  // Close the database connection
+  try {
+    database.close();
+    console.log('Database connection closed.');
+  } catch (err) {
+    console.error('Error closing database:', err.message);
+  }
+
   process.exit(0);
-});
+}
+
+// Handle SIGTERM (Docker stop, Kubernetes pod termination)
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Handle SIGINT (Ctrl+C in terminal)
-process.on('SIGINT', () => {
-  console.log('SIGINT received. Shutting down gracefully...');
-  database.close();
-  process.exit(0);
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// =============================================================================
+// UNHANDLED ERROR HANDLERS
+// =============================================================================
+
+// Handle uncaught exceptions (synchronous errors that weren't caught)
+process.on('uncaughtException', (err) => {
+  const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  console.error(`[${new Date().toISOString()}] Uncaught Exception ${errorId}:`, err.message);
+  console.error(err.stack);
+  // Exit with failure code - the process manager should restart us
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections (async errors that weren't caught)
+process.on('unhandledRejection', (reason, promise) => {
+  const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  console.error(`[${new Date().toISOString()}] Unhandled Rejection ${errorId}:`, reason);
+  // Exit with failure code - the process manager should restart us
+  process.exit(1);
 });

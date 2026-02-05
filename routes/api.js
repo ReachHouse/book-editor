@@ -260,7 +260,7 @@ router.post('/api/generate-style-guide', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Style guide generation error:', error.message);
     // Return default instead of error - style guide is non-critical
-    res.json({
+    return res.json({
       styleGuide: 'Professional, clear, and engaging style following Reach Publishers standards.'
     });
   }

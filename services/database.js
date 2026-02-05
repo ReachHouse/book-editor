@@ -620,9 +620,15 @@ class DatabaseService {
           styleGuide = null, docContent = null
         } = data;
 
-        // Serialize arrays/objects to JSON strings
-        const editedChunksJson = editedChunks ? JSON.stringify(editedChunks) : null;
-        const docContentJson = docContent ? JSON.stringify(docContent) : null;
+        // Serialize arrays/objects to JSON strings (with error handling)
+        let editedChunksJson = null;
+        let docContentJson = null;
+        try {
+          editedChunksJson = editedChunks ? JSON.stringify(editedChunks) : null;
+          docContentJson = docContent ? JSON.stringify(docContent) : null;
+        } catch (err) {
+          throw new Error(`Failed to serialize project data: ${err.message}`);
+        }
 
         db.prepare(`
           INSERT INTO projects (
@@ -648,11 +654,17 @@ class DatabaseService {
           fullEditedText, styleGuide, docContentJson
         );
 
-        return db.prepare(`
+        const saved = db.prepare(`
           SELECT id, user_id, file_name, is_complete, chunks_completed,
                  total_chunks, chunk_size, created_at, updated_at
           FROM projects WHERE id = ? AND user_id = ?
         `).get(id, userId);
+
+        if (!saved) {
+          throw new Error('Failed to save project: record not found after upsert');
+        }
+
+        return saved;
       },
 
       /**
