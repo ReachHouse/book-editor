@@ -22,7 +22,7 @@
  * =============================================================================
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { FileText, Shield, AlertCircle, Loader, CheckCircle, ArrowRight, Key, Lock, X } from 'lucide-react';
 import { completeSetup } from '../services/api';
 
@@ -87,57 +87,79 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Refs to handle browser autofill (autofill may not trigger onChange)
+  const setupSecretRef = useRef(null);
+  const usernameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    // Read values from refs to handle browser autofill (autofill may not trigger onChange)
+    // Fall back to state values if refs are not available
+    const secretValue = (setupSecretRef.current?.value || setupSecret).trim();
+    const usernameValue = (usernameRef.current?.value || username).trim();
+    const emailValue = (emailRef.current?.value || email).trim();
+    const passwordValue = passwordRef.current?.value || password;
+    const confirmValue = confirmPasswordRef.current?.value || confirmPassword;
+
+    // Sync state with ref values (in case autofill populated them)
+    if (secretValue !== setupSecret) setSetupSecret(secretValue);
+    if (usernameValue !== username) setUsername(usernameValue);
+    if (emailValue !== email) setEmail(emailValue);
+    if (passwordValue !== password) setPassword(passwordValue);
+    if (confirmValue !== confirmPassword) setConfirmPassword(confirmValue);
+
     // Client-side validation (mirrors backend validation)
-    if (!setupSecret.trim()) {
+    if (!secretValue) {
       setError('Setup secret is required. Check your deployment environment variables.');
       return;
     }
 
-    if (!username.trim() || !email.trim() || !password) {
+    if (!usernameValue || !emailValue || !passwordValue) {
       setError('All fields are required.');
       return;
     }
 
-    if (username.trim().length < 3 || username.trim().length > 30) {
+    if (usernameValue.length < 3 || usernameValue.length > 30) {
       setError('Username must be 3-30 characters.');
       return;
     }
 
-    if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(usernameValue)) {
       setError('Username may only contain letters, numbers, hyphens, and underscores.');
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
       setError('Please enter a valid email address.');
       return;
     }
 
-    if (password.length < 8) {
+    if (passwordValue.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
     }
 
-    if (!/[A-Z]/.test(password)) {
+    if (!/[A-Z]/.test(passwordValue)) {
       setError('Password must contain at least one uppercase letter.');
       return;
     }
 
-    if (!/[a-z]/.test(password)) {
+    if (!/[a-z]/.test(passwordValue)) {
       setError('Password must contain at least one lowercase letter.');
       return;
     }
 
-    if (!/[0-9]/.test(password)) {
+    if (!/[0-9]/.test(passwordValue)) {
       setError('Password must contain at least one number.');
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (passwordValue !== confirmValue) {
       setError('Passwords do not match.');
       return;
     }
@@ -145,10 +167,10 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
     setSubmitting(true);
     try {
       await completeSetup({
-        setup_secret: setupSecret.trim(),
-        username: username.trim(),
-        email: email.trim(),
-        password
+        setup_secret: secretValue,
+        username: usernameValue,
+        email: emailValue,
+        password: passwordValue
       });
 
       // Clear sensitive data
@@ -264,6 +286,7 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
               </span>
             </label>
             <input
+              ref={setupSecretRef}
               id="setup-secret"
               type="password"
               value={setupSecret}
@@ -287,6 +310,7 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
               Admin Username
             </label>
             <input
+              ref={usernameRef}
               id="setup-username"
               type="text"
               value={username}
@@ -307,6 +331,7 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
               Admin Email
             </label>
             <input
+              ref={emailRef}
               id="setup-email"
               type="email"
               value={email}
@@ -324,6 +349,7 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
               Password
             </label>
             <input
+              ref={passwordRef}
               id="setup-password"
               type="password"
               value={password}
@@ -343,6 +369,7 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
               Confirm Password
             </label>
             <input
+              ref={confirmPasswordRef}
               id="setup-confirm"
               type="password"
               value={confirmPassword}
