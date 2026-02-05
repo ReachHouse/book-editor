@@ -95,6 +95,7 @@ function validateTextField(value, fieldName, maxLength = MAX_TEXT_LENGTH) {
 
 /**
  * Check if a user has exceeded their daily or monthly token limits.
+ * A limit of 0 means unlimited (no limit enforcement).
  *
  * @param {number} userId - The user's ID
  * @returns {{ allowed: boolean, reason?: string }} Whether the request is allowed
@@ -103,20 +104,26 @@ function checkUsageLimits(userId) {
   const user = database.users.findById(userId);
   if (!user) return { allowed: false, reason: 'User not found' };
 
-  const daily = database.usageLogs.getDailyUsage(userId);
-  if (daily.total >= user.daily_token_limit) {
-    return {
-      allowed: false,
-      reason: `Daily token limit reached (${user.daily_token_limit.toLocaleString()} tokens). Resets at midnight UTC.`
-    };
+  // Check daily limit (0 = unlimited)
+  if (user.daily_token_limit > 0) {
+    const daily = database.usageLogs.getDailyUsage(userId);
+    if (daily.total >= user.daily_token_limit) {
+      return {
+        allowed: false,
+        reason: `Daily token limit reached (${user.daily_token_limit.toLocaleString()} tokens). Resets at midnight UTC.`
+      };
+    }
   }
 
-  const monthly = database.usageLogs.getMonthlyUsage(userId);
-  if (monthly.total >= user.monthly_token_limit) {
-    return {
-      allowed: false,
-      reason: `Monthly token limit reached (${user.monthly_token_limit.toLocaleString()} tokens). Resets on the 1st of next month.`
-    };
+  // Check monthly limit (0 = unlimited)
+  if (user.monthly_token_limit > 0) {
+    const monthly = database.usageLogs.getMonthlyUsage(userId);
+    if (monthly.total >= user.monthly_token_limit) {
+      return {
+        allowed: false,
+        reason: `Monthly token limit reached (${user.monthly_token_limit.toLocaleString()} tokens). Resets on the 1st of next month.`
+      };
+    }
   }
 
   return { allowed: true };

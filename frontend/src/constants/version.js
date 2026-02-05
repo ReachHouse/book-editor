@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.44.0 [Feature]  - 2026-02-05: Unlimited token limits — add "Unlimited" option for daily/monthly limits with gold styling, backend skips limit checks when limit is 0, LimitEditor checkbox toggles, UsageDisplay gold gradient bar for unlimited users
  * v1.43.2 [UI]       - 2026-02-05: Align spinner with Complete step — move spinner from header to Complete step icon position, shows spinner while processing and checkmark when done
  * v1.43.1 [Bugfix]   - 2026-02-05: Fix 504 timeout on large document downloads — increase frontend DOCX generation timeout from 3 to 5 minutes to match server timeout (large manuscripts with 40+ sections were timing out before generation completed)
  * v1.43.0 [UI]       - 2026-02-06: Design system standardization — text-[10px]→text-xs, glass-inner p-3.5→p-4, w-11→w-10 buttons, mb-5→mb-6 section spacing, mb-2.5→mb-2, gap-2.5→gap-2, h-1.5→h-2 progress bars, text-xl→text-lg headings, asymmetric padding fixes, consistent surface-400/500 text colors
@@ -132,13 +133,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.43.2';
+export const VERSION = '1.44.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'UI';
+export const VERSION_TAG = 'Feature';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

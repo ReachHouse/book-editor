@@ -32,7 +32,8 @@ import {
 // HELPERS
 // =============================================================================
 
-function formatTokenCount(count) {
+function formatTokenCount(count, isLimit = false) {
+  if (isLimit && count === 0) return 'Unlimited';
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${Math.round(count / 1000)}K`;
   return count.toString();
@@ -164,8 +165,18 @@ function UsersTab() {
                 <p className="text-xs text-surface-500 truncate">{user.email}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-surface-500">
                   <span>{user.projectCount} project{user.projectCount !== 1 ? 's' : ''}</span>
-                  <span>Daily: {formatTokenCount(user.daily.total)}/{formatTokenCount(user.daily.limit)}</span>
-                  <span>Monthly: {formatTokenCount(user.monthly.total)}/{formatTokenCount(user.monthly.limit)}</span>
+                  <span>
+                    Daily: {formatTokenCount(user.daily.total)}/
+                    <span className={user.daily.limit === 0 ? 'text-amber-400 font-medium' : ''}>
+                      {formatTokenCount(user.daily.limit, true)}
+                    </span>
+                  </span>
+                  <span>
+                    Monthly: {formatTokenCount(user.monthly.total)}/
+                    <span className={user.monthly.limit === 0 ? 'text-amber-400 font-medium' : ''}>
+                      {formatTokenCount(user.monthly.limit, true)}
+                    </span>
+                  </span>
                   <span>Last login: {formatDate(user.lastLoginAt)}</span>
                 </div>
               </div>
@@ -251,8 +262,10 @@ function UsersTab() {
 }
 
 function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
-  const [daily, setDaily] = useState(dailyLimit.toString());
-  const [monthly, setMonthly] = useState(monthlyLimit.toString());
+  const [dailyUnlimited, setDailyUnlimited] = useState(dailyLimit === 0);
+  const [monthlyUnlimited, setMonthlyUnlimited] = useState(monthlyLimit === 0);
+  const [daily, setDaily] = useState(dailyLimit === 0 ? '500000' : dailyLimit.toString());
+  const [monthly, setMonthly] = useState(monthlyLimit === 0 ? '10000000' : monthlyLimit.toString());
 
   // Validate that value is a non-negative integer
   const isValidLimit = (val) => {
@@ -260,49 +273,81 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
     return !isNaN(num) && num >= 0 && String(num) === val.trim();
   };
 
-  const isDailyValid = isValidLimit(daily);
-  const isMonthlyValid = isValidLimit(monthly);
+  const isDailyValid = dailyUnlimited || isValidLimit(daily);
+  const isMonthlyValid = monthlyUnlimited || isValidLimit(monthly);
   const canSave = isDailyValid && isMonthlyValid;
 
   // Generate unique ids for form fields
   const dailyId = `daily-limit-${React.useId ? React.useId() : Math.random().toString(36).slice(2)}`;
   const monthlyId = `monthly-limit-${React.useId ? React.useId() : Math.random().toString(36).slice(2)}`;
 
+  const handleSave = () => {
+    const dailyValue = dailyUnlimited ? '0' : daily;
+    const monthlyValue = monthlyUnlimited ? '0' : monthly;
+    onSave(dailyValue, monthlyValue);
+  };
+
   return (
     <div className="mt-3 p-3 rounded-lg bg-surface-800/50 border border-surface-700/50">
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
           <label htmlFor={dailyId} className="text-xs text-surface-400 block mb-1">Daily Token Limit</label>
-          <input
-            id={dailyId}
-            type="number"
-            value={daily}
-            onChange={(e) => setDaily(e.target.value)}
-            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
-              isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
-            }`}
-            min="0"
-            aria-invalid={!isDailyValid}
-          />
+          <label className="flex items-center gap-2 mb-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={dailyUnlimited}
+              onChange={(e) => setDailyUnlimited(e.target.checked)}
+              className="w-4 h-4 rounded border-surface-600 bg-surface-800 text-amber-500 focus:ring-amber-500/50"
+            />
+            <span className={`text-xs font-medium ${dailyUnlimited ? 'text-amber-400' : 'text-surface-500'}`}>
+              Unlimited
+            </span>
+          </label>
+          {!dailyUnlimited && (
+            <input
+              id={dailyId}
+              type="number"
+              value={daily}
+              onChange={(e) => setDaily(e.target.value)}
+              className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
+                isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+              }`}
+              min="0"
+              aria-invalid={!isDailyValid}
+            />
+          )}
         </div>
         <div>
           <label htmlFor={monthlyId} className="text-xs text-surface-400 block mb-1">Monthly Token Limit</label>
-          <input
-            id={monthlyId}
-            type="number"
-            value={monthly}
-            onChange={(e) => setMonthly(e.target.value)}
-            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
-              isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
-            }`}
-            min="0"
-            aria-invalid={!isMonthlyValid}
-          />
+          <label className="flex items-center gap-2 mb-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={monthlyUnlimited}
+              onChange={(e) => setMonthlyUnlimited(e.target.checked)}
+              className="w-4 h-4 rounded border-surface-600 bg-surface-800 text-amber-500 focus:ring-amber-500/50"
+            />
+            <span className={`text-xs font-medium ${monthlyUnlimited ? 'text-amber-400' : 'text-surface-500'}`}>
+              Unlimited
+            </span>
+          </label>
+          {!monthlyUnlimited && (
+            <input
+              id={monthlyId}
+              type="number"
+              value={monthly}
+              onChange={(e) => setMonthly(e.target.value)}
+              className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
+                isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+              }`}
+              min="0"
+              aria-invalid={!isMonthlyValid}
+            />
+          )}
         </div>
       </div>
       <div className="flex gap-2">
         <button
-          onClick={() => onSave(daily, monthly)}
+          onClick={handleSave}
           disabled={!canSave}
           className="text-xs px-3 py-1.5 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
