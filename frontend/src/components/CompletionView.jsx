@@ -46,14 +46,14 @@ function CompletionView({ onDownload, onEditAnother, isDownloading }) {
         </div>
 
         <div className="info-box-blue p-4">
-          <p className="text-sm text-blue-300/90 leading-relaxed">
-            <strong className="text-blue-300">Track Changes:</strong> Downloads as Word (.docx) with full change tracking
+          <p className="text-sm text-blue-300/90">
+            <strong className="text-blue-300">Word Document:</strong> Open in Word to review and accept or reject edits.
             <br />
-            <span className="text-red-400/90">Red strikethrough</span> for deletions
-            <span className="mx-1.5 text-blue-500/50">&#183;</span>
-            <span className="text-blue-300/90">Blue underline</span> for insertions
-            <br />
-            Open in Microsoft Word to review, accept, or reject changes.
+            <span className="text-surface-400 text-xs">
+              <span className="text-red-400/80">Red strikethrough</span> = deletions
+              <span className="mx-1.5 text-surface-600">·</span>
+              <span className="text-blue-300/80">Blue underline</span> = insertions
+            </span>
           </p>
         </div>
       </div>
