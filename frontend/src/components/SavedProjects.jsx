@@ -3,23 +3,21 @@
  * SAVED PROJECTS COMPONENT
  * =============================================================================
  *
- * Displays a list of previously edited books stored in IndexedDB (with localStorage fallback).
+ * Displays a list of previously edited books stored on the server.
  *
  * PROPS:
  * ------
- * @param {Array} projects - Array of project objects from useProjects hook
- * @param {function} onDownload - Callback to download a completed project
- * @param {function} onResume - Callback to resume an incomplete project
+ * @param {Array} projects - Array of project metadata from useProjects hook
+ * @param {function} onDownload - Callback to download a completed project (receives project)
+ * @param {function} onResume - Callback to resume an incomplete project (receives project)
  * @param {function} onDelete - Callback to delete a project (receives projectId)
  * @param {boolean} isDownloading - True while a download is in progress
- * @param {Object} storageInfo - Storage usage info from useProjects hook
  *
  * =============================================================================
  */
 
 import React, { useState } from 'react';
-import { Clock, Download, Play, Trash2, Check, X, Loader, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
-import { formatFileName } from '../utils/documentUtils';
+import { Clock, Download, Play, Trash2, Check, X, Loader, FileText, CheckCircle } from 'lucide-react';
 
 /**
  * List of saved projects with actions.
@@ -29,8 +27,7 @@ function SavedProjects({
   onDownload,
   onResume,
   onDelete,
-  isDownloading,
-  storageInfo
+  isDownloading
 }) {
   if (!projects || projects.length === 0) return null;
 
@@ -46,20 +43,6 @@ function SavedProjects({
           <p className="text-sm text-surface-400">Download or resume previous edits</p>
         </div>
       </div>
-
-      {/* Storage Warning */}
-      {storageInfo && storageInfo.isWarning && (
-        <div className="info-box-amber p-3.5 mb-5 flex items-start gap-3">
-          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-amber-200 font-semibold text-sm">Storage Nearly Full</p>
-            <p className="text-amber-300/70 text-xs mt-0.5">
-              Using {storageInfo.usedMB} MB of {storageInfo.limitMB} MB ({storageInfo.percentUsed}%).
-              Delete old projects to free up space.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Project List */}
       <div className="space-y-2">
@@ -84,23 +67,21 @@ function SavedProjects({
  */
 function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const progressPercent = project.totalChunks > 0
     ? Math.round((project.chunksCompleted / project.totalChunks) * 100)
     : 0;
 
-  const handleDownload = () => {
-    const content = project.docContent || {
-      original: project.originalText,
-      edited: project.fullEditedText,
-      fileName: formatFileName(project.fileName)
-    };
-    onDownload(content);
-  };
-
-  const handleConfirmDelete = () => {
-    onDelete(project.id);
-    setConfirmingDelete(false);
+  const handleConfirmDelete = async () => {
+    if (isDeleting) return; // Prevent double-click
+    setIsDeleting(true);
+    try {
+      await onDelete(project.id);
+    } finally {
+      setIsDeleting(false);
+      setConfirmingDelete(false);
+    }
   };
 
   return (
@@ -159,18 +140,26 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
 
       {/* Actions */}
       {confirmingDelete ? (
-        <div className="flex gap-2 flex-shrink-0 items-center">
-          <span className="text-xs text-surface-400 mr-1">Delete?</span>
+        <div className="flex gap-2 flex-shrink-0 items-center" aria-live="polite">
+          <span className="text-xs text-surface-400 mr-1">
+            {isDeleting ? 'Deleting...' : 'Delete?'}
+          </span>
           <button
             onClick={handleConfirmDelete}
-            className="w-11 h-11 flex items-center justify-center rounded-lg bg-red-600/80 hover:bg-red-500 active:scale-95 text-white transition-all duration-200 focus-ring"
+            disabled={isDeleting}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-red-600/80 hover:bg-red-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-50 focus-ring"
             aria-label="Confirm delete"
           >
-            <Check className="w-4 h-4" />
+            {isDeleting ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <Check className="w-4 h-4" />
+            )}
           </button>
           <button
             onClick={() => setConfirmingDelete(false)}
-            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-surface-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
+            disabled={isDeleting}
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-surface-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 disabled:opacity-50 focus-ring"
             aria-label="Cancel delete"
           >
             <X className="w-4 h-4" />
@@ -180,7 +169,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
         <div className="flex gap-2 flex-shrink-0">
           {project.isComplete && (
             <button
-              onClick={handleDownload}
+              onClick={() => onDownload(project)}
               disabled={isDownloading}
               className="w-11 h-11 flex items-center justify-center rounded-lg bg-brand-600/80 hover:bg-brand-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-40 focus-ring"
               title="Download Word document with Track Changes"

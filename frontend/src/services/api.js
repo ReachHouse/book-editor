@@ -9,9 +9,13 @@
  *
  * API ENDPOINTS:
  * --------------
- * POST /api/edit-chunk         - Send text to Claude for editing
- * POST /api/generate-style-guide - Generate consistency guide from first chunk
- * POST /api/generate-docx      - Create Word document with Track Changes
+ * POST   /api/edit-chunk          - Send text to Claude for editing
+ * POST   /api/generate-style-guide - Generate consistency guide from first chunk
+ * POST   /api/generate-docx       - Create Word document with Track Changes
+ * GET    /api/projects            - List user's projects (metadata)
+ * GET    /api/projects/:id        - Get full project data
+ * PUT    /api/projects/:id        - Save/update a project
+ * DELETE /api/projects/:id        - Delete a project
  *
  * RETRY LOGIC:
  * ------------
@@ -33,6 +37,12 @@
  * Exception: generateStyleGuide fails silently and returns a default guide,
  * since it's not critical to the editing process.
  *
+ * AUTHENTICATION:
+ * ---------------
+ * All API requests include a JWT access token in the Authorization header.
+ * The getAuthHeaders() helper reads the token from localStorage and
+ * auto-refreshes it when expired.
+ *
  * USAGE:
  * ------
  * import { editChunk, generateStyleGuide, downloadDocument } from './services/api';
@@ -49,13 +59,101 @@
  * =============================================================================
  */
 
-import { API_BASE_URL, API_CONFIG } from '../constants';
+import { API_BASE_URL, API_CONFIG, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
 
 /**
  * Default timeout for API requests (5 minutes)
  * Editing large chunks can take time; this prevents indefinite hangs
  */
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
+
+// =============================================================================
+// AUTHENTICATION HELPERS
+// =============================================================================
+
+/**
+ * Shared refresh promise to prevent concurrent refresh requests.
+ * All concurrent API calls share this single promise so only one
+ * refresh request is sent to the server at a time.
+ */
+let refreshPromise = null;
+
+/**
+ * Decode a JWT payload to check expiry (no signature verification).
+ * @param {string} token
+ * @returns {Object|null}
+ */
+function decodeJwt(token) {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Refresh the access token using the stored refresh token.
+ * Returns the new access token, or null on failure.
+ *
+ * @returns {Promise<string|null>}
+ */
+async function refreshAccessToken() {
+  if (refreshPromise) return refreshPromise;
+
+  const refreshToken = localStorage.getItem(AUTH_KEYS.REFRESH);
+  if (!refreshToken) return null;
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken })
+      });
+      if (!res.ok) {
+        // Refresh failed — clear auth (will cause redirect to login)
+        localStorage.removeItem(AUTH_KEYS.TOKEN);
+        localStorage.removeItem(AUTH_KEYS.REFRESH);
+        localStorage.removeItem(AUTH_KEYS.USER);
+        return null;
+      }
+      const data = await res.json();
+      localStorage.setItem(AUTH_KEYS.TOKEN, data.accessToken);
+      localStorage.setItem(AUTH_KEYS.REFRESH, data.refreshToken);
+      localStorage.setItem(AUTH_KEYS.USER, JSON.stringify(data.user));
+      return data.accessToken;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+/**
+ * Get headers including a valid Authorization token.
+ * Auto-refreshes the token if it's about to expire.
+ *
+ * @returns {Promise<Object>} Headers object with Content-Type and Authorization
+ */
+async function getAuthHeaders() {
+  let token = localStorage.getItem(AUTH_KEYS.TOKEN);
+
+  if (token) {
+    const decoded = decodeJwt(token);
+    if (decoded && decoded.exp && Date.now() >= decoded.exp * 1000 - TOKEN_REFRESH_BUFFER_MS) {
+      token = await refreshAccessToken();
+    }
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 /**
  * Fetch wrapper with timeout support using AbortController.
@@ -106,10 +204,13 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
   logFn('Sending section to editor...');
 
   try {
+    // Get auth headers (auto-refreshes token if needed)
+    const headers = await getAuthHeaders();
+
     // Make the API request with timeout
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/edit-chunk`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ text, styleGuide, isFirst })
     });
 
@@ -168,9 +269,11 @@ export async function generateStyleGuide(text, logFn) {
   try {
     logFn('Building consistency guide from first section...');
 
+    const headers = await getAuthHeaders();
+
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/generate-style-guide`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ text })
     }, 2 * 60 * 1000); // 2 minute timeout for style guide (shorter task)
 
@@ -206,10 +309,13 @@ export async function generateStyleGuide(text, logFn) {
  * @throws {Error} If document generation fails
  */
 export async function downloadDocument(content) {
+  // Get auth headers (auto-refreshes token if needed)
+  const headers = await getAuthHeaders();
+
   // Request the document from the server with timeout
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/generate-docx`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       originalText: content.original,
       editedText: content.edited,
@@ -237,10 +343,292 @@ export async function downloadDocument(content) {
   const a = document.createElement('a');
   a.href = url;
   a.download = content.fileName;
-  document.body.appendChild(a);
-  a.click();
 
-  // Clean up
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    document.body.appendChild(a);
+    a.click();
+  } finally {
+    // Always clean up to prevent memory leaks
+    if (a.parentNode) {
+      document.body.removeChild(a);
+    }
+    URL.revokeObjectURL(url);
+  }
+}
+
+// =============================================================================
+// USAGE API
+// =============================================================================
+
+/**
+ * Get the current user's usage summary (daily + monthly).
+ *
+ * @returns {Promise<Object>} Usage data with daily/monthly totals, limits, percentages
+ */
+export async function getUsage() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/usage`, {
+    method: 'GET',
+    headers
+  }, 15000);
+
+  if (!response.ok) {
+    throw new Error(`Failed to load usage data (${response.status})`);
+  }
+
+  return await response.json();
+}
+
+// =============================================================================
+// PROJECT API
+// =============================================================================
+
+/**
+ * List all projects for the current user (metadata only).
+ *
+ * @returns {Promise<Array>} Array of project metadata objects
+ */
+export async function listProjects() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects`, {
+    method: 'GET',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    throw new Error(`Failed to load projects (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.projects;
+}
+
+/**
+ * Get a single project with full data (text content included).
+ *
+ * @param {string} projectId - The project ID
+ * @returns {Promise<Object>} Full project data
+ */
+export async function getProject(projectId) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${projectId}`, {
+    method: 'GET',
+    headers
+  }, 60000);
+
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    throw new Error(`Failed to load project (${response.status})`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * Save or update a project on the server.
+ *
+ * @param {Object} projectData - Project data to save
+ * @returns {Promise<Object>} Saved project metadata
+ */
+export async function saveProject(projectData) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${projectData.id}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(projectData)
+  }, 60000);
+
+  if (!response.ok) {
+    let errorMessage = `Failed to save project (${response.status})`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch {
+      // Response wasn't JSON
+    }
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  return data.project;
+}
+
+/**
+ * Delete a project from the server.
+ *
+ * @param {string} projectId - The project ID to delete
+ * @returns {Promise<void>}
+ */
+export async function deleteProjectApi(projectId) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${projectId}`, {
+    method: 'DELETE',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete project (${response.status})`);
+  }
+}
+
+// =============================================================================
+// ADMIN API
+// =============================================================================
+
+/**
+ * List all users with usage data (admin only).
+ *
+ * @returns {Promise<Array>} Array of user objects
+ */
+export async function adminListUsers() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/users`, {
+    method: 'GET',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to load users (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.users;
+}
+
+/**
+ * Update a user's role, limits, or active status (admin only).
+ *
+ * @param {number} userId - User ID to update
+ * @param {Object} fields - Fields to update
+ * @returns {Promise<Object>} Updated user object
+ */
+export async function adminUpdateUser(userId, fields) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/users/${userId}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(fields)
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to update user (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.user;
+}
+
+/**
+ * Delete a user (admin only).
+ *
+ * @param {number} userId - User ID to delete
+ * @returns {Promise<void>}
+ */
+export async function adminDeleteUser(userId) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to delete user (${response.status})`);
+  }
+}
+
+/**
+ * List all invite codes (admin only).
+ *
+ * @returns {Promise<Array>} Array of invite code objects
+ */
+export async function adminListInviteCodes() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/invite-codes`, {
+    method: 'GET',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to load invite codes (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.codes;
+}
+
+/**
+ * Generate a new invite code (admin only).
+ *
+ * @returns {Promise<Object>} The generated invite code object
+ */
+export async function adminCreateInviteCode() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/invite-codes`, {
+    method: 'POST',
+    headers
+  }, 30000);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to generate invite code (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.code;
+}
+
+// =============================================================================
+// FIRST-TIME SETUP (No auth required - only works when no users exist)
+// =============================================================================
+
+/**
+ * Check if first-time setup is required.
+ * Returns true if the database has no users.
+ *
+ * @returns {Promise<boolean>} True if setup wizard should be shown
+ */
+export async function checkSetupRequired() {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/setup/status`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  }, 10000);
+
+  if (!response.ok) {
+    // On error, assume setup not required (show login instead)
+    console.error('Failed to check setup status');
+    return false;
+  }
+
+  const data = await response.json();
+  return data.needsSetup === true;
+}
+
+/**
+ * Complete first-time setup by creating the initial admin account.
+ * Only works when no users exist in the database.
+ *
+ * @param {Object} params - Setup parameters
+ * @param {string} params.username - Admin username (3-30 chars, alphanumeric/-/_)
+ * @param {string} params.email - Admin email
+ * @param {string} params.password - Admin password (8+ chars, upper/lower/number)
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export async function completeSetup({ username, email, password }) {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/setup/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, email, password })
+  }, 30000);
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || `Setup failed (${response.status})`);
+  }
+
+  return data;
 }

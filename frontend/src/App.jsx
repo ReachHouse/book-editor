@@ -3,14 +3,24 @@
  *
  * AI-powered manuscript editing with native Word Track Changes support.
  * Refactored for maintainability with modular components and services.
+ *
+ * AUTH FLOW:
+ * ----------
+ * - AppWrapper renders AuthProvider around App
+ * - App checks isAuthenticated from useAuth()
+ * - If not authenticated: shows LoginPage or RegisterPage
+ * - If authenticated: shows the editor as before
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Loader } from 'lucide-react';
 import * as mammoth from 'mammoth';
 
 // Maximum log entries to prevent memory leak
 const MAX_LOG_ENTRIES = 500;
+
+// Auth
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Components
 import {
@@ -22,15 +32,20 @@ import {
   CompletionView,
   SavedProjects,
   ErrorDisplay,
+  LoginPage,
+  RegisterPage,
+  UsageDisplay,
+  AdminDashboard,
   ToastContainer
 } from './components';
+import SetupWizard from './components/SetupWizard';
 
 // Hooks
 import { useProjects } from './hooks/useProjects';
 import { useToast } from './hooks/useToast';
 
 // Services
-import { editChunk, generateStyleGuide, downloadDocument } from './services/api';
+import { editChunk, generateStyleGuide, downloadDocument, checkSetupRequired } from './services/api';
 
 // Utils & Constants
 import {
@@ -49,6 +64,38 @@ import { CHUNK_SIZES, VERSION_DISPLAY } from './constants';
 // ============================================================================
 
 function App() {
+  // Auth state
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const [authPage, setAuthPage] = useState('login'); // 'login' or 'register'
+
+  // Setup wizard state (for first-time setup when no users exist)
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
+
+  // Check if first-time setup is required on mount
+  useEffect(() => {
+    let mounted = true;
+
+    async function checkSetup() {
+      try {
+        const setupRequired = await checkSetupRequired();
+        if (mounted) {
+          setNeedsSetup(setupRequired);
+        }
+      } catch (err) {
+        // On error, assume setup not required (show login)
+        console.error('Failed to check setup status:', err);
+      } finally {
+        if (mounted) {
+          setCheckingSetup(false);
+        }
+      }
+    }
+
+    checkSetup();
+    return () => { mounted = false; };
+  }, []);
+
   // File and analysis state
   const [file, setFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
@@ -63,16 +110,17 @@ function App() {
   const [error, setError] = useState(null);
   const [debugLog, setDebugLog] = useState([]);
   const [showStyleGuide, setShowStyleGuide] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
 
-  // Projects hook
+  // Projects hook (server-backed storage)
   const {
     savedProjects,
     loading: loadingStorage,
     loadProjects,
     saveProject,
     deleteProject,
-    storageInfo
+    getProject
   } = useProjects();
 
   // Toast notifications
@@ -87,8 +135,9 @@ function App() {
 
   const addLog = useCallback((message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString();
+    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setDebugLog(prev => {
-      const newLog = [...prev, { timestamp, message, type }];
+      const newLog = [...prev, { id, timestamp, message, type }];
       // Limit log entries to prevent memory leak
       if (newLog.length > MAX_LOG_ENTRIES) {
         return newLog.slice(-MAX_LOG_ENTRIES);
@@ -361,12 +410,52 @@ function App() {
     }
   };
 
+  /**
+   * Handle download from saved projects list.
+   * Fetches full project data from server, then triggers download.
+   */
+  const handleProjectDownload = async (project) => {
+    setDownloadingDocx(true);
+    try {
+      const fullProject = await getProject(project.id);
+      if (!fullProject) {
+        setError('Project not found. It may have been deleted.');
+        return;
+      }
+      const content = fullProject.docContent || {
+        original: fullProject.originalText,
+        edited: fullProject.fullEditedText,
+        fileName: formatFileName(fullProject.fileName)
+      };
+      await downloadDocument(content);
+      addToast('Document downloaded successfully', 'success');
+    } catch (err) {
+      console.error('Download error:', err);
+      if (err.message.includes('Failed to fetch')) {
+        setError('Cannot connect to server. Please try again later.');
+      } else {
+        setError('Download failed: ' + err.message);
+      }
+    } finally {
+      setDownloadingDocx(false);
+    }
+  };
+
   // ============================================================================
   // PROJECT MANAGEMENT HANDLERS
   // ============================================================================
 
-  const handleResume = (project) => {
-    processBook(project);
+  const handleResume = async (project) => {
+    try {
+      const fullProject = await getProject(project.id);
+      if (!fullProject) {
+        setError('Project not found. It may have been deleted.');
+        return;
+      }
+      processBook(fullProject);
+    } catch (err) {
+      setError('Failed to load project: ' + err.message);
+    }
   };
 
   const handleDeleteProject = async (projectId) => {
@@ -392,11 +481,58 @@ function App() {
   // Stable callbacks for components that only use state setters (safe with empty deps)
   const handleShowStyleGuide = useCallback(() => setShowStyleGuide(true), []);
   const handleCloseStyleGuide = useCallback(() => setShowStyleGuide(false), []);
+  const handleShowAdmin = useCallback(() => setShowAdmin(true), []);
+  const handleCloseAdmin = useCallback(() => setShowAdmin(false), []);
 
   // ============================================================================
   // RENDER
   // ============================================================================
 
+  // Checking setup status
+  if (checkingSetup) {
+    return (
+      <div className="min-h-screen bg-surface-950 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" />
+          <p className="text-surface-400 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // First-time setup required — show setup wizard
+  if (needsSetup) {
+    return (
+      <SetupWizard
+        onSetupComplete={() => {
+          setNeedsSetup(false);
+          setAuthPage('login');
+        }}
+      />
+    );
+  }
+
+  // Auth loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-surface-950 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" />
+          <p className="text-surface-400 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated — show login or register page
+  if (!isAuthenticated) {
+    if (authPage === 'register') {
+      return <RegisterPage onSwitchToLogin={() => setAuthPage('login')} />;
+    }
+    return <LoginPage onSwitchToRegister={() => setAuthPage('register')} />;
+  }
+
+  // Authenticated — show the editor
   return (
     <div className="min-h-screen bg-surface-950 text-surface-200 relative overflow-hidden">
       {/* Toast Notifications */}
@@ -417,7 +553,10 @@ function App() {
       <div className="relative container mx-auto px-4 sm:px-6 py-10 sm:py-14 max-w-4xl">
 
         {/* Header */}
-        <Header onShowStyleGuide={handleShowStyleGuide} />
+        <Header onShowStyleGuide={handleShowStyleGuide} onShowAdmin={handleShowAdmin} user={user} />
+
+        {/* Usage Display */}
+        <UsageDisplay />
 
         {/* Style Guide Modal */}
         <StyleGuideModal
@@ -425,53 +564,59 @@ function App() {
           onClose={handleCloseStyleGuide}
         />
 
-        {/* Loading State */}
-        {loadingStorage && (
-          <div className="glass-card py-10 text-center animate-fade-in" role="status" aria-label="Loading saved projects">
-            <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" aria-hidden="true" />
-            <p className="text-surface-400 text-sm">Loading saved projects...</p>
-          </div>
-        )}
-
-        {/* Error Display */}
-        <ErrorDisplay error={error} debugLog={debugLog} />
-
-        {/* Upload Section */}
-        {!file && !loadingStorage && (
+        {/* Admin Dashboard (full-page view for admins) */}
+        {showAdmin && user?.role === 'admin' ? (
+          <AdminDashboard onClose={handleCloseAdmin} />
+        ) : (
           <>
-            <FileUpload onFileSelect={handleFileUpload} />
-            <SavedProjects
-              projects={savedProjects}
-              onDownload={handleDownload}
-              onResume={handleResume}
-              onDelete={handleDeleteProject}
-              isDownloading={downloadingDocx}
-              storageInfo={storageInfo}
-            />
+            {/* Loading State */}
+            {loadingStorage && (
+              <div className="glass-card py-10 text-center animate-fade-in" role="status" aria-label="Loading saved projects">
+                <Loader className="w-8 h-8 mx-auto mb-3 text-brand-400 animate-spin" aria-hidden="true" />
+                <p className="text-surface-400 text-sm">Loading saved projects...</p>
+              </div>
+            )}
+
+            {/* Error Display */}
+            <ErrorDisplay error={error} debugLog={debugLog} />
+
+            {/* Upload Section */}
+            {!file && !loadingStorage && (
+              <>
+                <FileUpload onFileSelect={handleFileUpload} />
+                <SavedProjects
+                  projects={savedProjects}
+                  onDownload={handleProjectDownload}
+                  onResume={handleResume}
+                  onDelete={handleDeleteProject}
+                  isDownloading={downloadingDocx}
+                />
+              </>
+            )}
+
+            {/* Analysis Results */}
+            {analysis && !processing && !completed && (
+              <DocumentAnalysis
+                analysis={analysis}
+                onStartEditing={() => processBook()}
+                onCancel={handleReset}
+              />
+            )}
+
+            {/* Processing Display */}
+            {processing && (
+              <ProcessingView progress={progress} debugLog={debugLog} />
+            )}
+
+            {/* Completion Display */}
+            {completed && (
+              <CompletionView
+                onDownload={() => handleDownload(editedContent)}
+                onEditAnother={handleReset}
+                isDownloading={downloadingDocx}
+              />
+            )}
           </>
-        )}
-
-        {/* Analysis Results */}
-        {analysis && !processing && !completed && (
-          <DocumentAnalysis
-            analysis={analysis}
-            onStartEditing={() => processBook()}
-            onCancel={handleReset}
-          />
-        )}
-
-        {/* Processing Display */}
-        {processing && (
-          <ProcessingView progress={progress} debugLog={debugLog} />
-        )}
-
-        {/* Completion Display */}
-        {completed && (
-          <CompletionView
-            onDownload={() => handleDownload(editedContent)}
-            onEditAnother={handleReset}
-            isDownloading={downloadingDocx}
-          />
         )}
 
         {/* Footer */}
@@ -489,4 +634,15 @@ function App() {
   );
 }
 
-export default App;
+/**
+ * AppWrapper wraps the main App in AuthProvider so useAuth() works everywhere.
+ */
+function AppWrapper() {
+  return (
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+}
+
+export default AppWrapper;

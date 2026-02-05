@@ -1,6 +1,6 @@
 {
   "name": "book-editor",
-  "version": "1.22.0",
+  "version": "1.36.0",
   "description": "Professional Book Editor with AI-powered editing",
   "main": "server.js",
   "scripts": {
@@ -10,12 +10,16 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.10.0",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "docx": "^9.5.1",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "express-rate-limit": "^8.2.1"
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3"
   },
   "engines": {
     "node": ">=18.0.0"

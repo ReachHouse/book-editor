@@ -50,6 +50,22 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.36.0 [Feature]  - 2026-02-05: First-run setup wizard — browser-based admin account creation when no users exist, no hardcoded credentials, secure /api/setup endpoints with validation, SetupWizard component, 15 new tests (550 total)
+ * v1.35.0 [Config]   - 2026-02-05: Simple default credentials — admin password defaults to "ChangeMe123!" and invite code to "WELCOME2025" for easy first-time setup, no digging through logs (535 total)
+ * v1.34.0 [Bugfix]   - 2026-02-05: Input validation & race conditions — FileUpload validates file size (50MB max) and type before upload with error display, SavedProjects delete button loading state prevents double-click race condition, updated tests (535 total)
+ * v1.33.0 [Bugfix]   - 2026-02-05: Reliability hardening — separate JWT verification from DB lookup in auth middleware (prevents error masking), fix UsageDisplay unmount race condition, add unique IDs to debug logs, add accessibility to DebugLog, validate style guide config at load time (535 total)
+ * v1.32.0 [Bugfix]   - 2026-02-05: Production hardening — graceful shutdown with interval cleanup, uncaughtException/unhandledRejection handlers, server error listener, consistent token expiry timestamps, JSON serialization error handling, null check on project save, frontend setTimeout cleanup in useToast and StyleGuideModal (535 total)
+ * v1.31.0 [Bugfix]   - 2026-02-05: Deep audit & polish — safeJsonParse for corrupted DB data, fix date reuse in login lockout, email length validation (254 max), token limit upper bounds (100M max), logout validation, conditional console logging, URL memory leak fix in downloadDocument, 4 new regression tests (535 total)
+ * v1.30.0 [Security] - 2026-02-05: Security hardening — Helmet.js security headers (CSP, X-Frame-Options, HSTS), stronger password requirements (uppercase, lowercase, number), error IDs for debugging, frontend password validation, 6 new tests (531 total)
+ * v1.29.1 [Bugfix]   - 2026-02-05: Deep audit — fix negative limit parameter in usage history endpoint, add LimitEditor client-side validation, update Header JSDoc, add regression tests (528 total)
+ * v1.29.0 [Feature]  - 2026-02-05: Admin dashboard — user management (list/update/delete users, role toggle, limits editor), invite code management (list/generate codes), AdminDashboard component with tabs, 5 admin API endpoints, 37 new tests (526 total)
+ * v1.28.0 [Feature]  - 2026-02-05: Usage tracking & limits — log token usage per API call, enforce daily/monthly limits (429), usage summary endpoints, admin stats, frontend UsageDisplay with progress bars (471 tests)
+ * v1.27.0 [Feature]  - 2026-02-05: Server-side project storage — CRUD endpoints, SQLite upsert, metadata-only listing, full-project fetch, 50 project limit, frontend API migration (440 tests)
+ * v1.26.1 [Bugfix]   - 2026-02-05: Deep audit — fix registration race condition, session datetime format, stale login data, DB update bug, JSON parse errors; add rate limiting on refresh, periodic session cleanup, shared auth constants, logout loading state; clear passwords from state, remove dead code, update tests (396 total)
+ * v1.26.0 [Feature]  - 2026-02-05: Full-stack authentication — JWT access/refresh tokens, bcrypt passwords, invite-code registration, login with lockout, auth middleware, AuthContext, LoginPage, RegisterPage, protected API routes, 75 new auth tests (396 total)
+ * v1.25.0 [Feature]  - 2026-02-05: SQLite database foundation — schema, migrations, user/session/usage tables, Docker volume persistence, 60 database tests
+ * v1.24.0 [Bugfix]   - 2026-02-05: Request persistent storage to prevent browser eviction, fix migration data loss, warn on non-persistent storage
+ * v1.23.0 [Bugfix]   - 2026-02-05: Fix storage display not updating after deletion, increase storage limit to 100MB
  * v1.22.0 [Bugfix]   - 2026-02-04: Fix handleResume stuck state, handleReset stale error, chunkSize legacy resume, progressPercent NaN, stale JSDoc
  * v1.21.0 [Bugfix]   - 2026-02-04: Fix double formatFileName bug (_EDITED_EDITED), remove dead checkApiStatus, gitignore stale build artifacts
  * v1.20.0 [Refactor] - 2026-02-04: Fix stale closure bug, fix storageInfo prop, remove dead CSS/config, align keyframes, CSS utility extraction, timer cleanup
@@ -100,18 +116,18 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.22.0';
+export const VERSION = '1.36.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Bugfix';
+export const VERSION_TAG = 'Feature';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
  */
-export const VERSION_DATE = '2026-02-04';
+export const VERSION_DATE = '2026-02-05';
 
 /**
  * Combined display string shown in the UI footer

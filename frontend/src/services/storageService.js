@@ -7,7 +7,7 @@
  * with localStorage fallback for browsers that don't support IndexedDB.
  *
  * IndexedDB provides:
- * - 50MB+ storage (vs 5-10MB for localStorage)
+ * - 100MB storage (vs 5-10MB for localStorage)
  * - Better performance for large objects
  * - Async operations that don't block the main thread
  *
@@ -36,7 +36,7 @@ const STORE_NAME = 'projects';
 const LOCALSTORAGE_PREFIX = 'book_';
 
 // Storage limits
-const INDEXEDDB_LIMIT_BYTES = 50 * 1024 * 1024; // 50 MB
+const INDEXEDDB_LIMIT_BYTES = 100 * 1024 * 1024; // 100 MB
 const LOCALSTORAGE_LIMIT_BYTES = 5 * 1024 * 1024; // 5 MB
 const WARNING_THRESHOLD = 0.8; // 80%
 
@@ -48,6 +48,7 @@ class StorageService {
     this.db = null;
     this.useIndexedDB = false;
     this.initialized = false;
+    this.isPersistent = false;
   }
 
   /**
@@ -72,10 +73,15 @@ class StorageService {
       this.db = await this._openDatabase();
       this.useIndexedDB = true;
 
+      // Request persistent storage to prevent browser eviction.
+      // Without this, browsers can clear IndexedDB data when disk space is low,
+      // after periods of inactivity, or (Safari ITP) after 7 days.
+      await this._requestPersistentStorage();
+
       // Migrate any existing localStorage data to IndexedDB
       await this._migrateFromLocalStorage();
 
-      console.log('StorageService initialized with IndexedDB');
+      console.log(`StorageService initialized with IndexedDB (persistent: ${this.isPersistent})`);
     } catch (error) {
       console.warn('IndexedDB initialization failed, using localStorage fallback:', error);
       this.useIndexedDB = false;
@@ -117,7 +123,26 @@ class StorageService {
   }
 
   /**
+   * Request persistent storage from the browser.
+   * Prevents the browser from evicting IndexedDB data during low disk space,
+   * inactivity, or Safari ITP cleanup.
+   *
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _requestPersistentStorage() {
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        this.isPersistent = await navigator.storage.persist();
+      }
+    } catch {
+      // Permission denied or API unavailable — storage remains best-effort
+    }
+  }
+
+  /**
    * Migrate existing localStorage projects to IndexedDB.
+   * Only removes from localStorage after confirmed IndexedDB write.
    *
    * @returns {Promise<void>}
    * @private
@@ -135,10 +160,17 @@ class StorageService {
         if (data) {
           const project = JSON.parse(data);
           await this._saveToIndexedDB(project);
-          localStorage.removeItem(key);
+          // Verify the write succeeded before removing from localStorage
+          const saved = await this._getFromIndexedDB(project.id);
+          if (saved) {
+            localStorage.removeItem(key);
+          } else {
+            console.warn(`Migration verify failed for ${key}, keeping in localStorage`);
+          }
         }
       } catch (error) {
-        console.error(`Failed to migrate project ${key}:`, error);
+        // Keep data in localStorage if migration fails — don't delete it
+        console.error(`Failed to migrate project ${key}, keeping in localStorage:`, error);
       }
     }
 
@@ -223,12 +255,9 @@ class StorageService {
    * @private
    */
   async _getIndexedDBUsage() {
-    if (navigator.storage && navigator.storage.estimate) {
-      const estimate = await navigator.storage.estimate();
-      return estimate.usage || 0;
-    }
-
-    // Fallback: estimate by getting all projects and measuring their size
+    // Always measure actual project data for accurate, immediate results.
+    // navigator.storage.estimate() reports total origin usage (not just our DB)
+    // and doesn't update immediately after deletions.
     const projects = await this._getAllFromIndexedDB();
     let total = 0;
     for (const project of projects) {
@@ -366,7 +395,7 @@ class StorageService {
   /**
    * Get storage usage information.
    *
-   * @returns {Promise<Object>} { usedBytes, limitBytes, usedMB, limitMB, percentUsed, isWarning, storageType }
+   * @returns {Promise<Object>} { usedBytes, limitBytes, usedMB, limitMB, percentUsed, isWarning, isPersistent, storageType }
    */
   async getStorageInfo() {
     if (!this.initialized) await this.init();
@@ -390,6 +419,7 @@ class StorageService {
       limitMB: (limitBytes / 1024 / 1024).toFixed(0),
       percentUsed: Math.round(percentUsed * 100),
       isWarning: percentUsed >= WARNING_THRESHOLD,
+      isPersistent: this.isPersistent,
       storageType: this.useIndexedDB ? 'IndexedDB' : 'localStorage'
     };
   }

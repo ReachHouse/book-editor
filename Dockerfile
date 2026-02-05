@@ -18,6 +18,12 @@
 # Stage 1 (frontend-build): Builds React app with Vite
 # Stage 2 (production): Creates final runtime image
 #
+# NATIVE MODULES:
+# ---------------
+# better-sqlite3 requires C/C++ compilation (build-base, python3).
+# Build tools are installed temporarily and removed after npm install
+# to keep the final image small.
+#
 # USAGE:
 # ------
 # Build:
@@ -38,12 +44,20 @@
 # 5. Run: docker compose up -d
 # 6. Verify: curl http://localhost:3002/health
 #
+# DATA PERSISTENCE:
+# -----------------
+# SQLite database file is stored at /app/data/book-editor.db
+# Mount a Docker volume to /app/data for persistence across container restarts.
+# See docker-compose.yml for the volume configuration.
+#
 # FILES COPIED TO IMAGE:
 # ----------------------
 # Backend:
 #   - server.js          → Main Express server
-#   - routes/            → API route handlers (health.js, api.js)
-#   - services/          → Business logic (anthropicService.js, diffService.js, documentService.js)
+#   - routes/            → API route handlers (health.js, api.js, auth.js)
+#   - services/          → Business logic (anthropicService.js, authService.js, database.js, etc.)
+#   - middleware/         → Express middleware (auth.js)
+#   - database/          → Database migrations
 #   - config/            → Configuration (styleGuide.js)
 #   - package.json       → Dependencies
 #
@@ -93,9 +107,13 @@ FROM node:18-alpine AS production
 WORKDIR /app
 
 # Copy package files and install production dependencies only
-# Using npm install since package-lock.json may not exist in repo
+# better-sqlite3 requires build tools for native compilation;
+# install temporarily, then remove to keep image small.
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev && npm cache clean --force
+RUN apk add --no-cache --virtual .build-deps python3 make g++ && \
+    npm install --omit=dev && \
+    npm cache clean --force && \
+    apk del .build-deps
 
 # Copy backend server and module directories
 # IMPORTANT: If you create new directories (middleware/, utils/, etc.),
@@ -103,10 +121,12 @@ RUN npm install --omit=dev && npm cache clean --force
 COPY server.js ./
 COPY routes/ ./routes/
 COPY services/ ./services/
+COPY middleware/ ./middleware/
+COPY database/ ./database/
 COPY config/ ./config/
 
-# Create public directory for static files
-RUN mkdir -p public
+# Create public directory for static files and data directory for SQLite
+RUN mkdir -p public data
 
 # Copy built frontend from Stage 1
 # The Express server serves these files from /public

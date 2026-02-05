@@ -27,6 +27,8 @@
  * - SavedProjects: List of previously edited books (resume/download)
  * - ErrorDisplay: Error messages with optional debug log
  * - DebugLog: Timestamped log entries for debugging
+ * - LoginPage: Login form (shown when not authenticated)
+ * - RegisterPage: Registration form with invite code
  *
  * APPLICATION FLOW:
  * -----------------
@@ -48,4 +50,8 @@ export { default as CompletionView } from './CompletionView';
 export { default as SavedProjects } from './SavedProjects';
 export { default as ErrorDisplay } from './ErrorDisplay';
 export { default as DebugLog } from './DebugLog';
+export { default as LoginPage } from './LoginPage';
+export { default as RegisterPage } from './RegisterPage';
+export { default as UsageDisplay } from './UsageDisplay';
+export { default as AdminDashboard } from './AdminDashboard';
 export { ToastContainer } from './Toast';

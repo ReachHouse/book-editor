@@ -85,6 +85,26 @@ export const CHUNK_SIZES = {
 };
 
 // =============================================================================
+// AUTHENTICATION CONFIGURATION
+// =============================================================================
+
+/**
+ * localStorage keys for auth token storage.
+ * Shared between AuthContext and api.js to ensure consistency.
+ */
+export const AUTH_KEYS = {
+  TOKEN: 'book_editor_access_token',
+  REFRESH: 'book_editor_refresh_token',
+  USER: 'book_editor_user'
+};
+
+/**
+ * How many seconds before token expiry to trigger a refresh.
+ * A 60-second buffer ensures we refresh well before the token expires.
+ */
+export const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
+
+// =============================================================================
 // STYLE GUIDE (CONDENSED VERSION FOR UI DISPLAY)
 // =============================================================================
 

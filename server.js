@@ -14,9 +14,14 @@
  *   server.js (this file)     - Express app setup, middleware, and startup
  *   routes/health.js          - Health check and status endpoints
  *   routes/api.js             - Core API endpoints (edit, style guide, docx)
+ *   routes/auth.js            - Authentication endpoints (register, login, etc.)
+ *   middleware/auth.js         - JWT verification middleware
+ *   services/authService.js   - Authentication logic (password, tokens)
+ *   services/database.js      - SQLite database layer (users, sessions, usage)
  *   services/anthropicService.js - Claude AI API communication
  *   services/diffService.js   - LCS-based diff algorithms for Track Changes
  *   services/document/          - Word document generation with Track Changes
+ *   database/migrations/      - Versioned database schema migrations
  *   config/styleGuide.js      - Reach Publishers House Style Guide
  *
  * DEPLOYMENT:
@@ -39,6 +44,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
+const helmet = require('helmet');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 
@@ -48,10 +54,17 @@ const rateLimit = require('express-rate-limit');
 // Routes are split into logical modules for maintainability:
 // - healthRoutes: System health and configuration status
 // - apiRoutes: Core editing functionality (edit-chunk, generate-docx, etc.)
+// - authRoutes: User authentication (register, login, token refresh, logout)
 
 const healthRoutes = require('./routes/health');
 const apiRoutes = require('./routes/api');
+const authRoutes = require('./routes/auth');
+const projectRoutes = require('./routes/projects');
+const usageRoutes = require('./routes/usage');
+const adminRoutes = require('./routes/admin');
+const setupRoutes = require('./routes/setup');
 const { validateEnvironment } = require('./routes/health');
+const { database } = require('./services/database');
 
 // =============================================================================
 // EXPRESS APP CONFIGURATION
@@ -72,14 +85,42 @@ const PORT = process.env.PORT || 3001;
 // Required for Hostinger/Nginx deployment to log correct client IPs
 app.set('trust proxy', 1);
 
+// Security Headers: Helmet sets various HTTP headers for protection
+// - X-Content-Type-Options: nosniff (prevent MIME sniffing)
+// - X-Frame-Options: DENY (prevent clickjacking)
+// - X-XSS-Protection: 0 (disabled, CSP is preferred)
+// - Strict-Transport-Security: max-age=15552000 (HSTS for HTTPS)
+// - Content-Security-Policy: configured below
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind uses inline styles
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+    }
+  },
+  crossOriginEmbedderPolicy: false, // Required for some browsers with file downloads
+  crossOriginResourcePolicy: { policy: 'same-origin' }
+}));
+
 // CORS: Configure allowed origins based on environment
 // In production, restricts to specific domains; in development, allows localhost
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
     ? (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
     : true, // Allow all origins in development
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400 // Cache preflight for 24 hours
 };
 app.use(cors(corsOptions));
@@ -125,8 +166,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Used for monitoring, deployment verification, and debugging
 app.use(healthRoutes);
 
+// Setup Routes: /api/setup/status, /api/setup/complete
+// First-time setup wizard (only active when no users exist)
+app.use(setupRoutes);
+
+// Auth Routes: /api/auth/register, /api/auth/login, /api/auth/refresh, /api/auth/me, /api/auth/logout
+// User authentication and session management
+app.use(authRoutes);
+
+// Project Routes: /api/projects (CRUD for server-side project storage)
+// Requires auth — users can only access their own projects
+app.use(projectRoutes);
+
+// Usage Routes: /api/usage (user usage summary), /api/admin/usage (admin stats)
+// Token usage tracking and limit reporting
+app.use(usageRoutes);
+
+// Admin Routes: /api/admin/users, /api/admin/invite-codes
+// User management and invite code generation (admin only)
+app.use(adminRoutes);
+
 // API Routes: /api/edit-chunk, /api/generate-style-guide, /api/generate-docx
-// Core editing functionality that communicates with Claude AI
+// Core editing functionality that communicates with Claude AI (requires auth)
 app.use(apiRoutes);
 
 // =============================================================================
@@ -146,11 +207,22 @@ app.get('*', (req, res) => {
 
 // Express error handler middleware (must have 4 parameters)
 // Catches any unhandled errors from route handlers
-// In development, includes error message; in production, hides details
+// Generates a unique error ID for tracking and user support
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  // Generate a short error ID for tracking (8 hex chars)
+  const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  const timestamp = new Date().toISOString();
+
+  // Log full error details server-side with error ID
+  console.error(`[${timestamp}] Error ${errorId}:`, err.message);
+  if (process.env.NODE_ENV === 'development') {
+    console.error(err.stack);
+  }
+
+  // Return sanitized response with error ID for user support
   res.status(500).json({
     error: 'Internal server error',
+    errorId,
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
@@ -163,9 +235,28 @@ app.use((err, req, res, next) => {
 // This checks for required variables like ANTHROPIC_API_KEY
 const envIssues = validateEnvironment();
 
+// Initialize the SQLite database (runs migrations, seeds defaults)
+console.log('Initializing database...');
+database.init();
+console.log('Database ready.');
+
+// Periodic cleanup: remove expired sessions every hour.
+// Prevents the sessions table from growing unbounded.
+const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+const cleanupIntervalId = setInterval(() => {
+  try {
+    const deleted = database.sessions.deleteExpired();
+    if (deleted > 0) {
+      console.log(`Session cleanup: removed ${deleted} expired session(s)`);
+    }
+  } catch (err) {
+    console.error('Session cleanup error:', err.message);
+  }
+}, SESSION_CLEANUP_INTERVAL_MS);
+
 // Start listening on all network interfaces (0.0.0.0)
 // This is required for Docker container networking
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   // Startup banner with configuration summary
   console.log('==================================================');
   console.log('  Reach Publishers Book Editor');
@@ -173,8 +264,10 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  Port:          ${PORT}`);
   console.log(`  URL:           http://localhost:${PORT}`);
   console.log(`  API Key:       ${process.env.ANTHROPIC_API_KEY ? 'Configured' : 'NOT SET'}`);
+  console.log(`  JWT Secret:    ${process.env.JWT_SECRET ? 'Configured' : 'Auto-generated (set JWT_SECRET for persistence)'}`);
   console.log(`  Track Changes: Native Word Format`);
   console.log(`  Environment:   ${process.env.NODE_ENV || 'development'}`);
+  console.log(`  Database:      SQLite (${database.initialized ? 'ready' : 'failed'})`);
 
   // Display any configuration warnings
   if (envIssues.length > 0) {
@@ -186,18 +279,71 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('==================================================');
 });
 
+// Handle server startup errors (port in use, binding failures)
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Error: Port ${PORT} is already in use`);
+  } else {
+    console.error('Server startup error:', err.message);
+  }
+  process.exit(1);
+});
+
 // =============================================================================
 // GRACEFUL SHUTDOWN HANDLERS
 // =============================================================================
 
-// Handle SIGTERM (Docker stop, Kubernetes pod termination)
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Shutting down gracefully...');
+/**
+ * Gracefully shuts down the server.
+ * Clears intervals, closes connections, and exits cleanly.
+ *
+ * @param {string} signal - The signal that triggered shutdown (SIGTERM, SIGINT, etc.)
+ */
+function gracefulShutdown(signal) {
+  console.log(`${signal} received. Shutting down gracefully...`);
+
+  // Clear the session cleanup interval
+  clearInterval(cleanupIntervalId);
+
+  // Close the HTTP server (stop accepting new connections)
+  server.close(() => {
+    console.log('HTTP server closed.');
+  });
+
+  // Close the database connection
+  try {
+    database.close();
+    console.log('Database connection closed.');
+  } catch (err) {
+    console.error('Error closing database:', err.message);
+  }
+
   process.exit(0);
-});
+}
+
+// Handle SIGTERM (Docker stop, Kubernetes pod termination)
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Handle SIGINT (Ctrl+C in terminal)
-process.on('SIGINT', () => {
-  console.log('SIGINT received. Shutting down gracefully...');
-  process.exit(0);
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// =============================================================================
+// UNHANDLED ERROR HANDLERS
+// =============================================================================
+
+// Handle uncaught exceptions (synchronous errors that weren't caught)
+process.on('uncaughtException', (err) => {
+  const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  console.error(`[${new Date().toISOString()}] Uncaught Exception ${errorId}:`, err.message);
+  console.error(err.stack);
+  // Exit with failure code - the process manager should restart us
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections (async errors that weren't caught)
+process.on('unhandledRejection', (reason, promise) => {
+  const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  console.error(`[${new Date().toISOString()}] Unhandled Rejection ${errorId}:`, reason);
+  // Exit with failure code - the process manager should restart us
+  process.exit(1);
 });

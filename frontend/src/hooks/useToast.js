@@ -24,12 +24,15 @@ export function useToast(maxVisible = 3) {
   const dismissToast = useCallback((id) => {
     // Mark as exiting for animation
     setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
-    // Remove after exit animation completes
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 300);
+    // Clear the auto-dismiss timer
     clearTimeout(timersRef.current[id]);
     delete timersRef.current[id];
+    // Remove after exit animation completes (track this timeout for cleanup)
+    const animationTimerId = setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 300);
+    // Store animation timer with a unique key to allow cleanup on unmount
+    timersRef.current[`exit_${id}`] = animationTimerId;
   }, []);
 
   const addToast = useCallback((message, type = 'success', duration = 3000) => {
