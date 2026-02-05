@@ -30,8 +30,8 @@ const bcrypt = require('bcryptjs');
 const router = express.Router();
 const { database } = require('../services/database');
 
-// Bcrypt cost factor (matches authService.js)
-const BCRYPT_SALT_ROUNDS = 12;
+// Bcrypt cost factor (matches authService.js: 10 = ~100ms on modern hardware)
+const BCRYPT_SALT_ROUNDS = 10;
 
 /**
  * Check if setup is needed (no users exist).

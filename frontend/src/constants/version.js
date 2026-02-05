@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.37.0 [Bugfix]   - 2026-02-05: Regression archaeology — fix authService.js input normalization (trim/lowercase email, uppercase invite code) to match setup.js, align bcrypt salt rounds (setup.js 12→10 to match authService.js), verify all modules load cleanly, API↔service↔DB contract alignment (550 total)
  * v1.36.0 [Feature]  - 2026-02-05: First-run setup wizard — browser-based admin account creation when no users exist, no hardcoded credentials, secure /api/setup endpoints with validation, SetupWizard component, 15 new tests (550 total)
  * v1.35.0 [Config]   - 2026-02-05: Simple default credentials — admin password defaults to "ChangeMe123!" and invite code to "WELCOME2025" for easy first-time setup, no digging through logs (535 total)
  * v1.34.0 [Bugfix]   - 2026-02-05: Input validation & race conditions — FileUpload validates file size (50MB max) and type before upload with error display, SavedProjects delete button loading state prevents double-click race condition, updated tests (535 total)
@@ -116,13 +117,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.36.0';
+export const VERSION = '1.37.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Feature';
+export const VERSION_TAG = 'Bugfix';
 
 /**
  * Date of this version release (YYYY-MM-DD format)
