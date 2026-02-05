@@ -21,7 +21,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Users, KeyRound, ArrowLeft, RefreshCw, Plus, Shield, ShieldOff,
-  Trash2, Copy, Check, AlertTriangle, Loader
+  Trash2, Copy, Check, AlertTriangle, Loader, Infinity
 } from 'lucide-react';
 import {
   adminListUsers, adminUpdateUser, adminDeleteUser,
@@ -37,6 +37,20 @@ function formatTokenCount(count, isLimit = false) {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${Math.round(count / 1000)}K`;
   return count.toString();
+}
+
+/**
+ * Check if a user has unlimited access (both limits are 0)
+ */
+function isUserUnlimited(user) {
+  return user.dailyTokenLimit === 0 && user.monthlyTokenLimit === 0;
+}
+
+/**
+ * Dispatch event to notify other components (like UsageDisplay) to refresh
+ */
+function dispatchUsageUpdatedEvent() {
+  window.dispatchEvent(new CustomEvent('usage-updated'));
 }
 
 function formatDate(dateStr) {
@@ -108,6 +122,24 @@ function UsersTab() {
       });
       setEditingUser(null);
       await loadUsers();
+      // Notify other components (like UsageDisplay) to refresh
+      dispatchUsageUpdatedEvent();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleToggleUnlimited = async (user) => {
+    try {
+      const isCurrentlyUnlimited = isUserUnlimited(user);
+      // Toggle: if unlimited, restore defaults; if limited, set to unlimited (0)
+      const newLimits = isCurrentlyUnlimited
+        ? { dailyTokenLimit: 500000, monthlyTokenLimit: 10000000 }
+        : { dailyTokenLimit: 0, monthlyTokenLimit: 0 };
+      await adminUpdateUser(user.id, newLimits);
+      await loadUsers();
+      // Notify other components (like UsageDisplay) to refresh
+      dispatchUsageUpdatedEvent();
     } catch (err) {
       setError(err.message);
     }
@@ -156,6 +188,11 @@ function UsersTab() {
                   }`}>
                     {user.role}
                   </span>
+                  {isUserUnlimited(user) && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">
+                      Unlimited
+                    </span>
+                  )}
                   {!user.isActive && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
                       Inactive
@@ -203,10 +240,27 @@ function UsersTab() {
                   <AlertTriangle className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <button
-                  onClick={() => setEditingUser(editingUser === user.id ? null : user.id)}
-                  className="p-1.5 rounded text-surface-500 hover:text-surface-300 hover:bg-surface-800/50 transition-colors text-xs"
-                  title="Edit limits"
-                  aria-label={`Edit token limits for ${user.username}`}
+                  onClick={() => handleToggleUnlimited(user)}
+                  className={`p-1.5 rounded transition-colors ${
+                    isUserUnlimited(user)
+                      ? 'text-amber-400 hover:text-surface-400 hover:bg-surface-800/50'
+                      : 'text-surface-500 hover:text-amber-400 hover:bg-surface-800/50'
+                  }`}
+                  title={isUserUnlimited(user) ? 'Remove unlimited' : 'Set unlimited'}
+                  aria-label={isUserUnlimited(user) ? `Remove unlimited from ${user.username}` : `Set ${user.username} to unlimited`}
+                >
+                  <Infinity className="w-4 h-4" aria-hidden="true" />
+                </button>
+                <button
+                  onClick={() => !isUserUnlimited(user) && setEditingUser(editingUser === user.id ? null : user.id)}
+                  disabled={isUserUnlimited(user)}
+                  className={`p-1.5 rounded transition-colors text-xs ${
+                    isUserUnlimited(user)
+                      ? 'text-surface-600 cursor-not-allowed'
+                      : 'text-surface-500 hover:text-surface-300 hover:bg-surface-800/50'
+                  }`}
+                  title={isUserUnlimited(user) ? 'User has unlimited access' : 'Edit limits'}
+                  aria-label={isUserUnlimited(user) ? `${user.username} has unlimited access` : `Edit token limits for ${user.username}`}
                   aria-expanded={editingUser === user.id}
                 >
                   Limits
@@ -222,8 +276,8 @@ function UsersTab() {
               </div>
             </div>
 
-            {/* Edit Limits Panel */}
-            {editingUser === user.id && (
+            {/* Edit Limits Panel - only show if not unlimited */}
+            {editingUser === user.id && !isUserUnlimited(user) && (
               <LimitEditor
                 dailyLimit={user.dailyTokenLimit}
                 monthlyLimit={user.monthlyTokenLimit}
@@ -262,92 +316,61 @@ function UsersTab() {
 }
 
 function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
-  const [dailyUnlimited, setDailyUnlimited] = useState(dailyLimit === 0);
-  const [monthlyUnlimited, setMonthlyUnlimited] = useState(monthlyLimit === 0);
-  const [daily, setDaily] = useState(dailyLimit === 0 ? '500000' : dailyLimit.toString());
-  const [monthly, setMonthly] = useState(monthlyLimit === 0 ? '10000000' : monthlyLimit.toString());
+  const [daily, setDaily] = useState(dailyLimit.toString());
+  const [monthly, setMonthly] = useState(monthlyLimit.toString());
 
-  // Validate that value is a non-negative integer
+  // Validate that value is a positive integer (> 0 since unlimited users won't see this)
   const isValidLimit = (val) => {
     const num = parseInt(val, 10);
-    return !isNaN(num) && num >= 0 && String(num) === val.trim();
+    return !isNaN(num) && num > 0 && String(num) === val.trim();
   };
 
-  const isDailyValid = dailyUnlimited || isValidLimit(daily);
-  const isMonthlyValid = monthlyUnlimited || isValidLimit(monthly);
+  const isDailyValid = isValidLimit(daily);
+  const isMonthlyValid = isValidLimit(monthly);
   const canSave = isDailyValid && isMonthlyValid;
 
   // Generate unique ids for form fields
   const dailyId = `daily-limit-${React.useId ? React.useId() : Math.random().toString(36).slice(2)}`;
   const monthlyId = `monthly-limit-${React.useId ? React.useId() : Math.random().toString(36).slice(2)}`;
 
-  const handleSave = () => {
-    const dailyValue = dailyUnlimited ? '0' : daily;
-    const monthlyValue = monthlyUnlimited ? '0' : monthly;
-    onSave(dailyValue, monthlyValue);
-  };
-
   return (
     <div className="mt-3 p-3 rounded-lg bg-surface-800/50 border border-surface-700/50">
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
           <label htmlFor={dailyId} className="text-xs text-surface-400 block mb-1">Daily Token Limit</label>
-          <label className="flex items-center gap-2 mb-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={dailyUnlimited}
-              onChange={(e) => setDailyUnlimited(e.target.checked)}
-              className="w-4 h-4 rounded border-surface-600 bg-surface-800 text-amber-500 focus:ring-amber-500/50"
-            />
-            <span className={`text-xs font-medium ${dailyUnlimited ? 'text-amber-400' : 'text-surface-500'}`}>
-              Unlimited
-            </span>
-          </label>
-          {!dailyUnlimited && (
-            <input
-              id={dailyId}
-              type="number"
-              value={daily}
-              onChange={(e) => setDaily(e.target.value)}
-              className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
-                isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
-              }`}
-              min="0"
-              aria-invalid={!isDailyValid}
-            />
-          )}
+          <input
+            id={dailyId}
+            type="number"
+            value={daily}
+            onChange={(e) => setDaily(e.target.value)}
+            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
+              isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+            }`}
+            min="1"
+            aria-invalid={!isDailyValid}
+          />
         </div>
         <div>
           <label htmlFor={monthlyId} className="text-xs text-surface-400 block mb-1">Monthly Token Limit</label>
-          <label className="flex items-center gap-2 mb-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={monthlyUnlimited}
-              onChange={(e) => setMonthlyUnlimited(e.target.checked)}
-              className="w-4 h-4 rounded border-surface-600 bg-surface-800 text-amber-500 focus:ring-amber-500/50"
-            />
-            <span className={`text-xs font-medium ${monthlyUnlimited ? 'text-amber-400' : 'text-surface-500'}`}>
-              Unlimited
-            </span>
-          </label>
-          {!monthlyUnlimited && (
-            <input
-              id={monthlyId}
-              type="number"
-              value={monthly}
-              onChange={(e) => setMonthly(e.target.value)}
-              className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
-                isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
-              }`}
-              min="0"
-              aria-invalid={!isMonthlyValid}
-            />
-          )}
+          <input
+            id={monthlyId}
+            type="number"
+            value={monthly}
+            onChange={(e) => setMonthly(e.target.value)}
+            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
+              isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+            }`}
+            min="1"
+            aria-invalid={!isMonthlyValid}
+          />
         </div>
       </div>
+      <p className="text-xs text-surface-500 mb-3">
+        Use the <Infinity className="w-3 h-3 inline text-amber-400" /> button to set unlimited access.
+      </p>
       <div className="flex gap-2">
         <button
-          onClick={handleSave}
+          onClick={() => onSave(daily, monthly)}
           disabled={!canSave}
           className="text-xs px-3 py-1.5 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >

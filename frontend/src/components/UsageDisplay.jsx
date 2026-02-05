@@ -84,9 +84,16 @@ function UsageDisplay() {
     // Refresh usage data every 2 minutes
     const interval = setInterval(fetchUsage, 2 * 60 * 1000);
 
+    // Listen for usage-updated events (e.g., when admin changes limits)
+    const handleUsageUpdated = () => {
+      fetchUsage();
+    };
+    window.addEventListener('usage-updated', handleUsageUpdated);
+
     return () => {
       mounted = false;
       clearInterval(interval);
+      window.removeEventListener('usage-updated', handleUsageUpdated);
     };
   }, []);
 

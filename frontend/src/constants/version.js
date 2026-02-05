@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.44.1 [Feature]  - 2026-02-06: Improved unlimited feature — dedicated Unlimited toggle button (infinity icon) in user action row, Unlimited badge displayed next to role, Limits button disabled when unlimited, simplified LimitEditor without checkboxes, UsageDisplay auto-refreshes after admin updates limits via custom event
  * v1.44.0 [Feature]  - 2026-02-05: Unlimited token limits — add "Unlimited" option for daily/monthly limits with gold styling, backend skips limit checks when limit is 0, LimitEditor checkbox toggles, UsageDisplay gold gradient bar for unlimited users
  * v1.43.2 [UI]       - 2026-02-05: Align spinner with Complete step — move spinner from header to Complete step icon position, shows spinner while processing and checkmark when done
  * v1.43.1 [Bugfix]   - 2026-02-05: Fix 504 timeout on large document downloads — increase frontend DOCX generation timeout from 3 to 5 minutes to match server timeout (large manuscripts with 40+ sections were timing out before generation completed)
@@ -133,7 +134,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.44.0';
+export const VERSION = '1.44.1';
 
 /**
  * Tag describing the type of changes in this version
