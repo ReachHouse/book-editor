@@ -10,7 +10,7 @@
 # ---------
 # On first deployment, this script automatically generates a SETUP_SECRET.
 # This secret is required to create the admin account via the setup wizard.
-# The secret is stored in .env.local and displayed once during first deployment.
+# The secret is stored in .env and displayed once during first deployment.
 # SAVE THIS SECRET - you'll need it to complete the setup wizard!
 #
 # FIRST-TIME SETUP:
@@ -97,16 +97,16 @@ fi
 # =============================================================================
 # SECURITY SECRETS MANAGEMENT
 # =============================================================================
-# Check for .env.local file (stores persistent secrets)
-# This file is gitignored and persists across deployments
+# Docker Compose automatically loads .env files from the current directory.
+# This file is gitignored and persists across deployments.
 
-ENV_LOCAL_FILE=".env.local"
+ENV_FILE=".env"
 FIRST_TIME_SETUP=false
 
-# Load existing secrets if .env.local exists
-if [ -f "$ENV_LOCAL_FILE" ]; then
-    echo -e "${GREEN}Loading existing secrets from .env.local...${NC}"
-    source "$ENV_LOCAL_FILE"
+# Load existing secrets if .env exists
+if [ -f "$ENV_FILE" ]; then
+    echo -e "${GREEN}Loading existing secrets from .env...${NC}"
+    source "$ENV_FILE"
 else
     FIRST_TIME_SETUP=true
     echo -e "${YELLOW}First-time deployment detected!${NC}"
@@ -117,24 +117,24 @@ fi
 if [ -z "$SETUP_SECRET" ]; then
     echo -e "${GREEN}Generating SETUP_SECRET...${NC}"
     SETUP_SECRET=$(openssl rand -hex 32)
-    echo "SETUP_SECRET=$SETUP_SECRET" >> "$ENV_LOCAL_FILE"
-    echo -e "${GREEN}SETUP_SECRET generated and saved to .env.local${NC}"
+    echo "SETUP_SECRET=$SETUP_SECRET" >> "$ENV_FILE"
+    echo -e "${GREEN}SETUP_SECRET generated and saved to .env${NC}"
 fi
 
 # Generate JWT_SECRET if not set
 if [ -z "$JWT_SECRET" ]; then
     echo -e "${GREEN}Generating JWT_SECRET...${NC}"
     JWT_SECRET=$(openssl rand -hex 64)
-    echo "JWT_SECRET=$JWT_SECRET" >> "$ENV_LOCAL_FILE"
-    echo -e "${GREEN}JWT_SECRET generated and saved to .env.local${NC}"
+    echo "JWT_SECRET=$JWT_SECRET" >> "$ENV_FILE"
+    echo -e "${GREEN}JWT_SECRET generated and saved to .env${NC}"
 fi
 
 # Export secrets for docker-compose
 export SETUP_SECRET
 export JWT_SECRET
 
-# Secure the .env.local file (readable only by owner)
-chmod 600 "$ENV_LOCAL_FILE" 2>/dev/null || true
+# Secure the .env file (readable only by owner)
+chmod 600 "$ENV_FILE" 2>/dev/null || true
 
 echo ""
 
@@ -210,7 +210,7 @@ if [ "$FIRST_TIME_SETUP" = true ]; then
     echo -e "${BOLD}${RED}>>> SAVE THIS SECRET NOW! <<<${NC}"
     echo ""
     echo "You will need this secret to create your admin account."
-    echo "It is stored in .env.local but won't be displayed again."
+    echo "It is stored in .env but won't be displayed again."
     echo ""
     echo -e "${BOLD}To complete setup:${NC}"
     echo "  1. Go to http://your-vps-ip:3002"
@@ -228,7 +228,7 @@ echo "  View logs:        docker compose logs -f"
 echo "  Stop:             docker compose down"
 echo "  Restart:          docker compose restart"
 echo "  Rollback:         docker tag book-editor:previous book-editor:latest && docker compose up -d"
-echo "  View secrets:     cat .env.local"
+echo "  View secrets:     cat .env"
 echo ""
 
 # Show recent logs
