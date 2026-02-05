@@ -22,7 +22,7 @@
  * =============================================================================
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Shield, AlertCircle, Loader, CheckCircle, ArrowRight, Key, Lock } from 'lucide-react';
 import { completeSetup } from '../services/api';
 import PasswordStrength from './PasswordStrength';
@@ -43,6 +43,18 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
+
+  // Ref for success redirect timeout (to clean up on unmount)
+  const redirectTimeoutRef = useRef(null);
+
+  // Clean up timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -130,7 +142,7 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
       setSuccess(true);
 
       // Notify parent after brief delay to show success message
-      setTimeout(() => {
+      redirectTimeoutRef.current = setTimeout(() => {
         onSetupComplete();
       }, 2000);
     } catch (err) {
@@ -328,10 +340,11 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
               placeholder="Re-enter your password"
               autoComplete="new-password"
               disabled={submitting || !setupEnabled}
+              aria-describedby="setup-confirm-password-status"
             />
             {password && confirmPassword && password === confirmPassword && (
-              <div className="flex items-center gap-1 mt-1">
-                <CheckCircle className="w-3 h-3 text-green-400" />
+              <div id="setup-confirm-password-status" className="flex items-center gap-1 mt-1">
+                <CheckCircle className="w-3 h-3 text-green-400" aria-hidden="true" />
                 <p className="text-xs text-green-400">Passwords match</p>
               </div>
             )}

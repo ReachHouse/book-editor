@@ -61,6 +61,26 @@ export const API_CONFIG = {
   RETRY_DELAY_BASE: 2000      // Base delay in milliseconds (multiplied by attempt number)
 };
 
+/**
+ * API timeout configuration in milliseconds.
+ * Prevents requests from hanging indefinitely.
+ *
+ * Different timeouts for different operation types:
+ * - EDIT: Longer timeout for AI editing (large chunks can take time)
+ * - STYLE_GUIDE: Medium timeout for style guide generation
+ * - DOCX: Longer timeout for document generation (diff computation)
+ * - DEFAULT: Standard timeout for simple API calls
+ * - SHORT: Quick operations like setup checks
+ */
+export const API_TIMEOUTS = {
+  EDIT: 5 * 60 * 1000,        // 5 minutes for editing chunks
+  STYLE_GUIDE: 2 * 60 * 1000, // 2 minutes for style guide generation
+  DOCX: 3 * 60 * 1000,        // 3 minutes for document generation
+  PROJECT: 60 * 1000,         // 1 minute for project operations
+  DEFAULT: 30 * 1000,         // 30 seconds for standard operations
+  SHORT: 15 * 1000            // 15 seconds for quick checks
+};
+
 // =============================================================================
 // DOCUMENT PROCESSING CONFIGURATION
 // =============================================================================

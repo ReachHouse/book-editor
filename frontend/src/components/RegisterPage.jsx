@@ -14,7 +14,7 @@
  */
 
 import React, { useState } from 'react';
-import { FileText, UserPlus, AlertCircle, Loader } from 'lucide-react';
+import { FileText, UserPlus, AlertCircle, Loader, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordStrength from './PasswordStrength';
 
@@ -213,10 +213,11 @@ function RegisterPage({ onSwitchToLogin }) {
               placeholder="Re-enter your password"
               autoComplete="new-password"
               disabled={submitting}
+              aria-describedby="confirm-password-status"
             />
             {password && confirmPassword && password === confirmPassword && (
-              <div className="flex items-center gap-1 mt-1">
-                <CheckCircle className="w-3 h-3 text-green-400" />
+              <div id="confirm-password-status" className="flex items-center gap-1 mt-1">
+                <CheckCircle className="w-3 h-3 text-green-400" aria-hidden="true" />
                 <p className="text-xs text-green-400">Passwords match</p>
               </div>
             )}

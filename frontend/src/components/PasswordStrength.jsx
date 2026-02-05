@@ -38,14 +38,23 @@ function PasswordStrength({ password }) {
   const metCount = requirements.filter(r => r.met).length;
   const strengthPercent = (metCount / requirements.length) * 100;
   const strengthColor = metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-amber-500' : metCount <= 3 ? 'bg-blue-500' : 'bg-green-500';
+  const strengthLabel = metCount <= 1 ? 'Weak' : metCount <= 2 ? 'Fair' : metCount <= 3 ? 'Good' : 'Strong';
 
   return (
     <div id="password-requirements" className="mt-2 space-y-2">
       {/* Strength bar */}
-      <div className="h-1 rounded-full bg-surface-800/60 overflow-hidden">
+      <div
+        className="h-1 rounded-full bg-surface-800/60 overflow-hidden"
+        role="progressbar"
+        aria-valuenow={metCount}
+        aria-valuemin={0}
+        aria-valuemax={requirements.length}
+        aria-label={`Password strength: ${strengthLabel} (${metCount} of ${requirements.length} requirements met)`}
+      >
         <div
           className={`h-full rounded-full transition-all duration-300 ${strengthColor}`}
           style={{ width: `${strengthPercent}%` }}
+          aria-hidden="true"
         />
       </div>
       {/* Requirements checklist */}

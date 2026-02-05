@@ -59,13 +59,7 @@
  * =============================================================================
  */
 
-import { API_BASE_URL, API_CONFIG, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
-
-/**
- * Default timeout for API requests (5 minutes)
- * Editing large chunks can take time; this prevents indefinite hangs
- */
-const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
+import { API_BASE_URL, API_CONFIG, API_TIMEOUTS, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
 
 // =============================================================================
 // AUTHENTICATION HELPERS
@@ -160,11 +154,11 @@ async function getAuthHeaders() {
  *
  * @param {string} url - URL to fetch
  * @param {Object} options - Fetch options (method, headers, body, etc.)
- * @param {number} timeoutMs - Timeout in milliseconds
+ * @param {number} timeoutMs - Timeout in milliseconds (default from constants)
  * @returns {Promise<Response>} Fetch response
  * @throws {Error} If request times out or fails
  */
-async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUTS.EDIT) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -275,7 +269,7 @@ export async function generateStyleGuide(text, logFn) {
       method: 'POST',
       headers,
       body: JSON.stringify({ text })
-    }, 2 * 60 * 1000); // 2 minute timeout for style guide (shorter task)
+    }, API_TIMEOUTS.STYLE_GUIDE);
 
     // Return default on HTTP error (non-critical)
     if (!response.ok) {
@@ -321,7 +315,7 @@ export async function downloadDocument(content) {
       editedText: content.edited,
       fileName: content.fileName
     })
-  }, 3 * 60 * 1000); // 3 minute timeout for document generation
+  }, API_TIMEOUTS.DOCX);
 
   // Handle errors
   if (!response.ok) {
@@ -370,7 +364,7 @@ export async function getUsage() {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/usage`, {
     method: 'GET',
     headers
-  }, 15000);
+  }, API_TIMEOUTS.SHORT);
 
   if (!response.ok) {
     throw new Error(`Failed to load usage data (${response.status})`);
@@ -393,7 +387,7 @@ export async function listProjects() {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects`, {
     method: 'GET',
     headers
-  }, 30000);
+  }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
     throw new Error(`Failed to load projects (${response.status})`);
@@ -414,7 +408,7 @@ export async function getProject(projectId) {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${projectId}`, {
     method: 'GET',
     headers
-  }, 60000);
+  }, API_TIMEOUTS.PROJECT);
 
   if (!response.ok) {
     if (response.status === 404) return null;
@@ -436,7 +430,7 @@ export async function saveProject(projectData) {
     method: 'PUT',
     headers,
     body: JSON.stringify(projectData)
-  }, 60000);
+  }, API_TIMEOUTS.PROJECT);
 
   if (!response.ok) {
     let errorMessage = `Failed to save project (${response.status})`;
@@ -464,7 +458,7 @@ export async function deleteProjectApi(projectId) {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${projectId}`, {
     method: 'DELETE',
     headers
-  }, 30000);
+  }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
     throw new Error(`Failed to delete project (${response.status})`);
@@ -485,7 +479,7 @@ export async function adminListUsers() {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/users`, {
     method: 'GET',
     headers
-  }, 30000);
+  }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -509,7 +503,7 @@ export async function adminUpdateUser(userId, fields) {
     method: 'PUT',
     headers,
     body: JSON.stringify(fields)
-  }, 30000);
+  }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -531,7 +525,7 @@ export async function adminDeleteUser(userId) {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/users/${userId}`, {
     method: 'DELETE',
     headers
-  }, 30000);
+  }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -549,7 +543,7 @@ export async function adminListInviteCodes() {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/invite-codes`, {
     method: 'GET',
     headers
-  }, 30000);
+  }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -570,7 +564,7 @@ export async function adminCreateInviteCode() {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/invite-codes`, {
     method: 'POST',
     headers
-  }, 30000);
+  }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -595,7 +589,7 @@ export async function checkSetupRequired() {
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/setup/status`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' }
-  }, 10000);
+  }, API_TIMEOUTS.SHORT);
 
   if (!response.ok) {
     // On error, assume setup not required (show login instead)
@@ -626,7 +620,7 @@ export async function completeSetup({ setup_secret, username, email, password })
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ setup_secret, username, email, password })
-  }, 30000);
+  }, API_TIMEOUTS.DEFAULT);
 
   const data = await response.json().catch(() => ({}));
 
