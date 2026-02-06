@@ -70,7 +70,11 @@ function up(db) {
       username,
       email,
       password_hash,
-      CASE WHEN role = 'restricted' THEN 'guest' ELSE role END,
+      CASE
+        WHEN role = 'restricted' THEN 'guest'
+        WHEN role = 'user' THEN 'editor'
+        ELSE role
+      END,
       is_active,
       daily_token_limit,
       monthly_token_limit,
@@ -111,7 +115,11 @@ function up(db) {
     -- =========================================================================
     INSERT INTO role_defaults_new (role, daily_token_limit, monthly_token_limit, color, display_order, updated_at)
     SELECT
-      CASE WHEN role = 'restricted' THEN 'guest' ELSE role END,
+      CASE
+        WHEN role = 'restricted' THEN 'guest'
+        WHEN role = 'user' THEN 'editor'
+        ELSE role
+      END,
       daily_token_limit,
       monthly_token_limit,
       color,
