@@ -167,11 +167,12 @@ async function makeAnthropicRequest(body) {
  * @param {string} text - The text chunk to edit (~2000 words)
  * @param {string} styleGuide - Document-specific style notes (for consistency)
  * @param {boolean} isFirst - True if this is the first chunk (no prior context)
+ * @param {string|null} customStyleGuide - User-customized style guide (optional, uses default if null)
  * @returns {Promise<string>} The edited text
  */
-async function editChunk(text, styleGuide, isFirst) {
+async function editChunk(text, styleGuide, isFirst, customStyleGuide = null) {
   // Build the system prompt with style guide and instructions
-  const systemPrompt = buildEditingPrompt(styleGuide, isFirst);
+  const systemPrompt = buildEditingPrompt(styleGuide, isFirst, customStyleGuide);
 
   // Send to Claude - the text to edit is the user message
   const data = await makeAnthropicRequest({
@@ -193,19 +194,25 @@ async function editChunk(text, styleGuide, isFirst) {
  *
  * The prompt includes:
  * 1. Role definition (professional book editor)
- * 2. Full Reach Publishers House Style Guide
+ * 2. Full Reach Publishers House Style Guide (or user's custom guide)
  * 3. Context from previous sections (if not first chunk)
  * 4. Instruction to return only edited text
  *
  * @param {string} styleGuide - Document-specific style notes
  * @param {boolean} isFirst - Whether this is the first chunk
+ * @param {string|null} customStyleGuide - User-customized style guide (optional)
  * @returns {string} Complete system prompt
  */
-function buildEditingPrompt(styleGuide, isFirst) {
+function buildEditingPrompt(styleGuide, isFirst, customStyleGuide = null) {
+  // Use custom style guide if provided, otherwise use default
+  const effectiveStyleGuide = customStyleGuide && customStyleGuide.trim()
+    ? customStyleGuide
+    : STYLE_GUIDE;
+
   // Base prompt with role and style guide
   const basePrompt = `You are a professional book editor for Reach Publishers. You MUST follow the Reach Publishers House Style Guide strictly and without exception.
 
-${STYLE_GUIDE}`;
+${effectiveStyleGuide}`;
 
   // Context-specific instructions
   const contextPrompt = isFirst

@@ -347,7 +347,7 @@ describe('POST /api/edit-chunk', () => {
   // Note: Actual editing tests require ANTHROPIC_API_KEY
   // and would make real API calls - skipped in unit tests
   describe('API key validation', () => {
-    test('returns 500 when API key is not configured', async () => {
+    test('returns 503 when API key is not configured', async () => {
       // Save original key
       const originalKey = process.env.ANTHROPIC_API_KEY;
       delete process.env.ANTHROPIC_API_KEY;
@@ -360,8 +360,9 @@ describe('POST /api/edit-chunk', () => {
         process.env.ANTHROPIC_API_KEY = originalKey;
       }
 
-      expect(response.status).toBe(500);
-      expect(response.body.error).toContain('API key');
+      // Generic error message to avoid information disclosure
+      expect(response.status).toBe(503);
+      expect(response.body.error).toBe('Service temporarily unavailable');
     });
   });
 });

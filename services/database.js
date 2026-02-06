@@ -631,7 +631,7 @@ class DatabaseService {
           id, fileName, isComplete = false, chunksCompleted = 0,
           totalChunks = 0, chunkSize = 2000, originalText = null,
           editedChunks = null, fullEditedText = null,
-          styleGuide = null, docContent = null
+          styleGuide = null, docContent = null, customStyleGuide = null
         } = data;
 
         // Serialize arrays/objects to JSON strings (with error handling)
@@ -648,8 +648,8 @@ class DatabaseService {
           INSERT INTO projects (
             id, user_id, file_name, is_complete, chunks_completed,
             total_chunks, chunk_size, original_text, edited_chunks,
-            full_edited_text, style_guide, doc_content
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            full_edited_text, style_guide, doc_content, custom_style_guide
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id, user_id) DO UPDATE SET
             file_name = excluded.file_name,
             is_complete = excluded.is_complete,
@@ -661,11 +661,12 @@ class DatabaseService {
             full_edited_text = excluded.full_edited_text,
             style_guide = excluded.style_guide,
             doc_content = excluded.doc_content,
+            custom_style_guide = excluded.custom_style_guide,
             updated_at = datetime('now')
         `).run(
           id, userId, fileName, isComplete ? 1 : 0, chunksCompleted,
           totalChunks, chunkSize, originalText, editedChunksJson,
-          fullEditedText, styleGuide, docContentJson
+          fullEditedText, styleGuide, docContentJson, customStyleGuide
         );
 
         const saved = db.prepare(`

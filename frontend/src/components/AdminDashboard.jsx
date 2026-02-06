@@ -21,7 +21,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Users, KeyRound, ArrowLeft, RefreshCw, Plus, Shield, ShieldOff,
-  Trash2, Copy, Check, AlertTriangle, Loader
+  Trash2, Copy, Check, AlertTriangle, Loader, Infinity
 } from 'lucide-react';
 import {
   adminListUsers, adminUpdateUser, adminDeleteUser,
@@ -32,10 +32,25 @@ import {
 // HELPERS
 // =============================================================================
 
-function formatTokenCount(count) {
+function formatTokenCount(count, isLimit = false) {
+  if (isLimit && count === 0) return 'Unlimited';
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${Math.round(count / 1000)}K`;
   return count.toString();
+}
+
+/**
+ * Check if a user has unlimited access (both limits are 0)
+ */
+function isUserUnlimited(user) {
+  return user.dailyTokenLimit === 0 && user.monthlyTokenLimit === 0;
+}
+
+/**
+ * Dispatch event to notify other components (like UsageDisplay) to refresh
+ */
+function dispatchUsageUpdatedEvent() {
+  window.dispatchEvent(new CustomEvent('usage-updated'));
 }
 
 function formatDate(dateStr) {
@@ -54,6 +69,7 @@ function UsersTab() {
   const [error, setError] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [pendingUserId, setPendingUserId] = useState(null); // Prevent concurrent operations
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -71,35 +87,49 @@ function UsersTab() {
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
   const handleToggleActive = async (user) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(user.id);
     try {
       await adminUpdateUser(user.id, { isActive: !user.isActive });
       await loadUsers();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingUserId(null);
     }
   };
 
   const handleToggleRole = async (user) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(user.id);
     try {
       const newRole = user.role === 'admin' ? 'user' : 'admin';
       await adminUpdateUser(user.id, { role: newRole });
       await loadUsers();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingUserId(null);
     }
   };
 
   const handleDelete = async (userId) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(userId);
     try {
       await adminDeleteUser(userId);
       setConfirmDelete(null);
       await loadUsers();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingUserId(null);
     }
   };
 
   const handleSaveLimits = async (userId, dailyLimit, monthlyLimit) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(userId);
     try {
       await adminUpdateUser(userId, {
         dailyTokenLimit: parseInt(dailyLimit, 10),
@@ -107,8 +137,32 @@ function UsersTab() {
       });
       setEditingUser(null);
       await loadUsers();
+      // Notify other components (like UsageDisplay) to refresh
+      dispatchUsageUpdatedEvent();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingUserId(null);
+    }
+  };
+
+  const handleToggleUnlimited = async (user) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(user.id);
+    try {
+      const isCurrentlyUnlimited = isUserUnlimited(user);
+      // Toggle: if unlimited, restore defaults; if limited, set to unlimited (0)
+      const newLimits = isCurrentlyUnlimited
+        ? { dailyTokenLimit: 500000, monthlyTokenLimit: 10000000 }
+        : { dailyTokenLimit: 0, monthlyTokenLimit: 0 };
+      await adminUpdateUser(user.id, newLimits);
+      await loadUsers();
+      // Notify other components (like UsageDisplay) to refresh
+      dispatchUsageUpdatedEvent();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPendingUserId(null);
     }
   };
 
@@ -155,6 +209,11 @@ function UsersTab() {
                   }`}>
                     {user.role}
                   </span>
+                  {isUserUnlimited(user) && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">
+                      Unlimited
+                    </span>
+                  )}
                   {!user.isActive && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
                       Inactive
@@ -164,8 +223,18 @@ function UsersTab() {
                 <p className="text-xs text-surface-500 truncate">{user.email}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-surface-500">
                   <span>{user.projectCount} project{user.projectCount !== 1 ? 's' : ''}</span>
-                  <span>Daily: {formatTokenCount(user.daily.total)}/{formatTokenCount(user.daily.limit)}</span>
-                  <span>Monthly: {formatTokenCount(user.monthly.total)}/{formatTokenCount(user.monthly.limit)}</span>
+                  <span>
+                    Daily: {formatTokenCount(user.daily.total)}/
+                    <span className={user.daily.limit === 0 ? 'text-amber-400 font-medium' : ''}>
+                      {formatTokenCount(user.daily.limit, true)}
+                    </span>
+                  </span>
+                  <span>
+                    Monthly: {formatTokenCount(user.monthly.total)}/
+                    <span className={user.monthly.limit === 0 ? 'text-amber-400 font-medium' : ''}>
+                      {formatTokenCount(user.monthly.limit, true)}
+                    </span>
+                  </span>
                   <span>Last login: {formatDate(user.lastLoginAt)}</span>
                 </div>
               </div>
@@ -192,10 +261,27 @@ function UsersTab() {
                   <AlertTriangle className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <button
-                  onClick={() => setEditingUser(editingUser === user.id ? null : user.id)}
-                  className="p-1.5 rounded text-surface-500 hover:text-surface-300 hover:bg-surface-800/50 transition-colors text-xs"
-                  title="Edit limits"
-                  aria-label={`Edit token limits for ${user.username}`}
+                  onClick={() => handleToggleUnlimited(user)}
+                  className={`p-1.5 rounded transition-colors ${
+                    isUserUnlimited(user)
+                      ? 'text-amber-400 hover:text-surface-400 hover:bg-surface-800/50'
+                      : 'text-surface-500 hover:text-amber-400 hover:bg-surface-800/50'
+                  }`}
+                  title={isUserUnlimited(user) ? 'Remove unlimited' : 'Set unlimited'}
+                  aria-label={isUserUnlimited(user) ? `Remove unlimited from ${user.username}` : `Set ${user.username} to unlimited`}
+                >
+                  <Infinity className="w-4 h-4" aria-hidden="true" />
+                </button>
+                <button
+                  onClick={() => !isUserUnlimited(user) && setEditingUser(editingUser === user.id ? null : user.id)}
+                  disabled={isUserUnlimited(user)}
+                  className={`p-1.5 rounded transition-colors text-xs ${
+                    isUserUnlimited(user)
+                      ? 'text-surface-600 cursor-not-allowed'
+                      : 'text-surface-500 hover:text-surface-300 hover:bg-surface-800/50'
+                  }`}
+                  title={isUserUnlimited(user) ? 'User has unlimited access' : 'Edit limits'}
+                  aria-label={isUserUnlimited(user) ? `${user.username} has unlimited access` : `Edit token limits for ${user.username}`}
                   aria-expanded={editingUser === user.id}
                 >
                   Limits
@@ -211,8 +297,8 @@ function UsersTab() {
               </div>
             </div>
 
-            {/* Edit Limits Panel */}
-            {editingUser === user.id && (
+            {/* Edit Limits Panel - only show if not unlimited */}
+            {editingUser === user.id && !isUserUnlimited(user) && (
               <LimitEditor
                 dailyLimit={user.dailyTokenLimit}
                 monthlyLimit={user.monthlyTokenLimit}
@@ -254,10 +340,10 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
   const [daily, setDaily] = useState(dailyLimit.toString());
   const [monthly, setMonthly] = useState(monthlyLimit.toString());
 
-  // Validate that value is a non-negative integer
+  // Validate that value is a positive integer (> 0 since unlimited users won't see this)
   const isValidLimit = (val) => {
     const num = parseInt(val, 10);
-    return !isNaN(num) && num >= 0 && String(num) === val.trim();
+    return !isNaN(num) && num > 0 && String(num) === val.trim();
   };
 
   const isDailyValid = isValidLimit(daily);
@@ -281,7 +367,7 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
             className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
               isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
             }`}
-            min="0"
+            min="1"
             aria-invalid={!isDailyValid}
           />
         </div>
@@ -295,11 +381,14 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
             className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
               isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
             }`}
-            min="0"
+            min="1"
             aria-invalid={!isMonthlyValid}
           />
         </div>
       </div>
+      <p className="text-xs text-surface-500 mb-3">
+        Use the <Infinity className="w-3 h-3 inline text-amber-400" /> button to set unlimited access.
+      </p>
       <div className="flex gap-2">
         <button
           onClick={() => onSave(daily, monthly)}
@@ -391,15 +480,8 @@ function InviteCodesTab() {
       setCopiedId(id);
       copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      // Fallback for non-HTTPS
-      const textArea = document.createElement('textarea');
-      textArea.value = code;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopiedId(id);
-      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
+      // Clipboard API requires HTTPS - show error instead of using deprecated fallback
+      setError('Copy failed. Please use HTTPS or copy manually.');
     }
   };
 

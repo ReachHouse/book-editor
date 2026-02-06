@@ -38,6 +38,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE_URL, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
+import { decodeJwt, isTokenExpired } from '../utils/jwtUtils';
+import { fetchWithTimeout } from '../utils/fetchUtils';
 
 // =============================================================================
 // CONTEXT
@@ -47,58 +49,6 @@ const AuthContext = createContext(null);
 
 /** Default timeout for auth requests (15 seconds) */
 const AUTH_TIMEOUT_MS = 15000;
-
-/**
- * Fetch wrapper with timeout support using AbortController.
- *
- * @param {string} url - URL to fetch
- * @param {Object} options - Fetch options
- * @param {number} timeoutMs - Timeout in milliseconds
- * @returns {Promise<Response>}
- */
-async function fetchWithTimeout(url, options = {}, timeoutMs = AUTH_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    return response;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-/**
- * Decode a JWT payload without verifying the signature.
- * Used to check expiry on the client side.
- *
- * @param {string} token - JWT string
- * @returns {Object|null} Decoded payload or null if invalid
- */
-function decodeToken(token) {
-  try {
-    const payload = token.split('.')[1];
-    return JSON.parse(atob(payload));
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Check if a JWT token is expired (or will expire within the buffer window).
- *
- * @param {string} token - JWT string
- * @returns {boolean} True if token is expired or about to expire
- */
-function isTokenExpired(token) {
-  const decoded = decodeToken(token);
-  if (!decoded || !decoded.exp) return true;
-  const expiresMs = decoded.exp * 1000;
-  return Date.now() >= expiresMs - TOKEN_REFRESH_BUFFER_MS;
-}
 
 // =============================================================================
 // PROVIDER COMPONENT
@@ -167,7 +117,7 @@ export function AuthProvider({ children }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken })
-        });
+        }, AUTH_TIMEOUT_MS);
 
         if (!response.ok) {
           clearAuth();
@@ -205,7 +155,7 @@ export function AuthProvider({ children }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier, password })
-    });
+    }, AUTH_TIMEOUT_MS);
 
     // Parse JSON safely — check response.ok first to handle non-JSON error pages
     if (!response.ok) {
@@ -239,7 +189,7 @@ export function AuthProvider({ children }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, email, password, inviteCode })
-    });
+    }, AUTH_TIMEOUT_MS);
 
     // Parse JSON safely — check response.ok first to handle non-JSON error pages
     if (!response.ok) {
@@ -296,7 +246,7 @@ export function AuthProvider({ children }) {
       try {
         let validToken = token;
 
-        if (!token || isTokenExpired(token)) {
+        if (!token || isTokenExpired(token, TOKEN_REFRESH_BUFFER_MS)) {
           validToken = await refreshAccessToken();
         }
 
@@ -304,7 +254,7 @@ export function AuthProvider({ children }) {
           // Fetch fresh user profile
           const response = await fetchWithTimeout(`${API_BASE_URL}/api/auth/me`, {
             headers: { 'Authorization': `Bearer ${validToken}` }
-          });
+          }, AUTH_TIMEOUT_MS);
 
           if (response.ok) {
             const data = await response.json();

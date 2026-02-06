@@ -21,9 +21,13 @@ import { getUsage } from '../services/api';
  * Format a token count for display (e.g., 500000 -> "500K").
  *
  * @param {number} count - Token count
+ * @param {boolean} isLimit - Whether this is a limit value (0 = unlimited)
  * @returns {string} Formatted string
  */
-function formatTokenCount(count) {
+function formatTokenCount(count, isLimit = false) {
+  if (isLimit && count === 0) {
+    return 'Unlimited';
+  }
   if (count >= 1000000) {
     return `${(count / 1000000).toFixed(1)}M`;
   }
@@ -31,6 +35,16 @@ function formatTokenCount(count) {
     return `${(count / 1000).toFixed(0)}K`;
   }
   return count.toString();
+}
+
+/**
+ * Check if a limit value represents unlimited.
+ *
+ * @param {number} limit - The limit value
+ * @returns {boolean} True if unlimited
+ */
+function isUnlimited(limit) {
+  return limit === 0;
 }
 
 /**
@@ -59,8 +73,9 @@ function UsageDisplay() {
         if (mounted) {
           setUsage(data);
         }
-      } catch {
-        // Silently fail — usage display is non-critical
+      } catch (err) {
+        // Non-critical — log but don't show to user
+        console.error('Failed to fetch usage:', err.message);
       }
     };
 
@@ -70,9 +85,16 @@ function UsageDisplay() {
     // Refresh usage data every 2 minutes
     const interval = setInterval(fetchUsage, 2 * 60 * 1000);
 
+    // Listen for usage-updated events (e.g., when admin changes limits)
+    const handleUsageUpdated = () => {
+      fetchUsage();
+    };
+    window.addEventListener('usage-updated', handleUsageUpdated);
+
     return () => {
       mounted = false;
       clearInterval(interval);
+      window.removeEventListener('usage-updated', handleUsageUpdated);
     };
   }, []);
 
@@ -89,11 +111,17 @@ function UsageDisplay() {
       >
         <BarChart3 className="w-3.5 h-3.5" />
         <span>
-          Today: {formatTokenCount(usage.daily.total)} / {formatTokenCount(usage.daily.limit)}
+          Today: {formatTokenCount(usage.daily.total)} /{' '}
+          <span className={isUnlimited(usage.daily.limit) ? 'text-amber-400' : ''}>
+            {formatTokenCount(usage.daily.limit, true)}
+          </span>
         </span>
         <span className="text-surface-600">|</span>
         <span>
-          Month: {formatTokenCount(usage.monthly.total)} / {formatTokenCount(usage.monthly.limit)}
+          Month: {formatTokenCount(usage.monthly.total)} /{' '}
+          <span className={isUnlimited(usage.monthly.limit) ? 'text-amber-400' : ''}>
+            {formatTokenCount(usage.monthly.limit, true)}
+          </span>
         </span>
       </button>
 
@@ -104,20 +132,26 @@ function UsageDisplay() {
           <div>
             <div className="flex justify-between text-xs mb-1">
               <span className="text-surface-400">Daily Usage</span>
-              <span className="text-surface-500">
-                {formatTokenCount(usage.daily.total)} / {formatTokenCount(usage.daily.limit)} tokens
+              <span className={isUnlimited(usage.daily.limit) ? 'text-amber-400 font-medium' : 'text-surface-500'}>
+                {formatTokenCount(usage.daily.total)} / {formatTokenCount(usage.daily.limit, true)} tokens
               </span>
             </div>
-            <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${getBarColor(usage.daily.percentage)}`}
-                style={{ width: `${usage.daily.percentage}%` }}
-              />
-            </div>
-            {usage.daily.percentage >= 90 && (
-              <p className="text-xs text-amber-400 mt-1">
-                Approaching daily limit. Resets at midnight UTC.
-              </p>
+            {isUnlimited(usage.daily.limit) ? (
+              <div className="h-2 rounded-full bg-gradient-to-r from-amber-600/30 via-amber-500/40 to-amber-600/30" />
+            ) : (
+              <>
+                <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${getBarColor(usage.daily.percentage)}`}
+                    style={{ width: `${usage.daily.percentage}%` }}
+                  />
+                </div>
+                {usage.daily.percentage >= 90 && (
+                  <p className="text-xs text-amber-400 mt-1">
+                    Approaching daily limit. Resets at midnight UTC.
+                  </p>
+                )}
+              </>
             )}
           </div>
 
@@ -125,20 +159,26 @@ function UsageDisplay() {
           <div>
             <div className="flex justify-between text-xs mb-1">
               <span className="text-surface-400">Monthly Usage</span>
-              <span className="text-surface-500">
-                {formatTokenCount(usage.monthly.total)} / {formatTokenCount(usage.monthly.limit)} tokens
+              <span className={isUnlimited(usage.monthly.limit) ? 'text-amber-400 font-medium' : 'text-surface-500'}>
+                {formatTokenCount(usage.monthly.total)} / {formatTokenCount(usage.monthly.limit, true)} tokens
               </span>
             </div>
-            <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${getBarColor(usage.monthly.percentage)}`}
-                style={{ width: `${usage.monthly.percentage}%` }}
-              />
-            </div>
-            {usage.monthly.percentage >= 90 && (
-              <p className="text-xs text-amber-400 mt-1">
-                Approaching monthly limit. Resets on the 1st.
-              </p>
+            {isUnlimited(usage.monthly.limit) ? (
+              <div className="h-2 rounded-full bg-gradient-to-r from-amber-600/30 via-amber-500/40 to-amber-600/30" />
+            ) : (
+              <>
+                <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${getBarColor(usage.monthly.percentage)}`}
+                    style={{ width: `${usage.monthly.percentage}%` }}
+                  />
+                </div>
+                {usage.monthly.percentage >= 90 && (
+                  <p className="text-xs text-amber-400 mt-1">
+                    Approaching monthly limit. Resets on the 1st.
+                  </p>
+                )}
+              </>
             )}
           </div>
 

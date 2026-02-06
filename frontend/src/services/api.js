@@ -60,6 +60,8 @@
  */
 
 import { API_BASE_URL, API_CONFIG, API_TIMEOUTS, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
+import { decodeJwt } from '../utils/jwtUtils';
+import { fetchWithTimeout } from '../utils/fetchUtils';
 
 // =============================================================================
 // AUTHENTICATION HELPERS
@@ -71,19 +73,6 @@ import { API_BASE_URL, API_CONFIG, API_TIMEOUTS, AUTH_KEYS, TOKEN_REFRESH_BUFFER
  * refresh request is sent to the server at a time.
  */
 let refreshPromise = null;
-
-/**
- * Decode a JWT payload to check expiry (no signature verification).
- * @param {string} token
- * @returns {Object|null}
- */
-function decodeJwt(token) {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Refresh the access token using the stored refresh token.
@@ -150,35 +139,6 @@ async function getAuthHeaders() {
 }
 
 /**
- * Fetch wrapper with timeout support using AbortController.
- *
- * @param {string} url - URL to fetch
- * @param {Object} options - Fetch options (method, headers, body, etc.)
- * @param {number} timeoutMs - Timeout in milliseconds (default from constants)
- * @returns {Promise<Response>} Fetch response
- * @throws {Error} If request times out or fails
- */
-async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUTS.EDIT) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    return response;
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out. Please try again.');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-/**
  * Edit a chunk of text via the Claude AI backend.
  *
  * Sends the text to the server, which forwards it to Claude for editing
@@ -191,10 +151,11 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUTS.EDIT
  * @param {boolean} isFirst - True if this is the first chunk (no prior context)
  * @param {function} logFn - Logging function: logFn(message, type='info')
  * @param {number} retryCount - Internal: current retry attempt number
+ * @param {string|null} customStyleGuide - User-customized style guide (optional)
  * @returns {Promise<string>} The edited text
  * @throws {Error} If all retry attempts fail
  */
-export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0) {
+export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0, customStyleGuide = null) {
   logFn('Sending section to editor...');
 
   try {
@@ -205,7 +166,7 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/edit-chunk`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ text, styleGuide, isFirst })
+      body: JSON.stringify({ text, styleGuide, isFirst, customStyleGuide })
     });
 
     // Handle HTTP errors
@@ -238,7 +199,7 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
       await new Promise(resolve => setTimeout(resolve, delay));
 
       // Recursive retry
-      return editChunk(text, styleGuide, isFirst, logFn, retryCount + 1);
+      return editChunk(text, styleGuide, isFirst, logFn, retryCount + 1, customStyleGuide);
     }
 
     // All retries exhausted - rethrow
@@ -482,7 +443,7 @@ export async function adminListUsers() {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to load users (${response.status})`);
   }
 
@@ -506,7 +467,7 @@ export async function adminUpdateUser(userId, fields) {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to update user (${response.status})`);
   }
 
@@ -528,7 +489,7 @@ export async function adminDeleteUser(userId) {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to delete user (${response.status})`);
   }
 }
@@ -546,7 +507,7 @@ export async function adminListInviteCodes() {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to load invite codes (${response.status})`);
   }
 
@@ -567,7 +528,7 @@ export async function adminCreateInviteCode() {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to generate invite code (${response.status})`);
   }
 
@@ -589,7 +550,7 @@ export async function adminDeleteInviteCode(codeId) {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to delete invite code (${response.status})`);
   }
 }
@@ -641,7 +602,7 @@ export async function completeSetup({ setup_secret, username, email, password })
     body: JSON.stringify({ setup_secret, username, email, password })
   }, API_TIMEOUTS.DEFAULT);
 
-  const data = await response.json().catch(() => ({}));
+  const data = await response.json().catch(() => ({ error: 'Server error' }));
 
   if (!response.ok) {
     throw new Error(data.error || `Setup failed (${response.status})`);

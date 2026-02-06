@@ -24,7 +24,7 @@ describe('Header', () => {
   test('renders application title', () => {
     render(<Header onShowStyleGuide={mockOnShowStyleGuide} />);
 
-    expect(screen.getByText('Professional Book Editor')).toBeInTheDocument();
+    expect(screen.getByText('Reach House Book Editor')).toBeInTheDocument();
   });
 
   test('renders subtitle', () => {
@@ -33,19 +33,31 @@ describe('Header', () => {
     expect(screen.getByText('AI-powered manuscript editing with tracked changes')).toBeInTheDocument();
   });
 
-  test('renders style guide button', () => {
+  test('renders style guide button with default view mode', () => {
     render(<Header onShowStyleGuide={mockOnShowStyleGuide} />);
 
-    expect(screen.getByText('View Reach Publishers Style Guide')).toBeInTheDocument();
+    expect(screen.getByText('View Style Guide')).toBeInTheDocument();
   });
 
   test('calls onShowStyleGuide when button is clicked', () => {
     render(<Header onShowStyleGuide={mockOnShowStyleGuide} />);
 
-    const button = screen.getByText('View Reach Publishers Style Guide');
+    const button = screen.getByText('View Style Guide');
     fireEvent.click(button);
 
     expect(mockOnShowStyleGuide).toHaveBeenCalledTimes(1);
+  });
+
+  test('shows Edit Style Guide when styleGuideMode is edit', () => {
+    render(<Header onShowStyleGuide={mockOnShowStyleGuide} styleGuideMode="edit" />);
+
+    expect(screen.getByText('Edit Style Guide')).toBeInTheDocument();
+  });
+
+  test('shows View Style Guide when styleGuideMode is view', () => {
+    render(<Header onShowStyleGuide={mockOnShowStyleGuide} styleGuideMode="view" />);
+
+    expect(screen.getByText('View Style Guide')).toBeInTheDocument();
   });
 
   test('shows username when user is provided', () => {

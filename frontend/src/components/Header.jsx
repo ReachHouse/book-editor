@@ -11,6 +11,7 @@
  * @param {function} onShowStyleGuide - Callback to show the StyleGuideModal
  * @param {function} [onShowAdmin]    - Callback to show the AdminDashboard (admin only)
  * @param {Object} [user]             - Current authenticated user object
+ * @param {'edit'|'view'} [styleGuideMode] - Style guide mode (default: 'view')
  *
  * =============================================================================
  */
@@ -26,8 +27,9 @@ import { useAuth } from '../contexts/AuthContext';
  * @param {function} props.onShowStyleGuide - Called when user clicks style guide button
  * @param {function} [props.onShowAdmin] - Called when admin clicks admin dashboard button
  * @param {Object} [props.user] - Current authenticated user
+ * @param {'edit'|'view'} [props.styleGuideMode] - Style guide mode (default: 'view')
  */
-function Header({ onShowStyleGuide, onShowAdmin, user }) {
+function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }) {
   const { logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -108,7 +110,7 @@ function Header({ onShowStyleGuide, onShowAdmin, user }) {
         className="btn-secondary inline-flex items-center gap-2 mt-6 py-2.5 px-5 text-sm focus-ring"
       >
         <BookOpen className="w-4 h-4 text-brand-400" />
-        View Style Guide
+        {styleGuideMode === 'edit' ? 'Edit Style Guide' : 'View Style Guide'}
       </button>
     </div>
   );

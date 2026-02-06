@@ -92,6 +92,7 @@ function formatProjectFull(row) {
     editedChunks: safeJsonParse(row.edited_chunks, []),
     fullEditedText: row.full_edited_text,
     styleGuide: row.style_guide,
+    customStyleGuide: row.custom_style_guide,
     docContent: safeJsonParse(row.doc_content, null)
   };
 }
@@ -163,7 +164,8 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
     const userId = req.user.userId;
     const {
       fileName, isComplete, chunksCompleted, totalChunks, chunkSize,
-      originalText, editedChunks, fullEditedText, styleGuide, docContent
+      originalText, editedChunks, fullEditedText, styleGuide, docContent,
+      customStyleGuide
     } = req.body;
 
     // Validate required fields
@@ -184,6 +186,9 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
     }
     if (styleGuide && styleGuide.length > 10000) {
       return res.status(400).json({ error: 'Style guide exceeds maximum size (10KB)' });
+    }
+    if (customStyleGuide && customStyleGuide.length > 50000) {
+      return res.status(400).json({ error: 'Custom style guide exceeds maximum size (50KB)' });
     }
     if (fileName.length > 255) {
       return res.status(400).json({ error: 'File name exceeds maximum length (255 chars)' });
@@ -214,7 +219,8 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
         editedChunks: editedChunks || null,
         fullEditedText: fullEditedText || null,
         styleGuide: styleGuide || null,
-        docContent: docContent || null
+        docContent: docContent || null,
+        customStyleGuide: customStyleGuide || null
       });
     });
 

@@ -203,6 +203,16 @@ We follow the UK style which means using the metric system e.g. metres and centi
 
 Watch for misuse of APOSTROPHES (common error) or missing apostrophes.
 
+Check general grammar, spelling, punctuation, sentence construction, tenses, prepositions, Number and concord
+
+(1) Consistency in the use of capitals and of the chosen form of English (i.e. US, SA or UK); We work off the Oxford Style Manual (R.M. Ritter) -- UK English
+
+We follow the UK style which means using the metric system e.g. metres and centimetres and s rather than z (realise not realize); honour not honor; travelled not traveled etc.
+
+(2) GENERAL
+
+Watch for misuse of APOSTROPHES (common error) or missing apostrophes.
+
 The rules concerning the use of apostrophes in written English are very simple:
 
 * They are used to denote a missing letter or letters
@@ -243,6 +253,12 @@ The aim is to change whatever needs changing so the book reads well in good Engl
 Kind regards
 Sally Veenman
 Reach Publishers, Head of Editing Department`;
+
+/**
+ * Maximum length for custom style guide content (in characters).
+ * Allows approximately 10,000 words for detailed style guides.
+ */
+export const MAX_CUSTOM_STYLE_GUIDE_LENGTH = 50000;
 
 // =============================================================================
 // VERSION EXPORTS
