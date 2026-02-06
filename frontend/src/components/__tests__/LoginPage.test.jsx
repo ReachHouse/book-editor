@@ -7,9 +7,11 @@ import LoginPage from '../LoginPage';
 
 // Mock the AuthContext
 const mockLogin = jest.fn();
+const mockEnterGuestMode = jest.fn();
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
-    login: mockLogin
+    login: mockLogin,
+    enterGuestMode: mockEnterGuestMode
   })
 }));
 
@@ -134,5 +136,20 @@ describe('LoginPage', () => {
       expect(screen.getByLabelText('Email or Username')).toBeDisabled();
       expect(screen.getByLabelText('Password')).toBeDisabled();
     });
+  });
+
+  // Guest mode tests
+  test('renders Continue as Viewer button', () => {
+    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
+
+    expect(screen.getByText('Continue as Viewer')).toBeInTheDocument();
+    expect(screen.getByText('Preview the app without an account')).toBeInTheDocument();
+  });
+
+  test('calls enterGuestMode when Continue as Viewer clicked', () => {
+    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
+
+    fireEvent.click(screen.getByText('Continue as Viewer'));
+    expect(mockEnterGuestMode).toHaveBeenCalledTimes(1);
   });
 });

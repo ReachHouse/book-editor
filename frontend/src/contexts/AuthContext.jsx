@@ -74,8 +74,11 @@ export function AuthProvider({ children }) {
 
   /**
    * Store tokens and user in localStorage.
+   * Also clears any guest mode flag to prevent conflicts.
    */
   const storeAuth = useCallback((accessToken, refreshToken, userData) => {
+    // Clear guest mode flag when storing real auth
+    localStorage.removeItem(AUTH_KEYS.GUEST);
     localStorage.setItem(AUTH_KEYS.TOKEN, accessToken);
     localStorage.setItem(AUTH_KEYS.REFRESH, refreshToken);
     localStorage.setItem(AUTH_KEYS.USER, JSON.stringify(userData));
@@ -98,12 +101,17 @@ export function AuthProvider({ children }) {
    * Sets up a guest user with viewer role that can preview the app.
    */
   const enterGuestMode = useCallback(() => {
-    // Clear any existing auth data first
-    localStorage.removeItem(AUTH_KEYS.TOKEN);
-    localStorage.removeItem(AUTH_KEYS.REFRESH);
-    localStorage.removeItem(AUTH_KEYS.USER);
-    // Set guest mode flag
-    localStorage.setItem(AUTH_KEYS.GUEST, 'true');
+    try {
+      // Clear any existing auth data first
+      localStorage.removeItem(AUTH_KEYS.TOKEN);
+      localStorage.removeItem(AUTH_KEYS.REFRESH);
+      localStorage.removeItem(AUTH_KEYS.USER);
+      // Set guest mode flag
+      localStorage.setItem(AUTH_KEYS.GUEST, 'true');
+    } catch {
+      // localStorage may be full, disabled, or blocked in private browsing
+      // Continue anyway - guest mode will work for this session only
+    }
     setUser(GUEST_USER);
   }, []);
 

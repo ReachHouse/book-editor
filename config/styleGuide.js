@@ -1,9 +1,9 @@
 /**
  * =============================================================================
- * REACH PUBLISHERS HOUSE STYLE GUIDE
+ * REACH HOUSE STYLE GUIDE
  * =============================================================================
  *
- * This file contains the official Reach House House Style Guide that
+ * This file contains the official Reach House Style Guide that
  * governs all manuscript editing. This is the SINGLE SOURCE OF TRUTH for
  * editing standards - both the backend AI prompts and frontend display
  * reference this file.
@@ -35,7 +35,7 @@
  * =============================================================================
  */
 
-const STYLE_GUIDE = `REACH PUBLISHERS HOUSE STYLE GUIDE
+const STYLE_GUIDE = `REACH HOUSE STYLE GUIDE
 
 All edits follow UK English (Oxford Style Manual by R.M. Ritter)
 

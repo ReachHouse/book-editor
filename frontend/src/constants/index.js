@@ -219,7 +219,7 @@ export const GUEST_USER = {
  * Based on: Oxford Style Manual by R.M. Ritter
  * Maintained by: Sally Veenman, Head of Editing Department
  */
-export const STYLE_GUIDE = `REACH PUBLISHERS HOUSE STYLE GUIDE
+export const STYLE_GUIDE = `REACH HOUSE STYLE GUIDE
 
 All edits follow UK English (Oxford Style Manual by R.M. Ritter)
 
@@ -264,7 +264,7 @@ CRITICAL: All changes must be highlighted/tracked.`;
  * - Fiction-specific tips
  * - And more
  */
-export const FULL_STYLE_GUIDE_DOCUMENT = `REACH PUBLISHERS NEW EDITORS' GUIDELINES TO HOUSE STYLE - Editing Brief
+export const FULL_STYLE_GUIDE_DOCUMENT = `REACH HOUSE NEW EDITORS' GUIDELINES TO HOUSE STYLE - Editing Brief
 
 All our edits (if not a proofread) are in-depth edits i.e. it is not just a simple proofread, but rather a thorough in-depth edit looking at all facets including the following:
 
