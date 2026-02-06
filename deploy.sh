@@ -17,8 +17,8 @@
 # -----------------
 # 1. SSH into your Hostinger VPS
 # 2. Create a deployment directory:
-#      mkdir -p /docker/book-editor
-#      cd /docker/book-editor
+#      mkdir -p /root/book-editor-backend
+#      cd /root/book-editor-backend
 #
 # 3. Clone the repository:
 #      git clone https://github.com/ReachHouse/book-editor.git .
@@ -38,7 +38,7 @@
 # SUBSEQUENT UPDATES:
 # -------------------
 # After pushing code changes to GitHub, simply run:
-#   cd /docker/book-editor
+#   cd /root/book-editor-backend
 #   ./deploy.sh
 #
 # WHAT THIS SCRIPT DOES:
@@ -79,8 +79,8 @@ if [ ! -d ".git" ]; then
     echo -e "${RED}ERROR: Not in a git repository!${NC}"
     echo ""
     echo "Please run the first-time setup:"
-    echo "  mkdir -p /docker/book-editor"
-    echo "  cd /docker/book-editor"
+    echo "  mkdir -p /root/book-editor-backend"
+    echo "  cd /root/book-editor-backend"
     echo "  git clone https://github.com/ReachHouse/book-editor.git ."
     echo "  chmod +x deploy.sh"
     echo "  ./deploy.sh"
