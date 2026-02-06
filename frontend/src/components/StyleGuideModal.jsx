@@ -41,6 +41,7 @@ function StyleGuideModal({
 }) {
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef(null);
+  const focusTimeoutRef = useRef(null);
   const modalRef = useRef(null);
   const previousActiveElement = useRef(null);
 
@@ -49,11 +50,14 @@ function StyleGuideModal({
   const charCount = displayValue?.length || 0;
   const isOverLimit = charCount > MAX_CUSTOM_STYLE_GUIDE_LENGTH;
 
-  // Clean up close timeout on unmount to prevent memory leaks
+  // Clean up timeouts on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
+      }
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
       }
     };
   }, []);
@@ -84,7 +88,7 @@ function StyleGuideModal({
       previousActiveElement.current = document.activeElement;
       document.body.style.overflow = 'hidden';
       // Focus the modal for screen readers
-      setTimeout(() => {
+      focusTimeoutRef.current = setTimeout(() => {
         if (modalRef.current) {
           modalRef.current.focus();
         }
@@ -94,6 +98,9 @@ function StyleGuideModal({
     }
     return () => {
       document.body.style.overflow = '';
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
     };
   }, [isOpen]);
 

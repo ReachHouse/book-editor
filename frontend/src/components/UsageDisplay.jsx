@@ -73,8 +73,9 @@ function UsageDisplay() {
         if (mounted) {
           setUsage(data);
         }
-      } catch {
-        // Silently fail — usage display is non-critical
+      } catch (err) {
+        // Non-critical — log but don't show to user
+        console.error('Failed to fetch usage:', err.message);
       }
     };
 

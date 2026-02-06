@@ -69,6 +69,7 @@ function UsersTab() {
   const [error, setError] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [pendingUserId, setPendingUserId] = useState(null); // Prevent concurrent operations
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -86,35 +87,49 @@ function UsersTab() {
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
   const handleToggleActive = async (user) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(user.id);
     try {
       await adminUpdateUser(user.id, { isActive: !user.isActive });
       await loadUsers();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingUserId(null);
     }
   };
 
   const handleToggleRole = async (user) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(user.id);
     try {
       const newRole = user.role === 'admin' ? 'user' : 'admin';
       await adminUpdateUser(user.id, { role: newRole });
       await loadUsers();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingUserId(null);
     }
   };
 
   const handleDelete = async (userId) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(userId);
     try {
       await adminDeleteUser(userId);
       setConfirmDelete(null);
       await loadUsers();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingUserId(null);
     }
   };
 
   const handleSaveLimits = async (userId, dailyLimit, monthlyLimit) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(userId);
     try {
       await adminUpdateUser(userId, {
         dailyTokenLimit: parseInt(dailyLimit, 10),
@@ -126,10 +141,14 @@ function UsersTab() {
       dispatchUsageUpdatedEvent();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingUserId(null);
     }
   };
 
   const handleToggleUnlimited = async (user) => {
+    if (pendingUserId) return; // Prevent concurrent operations
+    setPendingUserId(user.id);
     try {
       const isCurrentlyUnlimited = isUserUnlimited(user);
       // Toggle: if unlimited, restore defaults; if limited, set to unlimited (0)
@@ -142,6 +161,8 @@ function UsersTab() {
       dispatchUsageUpdatedEvent();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingUserId(null);
     }
   };
 
@@ -459,15 +480,8 @@ function InviteCodesTab() {
       setCopiedId(id);
       copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      // Fallback for non-HTTPS
-      const textArea = document.createElement('textarea');
-      textArea.value = code;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopiedId(id);
-      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
+      // Clipboard API requires HTTPS - show error instead of using deprecated fallback
+      setError('Copy failed. Please use HTTPS or copy manually.');
     }
   };
 

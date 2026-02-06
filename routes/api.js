@@ -225,8 +225,8 @@ router.post('/api/edit-chunk', requireAuth, async (req, res) => {
 
     // Check API key configuration
     if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({
-        error: 'API key not configured. Please set ANTHROPIC_API_KEY environment variable.'
+      return res.status(503).json({
+        error: 'Service temporarily unavailable'
       });
     }
 

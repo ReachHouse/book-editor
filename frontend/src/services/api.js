@@ -443,7 +443,7 @@ export async function adminListUsers() {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to load users (${response.status})`);
   }
 
@@ -467,7 +467,7 @@ export async function adminUpdateUser(userId, fields) {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to update user (${response.status})`);
   }
 
@@ -489,7 +489,7 @@ export async function adminDeleteUser(userId) {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to delete user (${response.status})`);
   }
 }
@@ -507,7 +507,7 @@ export async function adminListInviteCodes() {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to load invite codes (${response.status})`);
   }
 
@@ -528,7 +528,7 @@ export async function adminCreateInviteCode() {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to generate invite code (${response.status})`);
   }
 
@@ -550,7 +550,7 @@ export async function adminDeleteInviteCode(codeId) {
   }, API_TIMEOUTS.DEFAULT);
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
     throw new Error(data.error || `Failed to delete invite code (${response.status})`);
   }
 }
@@ -602,7 +602,7 @@ export async function completeSetup({ setup_secret, username, email, password })
     body: JSON.stringify({ setup_secret, username, email, password })
   }, API_TIMEOUTS.DEFAULT);
 
-  const data = await response.json().catch(() => ({}));
+  const data = await response.json().catch(() => ({ error: 'Server error' }));
 
   if (!response.ok) {
     throw new Error(data.error || `Setup failed (${response.status})`);
