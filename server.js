@@ -1,9 +1,9 @@
 /**
  * =============================================================================
- * REACH PUBLISHERS BOOK EDITOR - SERVER ENTRY POINT
+ * REACH HOUSE BOOK EDITOR - SERVER ENTRY POINT
  * =============================================================================
  *
- * This is the main entry point for the Reach Publishers AI Book Editor backend.
+ * This is the main entry point for the Reach House AI Book Editor backend.
  * The application provides AI-powered manuscript editing with native Microsoft
  * Word Track Changes support.
  *
@@ -22,7 +22,7 @@
  *   services/diffService.js   - LCS-based diff algorithms for Track Changes
  *   services/document/          - Word document generation with Track Changes
  *   database/migrations/      - Versioned database schema migrations
- *   config/styleGuide.js      - Reach Publishers House Style Guide
+ *   config/styleGuide.js      - Reach House Style Guide
  *
  * DEPLOYMENT:
  * -----------
@@ -292,7 +292,7 @@ const cleanupIntervalId = setInterval(() => {
 const server = app.listen(PORT, '0.0.0.0', () => {
   // Startup banner with configuration summary
   console.log('==================================================');
-  console.log('  Reach Publishers Book Editor');
+  console.log('  Reach House Book Editor');
   console.log('==================================================');
   console.log(`  Port:          ${PORT}`);
   console.log(`  URL:           http://localhost:${PORT}`);

@@ -1,6 +1,6 @@
 /**
  * UK Spelling Rules
- * Reach Publishers House Style Guide - UK English spelling conventions
+ * Reach House House Style Guide - UK English spelling conventions
  */
 
 module.exports = [
@@ -14,7 +14,7 @@ module.exports = [
       const isePattern = /\b\w+ise[sd]?\b/i;
       return izePattern.test(original) && isePattern.test(edited);
     },
-    explanation: 'Changed to UK spelling (-ise not -ize) per Reach Publishers style.',
+    explanation: 'Changed to UK spelling (-ise not -ize) per Reach House style.',
     rule: 'UK spelling: -ise not -ize (realise, organise)'
   },
   {
@@ -27,7 +27,7 @@ module.exports = [
       const ourPattern = /\b(honour|colour|favour|labour|neighbour|humour|flavour|behaviour|harbour|rumour)\b/i;
       return orPattern.test(original) && ourPattern.test(edited);
     },
-    explanation: 'Changed to UK spelling (-our not -or) per Reach Publishers style.',
+    explanation: 'Changed to UK spelling (-our not -or) per Reach House style.',
     rule: 'UK spelling: honour not honor, colour not color'
   },
   {
@@ -40,7 +40,7 @@ module.exports = [
       const doubleL = /\b(travelled|travelling|traveller|cancelled|cancelling|labelled|labelling|modelled|modelling)\b/i;
       return singleL.test(original) && doubleL.test(edited);
     },
-    explanation: 'Changed to UK spelling (doubled L) per Reach Publishers style.',
+    explanation: 'Changed to UK spelling (doubled L) per Reach House style.',
     rule: 'UK spelling: travelled not traveled, cancelled not canceled'
   },
   {
@@ -53,7 +53,7 @@ module.exports = [
       const rePattern = /\b(centre|theatre|metre|litre|fibre|sombre)\b/i;
       return erPattern.test(original) && rePattern.test(edited);
     },
-    explanation: 'Changed to UK spelling (-re not -er) per Reach Publishers style.',
+    explanation: 'Changed to UK spelling (-re not -er) per Reach House style.',
     rule: 'UK spelling: centre not center, theatre not theater'
   },
   {

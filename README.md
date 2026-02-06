@@ -1,6 +1,6 @@
 # Professional Book Editor
 
-AI-powered manuscript editing with tracked changes following Reach Publishers House Style Guide.
+AI-powered manuscript editing with tracked changes following Reach House Style Guide.
 
 ## Features
 
@@ -64,4 +64,4 @@ npm run dev
 
 ## License
 
-Private - Reach Publishers
+Private - Reach House

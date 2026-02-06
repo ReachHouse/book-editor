@@ -2,7 +2,7 @@
 # DOCKER COMPOSE CONFIGURATION
 # =============================================================================
 #
-# Orchestrates the Reach Publishers Book Editor application.
+# Orchestrates the Reach House Book Editor application.
 # This is the recommended way to run the application in production.
 #
 # USAGE:
@@ -47,7 +47,7 @@
 #
 # PORT MAPPING:
 # -------------
-# External: 3002 (access the app at http://localhost:3002 or http://your-vps-ip:3002)
+# External: 3002 (access the app at http://localhost:3002 or https://reachhouse.cloud)
 # Internal: 3001 (inside the container)
 #
 # The mapping "3002:3001" means:

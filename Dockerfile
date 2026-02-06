@@ -1,5 +1,5 @@
 # =============================================================================
-# DOCKERFILE - Multi-Stage Build for Reach Publishers Book Editor
+# DOCKERFILE - Multi-Stage Build for Reach House Book Editor
 # =============================================================================
 #
 # This Dockerfile uses a multi-stage build to:

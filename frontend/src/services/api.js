@@ -142,7 +142,7 @@ async function getAuthHeaders() {
  * Edit a chunk of text via the Claude AI backend.
  *
  * Sends the text to the server, which forwards it to Claude for editing
- * according to the Reach Publishers House Style Guide.
+ * according to the Reach House House Style Guide.
  *
  * Includes automatic retry logic for transient failures.
  *
@@ -234,7 +234,7 @@ export async function generateStyleGuide(text, logFn) {
 
     // Return default on HTTP error (non-critical)
     if (!response.ok) {
-      return 'Professional, clear, and engaging style following Reach Publishers standards.';
+      return 'Professional, clear, and engaging style following Reach House standards.';
     }
 
     const data = await response.json();
@@ -242,7 +242,7 @@ export async function generateStyleGuide(text, logFn) {
 
   } catch (err) {
     // Return default on any error (non-critical)
-    return 'Professional, clear, and engaging style following Reach Publishers standards.';
+    return 'Professional, clear, and engaging style following Reach House standards.';
   }
 }
 

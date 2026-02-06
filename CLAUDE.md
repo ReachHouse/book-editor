@@ -245,5 +245,46 @@ docker compose down         # Stop containers
 
 ---
 
+## VPS Maintenance
+
+### Security Updates
+Run periodically to keep the VPS secure:
+```bash
+apt update && apt upgrade -y
+```
+
+### Rollback a Failed Deployment
+If a deployment breaks the app, restore the previous version:
+```bash
+cd /root/book-editor-backend
+docker tag book-editor-backend-book-editor:previous book-editor-backend-book-editor:latest
+docker compose up -d
+```
+
+### Docker Cleanup
+Remove unused images and containers to free disk space:
+```bash
+docker system prune -f
+docker image prune -a -f  # WARNING: removes all unused images
+```
+
+### Check for Zombie Processes
+```bash
+ps aux | grep defunct
+# If found, reboot or kill parent process
+```
+
+### View Container Resources
+```bash
+docker stats --no-stream
+```
+
+### Database Backup
+```bash
+docker cp book-editor-backend-book-editor-1:/app/data/book-editor.db ./backup-$(date +%Y%m%d).db
+```
+
+---
+
 *Last updated: 2026-02-06*
 *VPS cleaned and verified: srv1321944*
