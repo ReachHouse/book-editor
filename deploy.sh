@@ -53,7 +53,7 @@
 # ROLLBACK:
 # ---------
 # If a deployment fails, restore the previous version:
-#   docker tag book-editor:previous book-editor:latest
+#   docker tag book-editor-backend-book-editor:previous book-editor-backend-book-editor:latest
 #   docker compose up -d
 #
 # =============================================================================
@@ -244,7 +244,7 @@ echo ""
 
 # Step 2: Tag previous image for rollback
 echo -e "${GREEN}[2/5] Tagging previous image for rollback...${NC}"
-docker tag book-editor:latest book-editor:previous 2>/dev/null || echo "      (No previous image to tag)"
+docker tag book-editor-backend-book-editor:latest book-editor-backend-book-editor:previous 2>/dev/null || echo "      (No previous image to tag)"
 echo ""
 
 # Step 3: Stop existing container
@@ -298,7 +298,7 @@ if [ "$FIRST_TIME_SETUP" = true ]; then
     echo "It is stored in .env but won't be displayed again."
     echo ""
     echo -e "${BOLD}To complete setup:${NC}"
-    echo "  1. Go to http://your-vps-ip:3002"
+    echo "  1. Go to https://reachhouse.cloud"
     echo "  2. Enter the SETUP_SECRET above"
     echo "  3. Create your admin username, email, and password"
     echo ""
@@ -306,13 +306,13 @@ if [ "$FIRST_TIME_SETUP" = true ]; then
     echo ""
 fi
 
-echo "Access the app at: http://your-vps-ip:3002"
+echo "Access the app at: https://reachhouse.cloud"
 echo ""
 echo "Useful commands:"
 echo "  View logs:        docker compose logs -f"
 echo "  Stop:             docker compose down"
 echo "  Restart:          docker compose restart"
-echo "  Rollback:         docker tag book-editor:previous book-editor:latest && docker compose up -d"
+echo "  Rollback:         docker tag book-editor-backend-book-editor:previous book-editor-backend-book-editor:latest && docker compose up -d"
 echo "  View secrets:     cat .env"
 echo ""
 
