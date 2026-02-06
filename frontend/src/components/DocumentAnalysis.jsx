@@ -14,8 +14,9 @@
  * =============================================================================
  */
 
-import React from 'react';
-import { CheckCircle, FileText, Hash, AlignLeft, Globe, Clock, Layers } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle, FileText, Hash, AlignLeft, Globe, Clock, Layers, Lock, X } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const ANALYSIS_FIELDS = [
   { key: 'fileName', label: 'File Name', icon: FileText },
@@ -30,8 +31,64 @@ const ANALYSIS_FIELDS = [
  * Document analysis display with start/cancel actions.
  */
 function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
+  const { isGuest, logout } = useAuth();
+  const [showRegisterPrompt, setShowRegisterPrompt] = useState(false);
+
+  const handleStartEditing = () => {
+    if (isGuest) {
+      setShowRegisterPrompt(true);
+      return;
+    }
+    onStartEditing();
+  };
+
+  const handleSignIn = () => {
+    // Clear guest mode and redirect to login
+    logout();
+  };
+
   return (
     <div className="glass-card p-6 sm:p-8 mb-8 animate-scale-in">
+      {/* Register prompt modal for guests */}
+      {showRegisterPrompt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="glass-card p-6 max-w-md mx-4 animate-scale-in">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-red-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white">Account Required</h3>
+              </div>
+              <button
+                onClick={() => setShowRegisterPrompt(false)}
+                className="p-1.5 rounded-lg text-surface-400 hover:text-surface-200 hover:bg-surface-800/50 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-surface-400 mb-6 leading-relaxed">
+              You need an account to edit documents. Sign in or register with an invite code to start editing.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSignIn}
+                className="btn-primary flex-1 py-2.5 px-4 text-sm"
+              >
+                Sign In / Register
+              </button>
+              <button
+                onClick={() => setShowRegisterPrompt(false)}
+                className="btn-secondary py-2.5 px-4 text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl glass-icon flex items-center justify-center">
@@ -70,13 +127,23 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
         </p>
       </div>
 
+      {/* Guest info box */}
+      {isGuest && (
+        <div className="info-box-amber p-4 mb-6 flex items-center gap-3">
+          <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+          <p className="text-sm text-amber-300/90">
+            You&apos;re viewing as a guest. <strong className="text-amber-300">Register to start editing.</strong>
+          </p>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-3">
         <button
-          onClick={onStartEditing}
+          onClick={handleStartEditing}
           className="btn-primary flex-1 py-3 px-5 text-sm focus-ring"
         >
-          Start Editing
+          {isGuest ? 'Start Editing (requires account)' : 'Start Editing'}
         </button>
         <button
           onClick={onCancel}

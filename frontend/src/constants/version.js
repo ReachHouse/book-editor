@@ -50,6 +50,9 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.49.0 [Feature]  - 2026-02-06: Continue as Viewer guest mode — skip login to preview app, GUEST_USER constant, enterGuestMode() in AuthContext, guest restrictions on editing/saving, register prompt modal, Sign in button in header for guests (481 tests)
+ * v1.48.0 [Feature]  - 2026-02-06: Role system with 4 roles — Admin (green, unlimited), Management (purple), Editor (amber), Viewer (gray, restricted); configurable token limits per role, role defaults table, admin self-lockout prevention (481 tests)
+ * v1.47.0 [Docs]     - 2026-02-06: Comprehensive CLAUDE.md documentation — complete VPS file system map, 95 source files documented, API endpoints table, role system docs, deployment commands
  * v1.46.0 [Feature]  - 2026-02-05: Editable style guide — users can customize the style guide used by the AI for editing their documents, "Edit Style Guide" button in upload phase, "View Style Guide" (read-only) after completion, custom guide persisted per project, Reset to Default option, MAX_CUSTOM_STYLE_GUIDE_LENGTH (50KB) limit (477 total)
  * v1.45.0 [Feature]  - 2026-02-05: Comprehensive formatting support — add **bold**, _underline_, ~~strikethrough~~, ***bold+italic*** marker parsing alongside *italic*, token-based parser handles mixed formatting, all formatting counted in stats.totalFormattingChanges, 20 new tests (477 total)
  * v1.44.2 [Bugfix]   - 2026-02-05: Fix Formatting: 0 in Word Track Changes — AI Editor Summary now counts italic conversions (stats.totalFormattingChanges incremented when *italic* markers processed), pass stats context through formatting pipeline, 5 new tests (457 total)
@@ -137,7 +140,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.46.0';
+export const VERSION = '1.49.0';
 
 /**
  * Tag describing the type of changes in this version
@@ -148,7 +151,7 @@ export const VERSION_TAG = 'Feature';
 /**
  * Date of this version release (YYYY-MM-DD format)
  */
-export const VERSION_DATE = '2026-02-05';
+export const VERSION_DATE = '2026-02-06';
 
 /**
  * Combined display string shown in the UI footer

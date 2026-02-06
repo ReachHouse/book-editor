@@ -17,7 +17,8 @@
  */
 
 import React, { useState } from 'react';
-import { Clock, Download, Play, Trash2, Check, X, Loader, FileText, CheckCircle } from 'lucide-react';
+import { Clock, Download, Play, Trash2, Check, X, Loader, FileText, CheckCircle, Lock, LogIn } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * List of saved projects with actions.
@@ -29,7 +30,44 @@ function SavedProjects({
   onDelete,
   isDownloading
 }) {
+  const { isGuest, logout } = useAuth();
   const hasProjects = projects && projects.length > 0;
+
+  // Show guest message instead of projects list
+  if (isGuest) {
+    return (
+      <div className="glass-card p-6 sm:p-8 animate-fade-in-up [animation-delay:100ms]">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl glass-icon-neutral flex items-center justify-center">
+            <Clock className="w-5 h-5 text-surface-400" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-white">Previously Edited Books</h2>
+            <p className="text-sm text-surface-400">Sign in to save and access your projects</p>
+          </div>
+        </div>
+
+        {/* Guest message */}
+        <div className="glass-inner p-8 text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-surface-800/50 border border-surface-700/30 flex items-center justify-center">
+            <Lock className="w-6 h-6 text-surface-500" aria-hidden="true" />
+          </div>
+          <p className="text-surface-300 text-sm mb-1">Your projects will appear here after you register</p>
+          <p className="text-surface-500 text-xs mb-4">
+            Sign in to save and resume your editing projects
+          </p>
+          <button
+            onClick={logout}
+            className="inline-flex items-center gap-2 text-sm text-brand-400 hover:text-brand-300 transition-colors"
+          >
+            <LogIn className="w-4 h-4" />
+            Sign in or Register
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="glass-card p-6 sm:p-8 animate-fade-in-up [animation-delay:100ms]">

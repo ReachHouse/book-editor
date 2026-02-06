@@ -115,7 +115,8 @@ export const CHUNK_SIZES = {
 export const AUTH_KEYS = {
   TOKEN: 'book_editor_access_token',
   REFRESH: 'book_editor_refresh_token',
-  USER: 'book_editor_user'
+  USER: 'book_editor_user',
+  GUEST: 'book_editor_guest_mode'
 };
 
 /**
@@ -123,6 +124,84 @@ export const AUTH_KEYS = {
  * A 60-second buffer ensures we refresh well before the token expires.
  */
 export const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
+
+// =============================================================================
+// ROLE SYSTEM CONFIGURATION
+// =============================================================================
+
+/**
+ * Valid user roles and their display properties.
+ *
+ * ROLES:
+ * - admin:      Full access, unlimited tokens by default (green badge)
+ * - management: Standard access, 500K daily / 10M monthly default (purple badge)
+ * - editor:     Standard access, 500K daily / 10M monthly default (amber badge)
+ * - viewer:     Restricted access, 0 tokens by default (gray badge)
+ *
+ * Each role has:
+ * - label: Display name (Title Case for consistency)
+ * - badgeClass: Tailwind classes for badge styling
+ * - color: Color name for reference
+ */
+export const USER_ROLES = {
+  admin: {
+    label: 'Admin',
+    badgeClass: 'bg-green-500/20 text-green-400',
+    color: 'green'
+  },
+  management: {
+    label: 'Management',
+    badgeClass: 'bg-purple-500/20 text-purple-400',
+    color: 'purple'
+  },
+  editor: {
+    label: 'Editor',
+    badgeClass: 'bg-amber-500/20 text-amber-400',
+    color: 'amber'
+  },
+  viewer: {
+    label: 'Viewer',
+    badgeClass: 'bg-gray-500/20 text-gray-400',
+    color: 'gray'
+  }
+};
+
+/**
+ * Token limit special values.
+ *
+ * TOKEN LIMIT SEMANTICS:
+ * - UNLIMITED (-1): No restrictions, user can use as many tokens as needed
+ * - RESTRICTED (0): Cannot use the editing API at all
+ * - Positive values: Specific limit in tokens
+ */
+export const TOKEN_LIMITS = {
+  UNLIMITED: -1,
+  RESTRICTED: 0
+};
+
+/**
+ * Guest user object for "Continue as Viewer" mode.
+ * Used when user skips login to preview the app without an account.
+ *
+ * Guest users can:
+ * - Upload and analyze documents (client-side only)
+ * - View the style guide
+ * - See the main editor interface
+ *
+ * Guest users CANNOT:
+ * - Edit documents (no auth token)
+ * - Save or load projects (requires user ID)
+ * - Download edited documents
+ */
+export const GUEST_USER = {
+  id: 'guest',
+  username: 'Guest',
+  email: null,
+  role: 'viewer',
+  isGuest: true,
+  dailyTokenLimit: 0,
+  monthlyTokenLimit: 0
+};
 
 // =============================================================================
 // STYLE GUIDE (CONDENSED VERSION FOR UI DISPLAY)
@@ -140,7 +219,7 @@ export const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
  * Based on: Oxford Style Manual by R.M. Ritter
  * Maintained by: Sally Veenman, Head of Editing Department
  */
-export const STYLE_GUIDE = `REACH PUBLISHERS HOUSE STYLE GUIDE
+export const STYLE_GUIDE = `REACH HOUSE STYLE GUIDE
 
 All edits follow UK English (Oxford Style Manual by R.M. Ritter)
 
@@ -185,7 +264,7 @@ CRITICAL: All changes must be highlighted/tracked.`;
  * - Fiction-specific tips
  * - And more
  */
-export const FULL_STYLE_GUIDE_DOCUMENT = `REACH PUBLISHERS NEW EDITORS' GUIDELINES TO HOUSE STYLE - Editing Brief
+export const FULL_STYLE_GUIDE_DOCUMENT = `REACH HOUSE NEW EDITORS' GUIDELINES TO HOUSE STYLE - Editing Brief
 
 All our edits (if not a proofread) are in-depth edits i.e. it is not just a simple proofread, but rather a thorough in-depth edit looking at all facets including the following:
 

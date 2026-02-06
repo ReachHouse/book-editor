@@ -95,7 +95,11 @@ function validateTextField(value, fieldName, maxLength = MAX_TEXT_LENGTH) {
 
 /**
  * Check if a user has exceeded their daily or monthly token limits.
- * A limit of 0 means unlimited (no limit enforcement).
+ *
+ * Token limit semantics:
+ *   -1 = Unlimited (no restrictions, skip check)
+ *    0 = Restricted (cannot use API, always deny)
+ *   >0 = Specific limit (check usage against limit)
  *
  * @param {number} userId - The user's ID
  * @returns {{ allowed: boolean, reason?: string }} Whether the request is allowed
@@ -104,7 +108,13 @@ function checkUsageLimits(userId) {
   const user = database.users.findById(userId);
   if (!user) return { allowed: false, reason: 'User not found' };
 
-  // Check daily limit (0 = unlimited)
+  // Check daily limit: -1 = unlimited, 0 = restricted, >0 = check limit
+  if (user.daily_token_limit === 0) {
+    return {
+      allowed: false,
+      reason: 'Your account has restricted access. Contact an administrator to request editing permissions.'
+    };
+  }
   if (user.daily_token_limit > 0) {
     const daily = database.usageLogs.getDailyUsage(userId);
     if (daily.total >= user.daily_token_limit) {
@@ -114,8 +124,15 @@ function checkUsageLimits(userId) {
       };
     }
   }
+  // daily_token_limit === -1 means unlimited, skip check
 
-  // Check monthly limit (0 = unlimited)
+  // Check monthly limit: -1 = unlimited, 0 = restricted, >0 = check limit
+  if (user.monthly_token_limit === 0) {
+    return {
+      allowed: false,
+      reason: 'Your account has restricted access. Contact an administrator to request editing permissions.'
+    };
+  }
   if (user.monthly_token_limit > 0) {
     const monthly = database.usageLogs.getMonthlyUsage(userId);
     if (monthly.total >= user.monthly_token_limit) {
@@ -125,6 +142,7 @@ function checkUsageLimits(userId) {
       };
     }
   }
+  // monthly_token_limit === -1 means unlimited, skip check
 
   return { allowed: true };
 }

@@ -556,6 +556,58 @@ export async function adminDeleteInviteCode(codeId) {
 }
 
 // =============================================================================
+// ROLE DEFAULTS MANAGEMENT (Admin only)
+// =============================================================================
+
+/**
+ * Get all role defaults.
+ * Returns default token limits for each role (admin, management, editor, viewer).
+ *
+ * @returns {Promise<Array>} List of role defaults
+ */
+export async function adminGetRoleDefaults() {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/role-defaults`, {
+    method: 'GET',
+    headers
+  }, API_TIMEOUTS.DEFAULT);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
+    throw new Error(data.error || `Failed to load role defaults (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.roleDefaults;
+}
+
+/**
+ * Update default token limits for a role.
+ *
+ * @param {string} role - Role to update (admin, management, editor, viewer)
+ * @param {Object} fields - Fields to update
+ * @param {number} [fields.dailyTokenLimit] - Daily limit (-1 = unlimited, 0 = restricted, >0 = limit)
+ * @param {number} [fields.monthlyTokenLimit] - Monthly limit (-1 = unlimited, 0 = restricted, >0 = limit)
+ * @returns {Promise<Object>} Updated role defaults
+ */
+export async function adminUpdateRoleDefaults(role, fields) {
+  const headers = await getAuthHeaders();
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/role-defaults/${role}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(fields)
+  }, API_TIMEOUTS.DEFAULT);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ error: 'Server error' }));
+    throw new Error(data.error || `Failed to update role defaults (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.roleDefault;
+}
+
+// =============================================================================
 // FIRST-TIME SETUP (No auth required - only works when no users exist)
 // =============================================================================
 

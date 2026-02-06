@@ -14,11 +14,11 @@
  */
 
 import React, { useState } from 'react';
-import { FileText, LogIn, AlertCircle, Loader } from 'lucide-react';
+import { FileText, LogIn, AlertCircle, Loader, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 function LoginPage({ onSwitchToRegister }) {
-  const { login } = useAuth();
+  const { login, enterGuestMode } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -145,6 +145,27 @@ function LoginPage({ onSwitchToRegister }) {
               </button>
             </p>
           </div>
+
+          {/* Divider */}
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex-1 h-px bg-surface-700/50" />
+            <span className="text-xs text-surface-500">or</span>
+            <div className="flex-1 h-px bg-surface-700/50" />
+          </div>
+
+          {/* Continue as Viewer button */}
+          <button
+            type="button"
+            onClick={enterGuestMode}
+            disabled={submitting}
+            className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-surface-400 hover:text-surface-200 border border-surface-700/50 hover:border-surface-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Eye className="w-4 h-4" />
+            Continue as Viewer
+          </button>
+          <p className="mt-2 text-xs text-surface-500 text-center">
+            Preview the app without an account
+          </p>
         </form>
 
         {/* Footer */}

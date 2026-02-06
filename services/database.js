@@ -210,14 +210,18 @@ class DatabaseService {
 
       /**
        * Create a new user.
-       * @param {Object} data - { username, email, password_hash, role? }
+       * @param {Object} data - { username, email, password_hash, role?, daily_token_limit?, monthly_token_limit? }
        * @returns {Object} The created user
        */
-      create({ username, email, password_hash, role = 'user' }) {
+      create({ username, email, password_hash, role = 'editor', daily_token_limit, monthly_token_limit }) {
+        // If limits not provided, use defaults (500K daily, 10M monthly for editor)
+        const dailyLimit = daily_token_limit !== undefined ? daily_token_limit : 500000;
+        const monthlyLimit = monthly_token_limit !== undefined ? monthly_token_limit : 10000000;
+
         const result = db.prepare(`
-          INSERT INTO users (username, email, password_hash, role)
-          VALUES (?, ?, ?, ?)
-        `).run(username, email, password_hash, role);
+          INSERT INTO users (username, email, password_hash, role, daily_token_limit, monthly_token_limit)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(username, email, password_hash, role, dailyLimit, monthlyLimit);
         return db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
       },
 
@@ -724,6 +728,69 @@ class DatabaseService {
           map.set(row.user_id, row.count);
         }
         return map;
+      }
+    };
+  }
+
+  // ===========================================================================
+  // ROLE DEFAULTS
+  // ===========================================================================
+
+  /**
+   * Role defaults query helpers.
+   * Manages configurable default token limits per role.
+   */
+  get roleDefaults() {
+    const db = this.db;
+    return {
+      /**
+       * Get defaults for a specific role.
+       * @param {string} role - 'admin', 'management', 'editor', or 'viewer'
+       * @returns {Object|undefined}
+       */
+      get(role) {
+        return db.prepare('SELECT * FROM role_defaults WHERE role = ?').get(role);
+      },
+
+      /**
+       * List all role defaults, ordered by display_order.
+       * @returns {Array}
+       */
+      listAll() {
+        return db.prepare(
+          'SELECT * FROM role_defaults ORDER BY display_order'
+        ).all();
+      },
+
+      /**
+       * Update role defaults.
+       * @param {string} role
+       * @param {Object} fields - { daily_token_limit?, monthly_token_limit? }
+       * @returns {Object|undefined} Updated role defaults
+       */
+      update(role, fields) {
+        const allowed = ['daily_token_limit', 'monthly_token_limit'];
+        const updates = [];
+        const values = [];
+
+        for (const [key, value] of Object.entries(fields)) {
+          if (allowed.includes(key)) {
+            updates.push(`${key} = ?`);
+            values.push(value);
+          }
+        }
+
+        if (updates.length === 0) return this.get(role);
+
+        // Always update the updated_at timestamp
+        updates.push("updated_at = datetime('now')");
+
+        values.push(role);
+        db.prepare(
+          `UPDATE role_defaults SET ${updates.join(', ')} WHERE role = ?`
+        ).run(...values);
+
+        return this.get(role);
       }
     };
   }

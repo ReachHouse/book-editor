@@ -51,24 +51,32 @@ router.get('/api/usage', requireAuth, (req, res) => {
     const daily = database.usageLogs.getDailyUsage(userId);
     const monthly = database.usageLogs.getMonthlyUsage(userId);
 
+    // Calculate percentage: -1 = unlimited, 0 = restricted, >0 = actual percentage
+    const dailyPercentage = user.daily_token_limit > 0
+      ? Math.min(100, Math.round((daily.total / user.daily_token_limit) * 100))
+      : null;
+    const monthlyPercentage = user.monthly_token_limit > 0
+      ? Math.min(100, Math.round((monthly.total / user.monthly_token_limit) * 100))
+      : null;
+
     res.json({
       daily: {
         input: daily.input,
         output: daily.output,
         total: daily.total,
         limit: user.daily_token_limit,
-        percentage: user.daily_token_limit > 0
-          ? Math.min(100, Math.round((daily.total / user.daily_token_limit) * 100))
-          : 0
+        percentage: dailyPercentage,
+        isUnlimited: user.daily_token_limit === -1,
+        isRestricted: user.daily_token_limit === 0
       },
       monthly: {
         input: monthly.input,
         output: monthly.output,
         total: monthly.total,
         limit: user.monthly_token_limit,
-        percentage: user.monthly_token_limit > 0
-          ? Math.min(100, Math.round((monthly.total / user.monthly_token_limit) * 100))
-          : 0
+        percentage: monthlyPercentage,
+        isUnlimited: user.monthly_token_limit === -1,
+        isRestricted: user.monthly_token_limit === 0
       }
     });
   } catch (err) {
@@ -137,6 +145,14 @@ router.get('/api/admin/usage', requireAdmin, (req, res) => {
       const daily = dailyUsageMap.get(user.id) || defaultUsage;
       const monthly = monthlyUsageMap.get(user.id) || defaultUsage;
 
+      // Calculate percentage: -1 = unlimited, 0 = restricted, >0 = actual percentage
+      const dailyPercentage = user.daily_token_limit > 0
+        ? Math.min(100, Math.round((daily.total / user.daily_token_limit) * 100))
+        : null;
+      const monthlyPercentage = user.monthly_token_limit > 0
+        ? Math.min(100, Math.round((monthly.total / user.monthly_token_limit) * 100))
+        : null;
+
       return {
         id: user.id,
         username: user.username,
@@ -145,16 +161,16 @@ router.get('/api/admin/usage', requireAdmin, (req, res) => {
         daily: {
           total: daily.total,
           limit: user.daily_token_limit,
-          percentage: user.daily_token_limit > 0
-            ? Math.min(100, Math.round((daily.total / user.daily_token_limit) * 100))
-            : 0
+          percentage: dailyPercentage,
+          isUnlimited: user.daily_token_limit === -1,
+          isRestricted: user.daily_token_limit === 0
         },
         monthly: {
           total: monthly.total,
           limit: user.monthly_token_limit,
-          percentage: user.monthly_token_limit > 0
-            ? Math.min(100, Math.round((monthly.total / user.monthly_token_limit) * 100))
-            : 0
+          percentage: monthlyPercentage,
+          isUnlimited: user.monthly_token_limit === -1,
+          isRestricted: user.monthly_token_limit === 0
         }
       };
     });

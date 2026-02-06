@@ -1,9 +1,9 @@
 /**
  * =============================================================================
- * ADMIN ROUTES - User & Invite Code Management
+ * ADMIN ROUTES - User, Role & Invite Code Management
  * =============================================================================
  *
- * Admin-only endpoints for managing users and invite codes.
+ * Admin-only endpoints for managing users, roles, and invite codes.
  * All endpoints require admin role (requireAdmin middleware).
  *
  * ENDPOINTS:
@@ -13,6 +13,22 @@
  * DELETE /api/admin/users/:id        - Delete a user
  * GET    /api/admin/invite-codes     - List all invite codes
  * POST   /api/admin/invite-codes     - Generate a new invite code
+ * DELETE /api/admin/invite-codes/:id - Delete an unused invite code
+ * GET    /api/admin/role-defaults    - List default limits for all roles
+ * PUT    /api/admin/role-defaults/:role - Update default limits for a role
+ *
+ * ROLES:
+ * ------
+ * - admin:      Full access, unlimited tokens (-1)
+ * - management: Standard access, 500K daily / 10M monthly default
+ * - editor:     Standard access, 500K daily / 10M monthly default
+ * - viewer:     Restricted access, 0 tokens (cannot use API)
+ *
+ * TOKEN LIMIT SEMANTICS:
+ * ----------------------
+ * -  -1 = Unlimited (no restrictions)
+ * -   0 = Restricted (cannot use API)
+ * -  >0 = Specific limit (enforced)
  *
  * =============================================================================
  */
@@ -24,6 +40,12 @@ const crypto = require('crypto');
 const router = express.Router();
 const { requireAdmin } = require('../middleware/auth');
 const { database } = require('../services/database');
+
+// Valid roles for the system
+const VALID_ROLES = ['admin', 'management', 'editor', 'viewer'];
+
+// Maximum token limit (100 million) - prevents unreasonable values
+const MAX_TOKEN_LIMIT = 100000000;
 
 // =============================================================================
 // USER MANAGEMENT
@@ -52,6 +74,14 @@ router.get('/api/admin/users', requireAdmin, (req, res) => {
       const monthly = monthlyUsageMap.get(user.id) || defaultUsage;
       const projectCount = projectCountMap.get(user.id) || 0;
 
+      // Calculate percentage: -1 = unlimited (null%), 0 = restricted (null%), >0 = actual percentage
+      const dailyPercentage = user.daily_token_limit > 0
+        ? Math.min(100, Math.round((daily.total / user.daily_token_limit) * 100))
+        : null;
+      const monthlyPercentage = user.monthly_token_limit > 0
+        ? Math.min(100, Math.round((monthly.total / user.monthly_token_limit) * 100))
+        : null;
+
       return {
         id: user.id,
         username: user.username,
@@ -66,16 +96,16 @@ router.get('/api/admin/users', requireAdmin, (req, res) => {
         daily: {
           total: daily.total,
           limit: user.daily_token_limit,
-          percentage: user.daily_token_limit > 0
-            ? Math.min(100, Math.round((daily.total / user.daily_token_limit) * 100))
-            : 0
+          percentage: dailyPercentage,
+          isUnlimited: user.daily_token_limit === -1,
+          isRestricted: user.daily_token_limit === 0
         },
         monthly: {
           total: monthly.total,
           limit: user.monthly_token_limit,
-          percentage: user.monthly_token_limit > 0
-            ? Math.min(100, Math.round((monthly.total / user.monthly_token_limit) * 100))
-            : 0
+          percentage: monthlyPercentage,
+          isUnlimited: user.monthly_token_limit === -1,
+          isRestricted: user.monthly_token_limit === 0
         }
       };
     });
@@ -91,14 +121,14 @@ router.get('/api/admin/users', requireAdmin, (req, res) => {
  * PUT /api/admin/users/:id
  *
  * Update a user's role, active status, or token limits.
- * Admins cannot deactivate or demote themselves.
+ * Admins cannot deactivate, change their own role, or set their own limits to 0 (restricted).
  *
  * Request body (all optional):
  *   {
- *     role?: 'admin' | 'user',
+ *     role?: 'admin' | 'management' | 'editor' | 'viewer',
  *     isActive?: boolean,
- *     dailyTokenLimit?: number,
- *     monthlyTokenLimit?: number
+ *     dailyTokenLimit?: number,   // -1 = unlimited, 0 = restricted, >0 = limit
+ *     monthlyTokenLimit?: number  // -1 = unlimited, 0 = restricted, >0 = limit
  *   }
  *
  * Response: { user: {...} }
@@ -118,13 +148,20 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
     const { role, isActive, dailyTokenLimit, monthlyTokenLimit } = req.body;
     const isSelf = req.user.userId === targetId;
 
-    // Prevent admins from demoting or deactivating themselves
+    // Prevent admins from locking themselves out
     if (isSelf) {
-      if (role !== undefined && role !== 'admin') {
+      if (role !== undefined && role !== targetUser.role) {
         return res.status(400).json({ error: 'Cannot change your own role' });
       }
       if (isActive !== undefined && !isActive) {
         return res.status(400).json({ error: 'Cannot deactivate your own account' });
+      }
+      // Prevent setting own limits to 0 (restricted) - would lock out of API
+      if (dailyTokenLimit !== undefined && parseInt(dailyTokenLimit, 10) === 0) {
+        return res.status(400).json({ error: 'Cannot set your own daily limit to restricted (0)' });
+      }
+      if (monthlyTokenLimit !== undefined && parseInt(monthlyTokenLimit, 10) === 0) {
+        return res.status(400).json({ error: 'Cannot set your own monthly limit to restricted (0)' });
       }
     }
 
@@ -132,8 +169,10 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
     const fields = {};
 
     if (role !== undefined) {
-      if (role !== 'admin' && role !== 'user') {
-        return res.status(400).json({ error: 'Role must be "admin" or "user"' });
+      if (!VALID_ROLES.includes(role)) {
+        return res.status(400).json({
+          error: `Role must be one of: ${VALID_ROLES.join(', ')}`
+        });
       }
       fields.role = role;
     }
@@ -142,27 +181,33 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
       fields.is_active = isActive ? 1 : 0;
     }
 
-    // Maximum token limit (100 million) - prevents unreasonable values
-    const MAX_TOKEN_LIMIT = 100000000;
-
+    // Token limit validation: -1 = unlimited, 0 = restricted, >0 = specific limit
     if (dailyTokenLimit !== undefined) {
       const limit = parseInt(dailyTokenLimit, 10);
-      if (isNaN(limit) || limit < 0) {
-        return res.status(400).json({ error: 'Daily token limit must be a non-negative number' });
+      if (isNaN(limit) || limit < -1) {
+        return res.status(400).json({
+          error: 'Daily token limit must be -1 (unlimited), 0 (restricted), or a positive number'
+        });
       }
       if (limit > MAX_TOKEN_LIMIT) {
-        return res.status(400).json({ error: `Daily token limit cannot exceed ${MAX_TOKEN_LIMIT.toLocaleString()}` });
+        return res.status(400).json({
+          error: `Daily token limit cannot exceed ${MAX_TOKEN_LIMIT.toLocaleString()}`
+        });
       }
       fields.daily_token_limit = limit;
     }
 
     if (monthlyTokenLimit !== undefined) {
       const limit = parseInt(monthlyTokenLimit, 10);
-      if (isNaN(limit) || limit < 0) {
-        return res.status(400).json({ error: 'Monthly token limit must be a non-negative number' });
+      if (isNaN(limit) || limit < -1) {
+        return res.status(400).json({
+          error: 'Monthly token limit must be -1 (unlimited), 0 (restricted), or a positive number'
+        });
       }
       if (limit > MAX_TOKEN_LIMIT) {
-        return res.status(400).json({ error: `Monthly token limit cannot exceed ${MAX_TOKEN_LIMIT.toLocaleString()}` });
+        return res.status(400).json({
+          error: `Monthly token limit cannot exceed ${MAX_TOKEN_LIMIT.toLocaleString()}`
+        });
       }
       fields.monthly_token_limit = limit;
     }
@@ -314,6 +359,127 @@ router.delete('/api/admin/invite-codes/:id', requireAdmin, (req, res) => {
   } catch (err) {
     console.error('Admin delete invite code error:', err.message);
     res.status(500).json({ error: 'Failed to delete invite code' });
+  }
+});
+
+// =============================================================================
+// ROLE DEFAULTS MANAGEMENT
+// =============================================================================
+
+/**
+ * GET /api/admin/role-defaults
+ *
+ * List default token limits for all roles.
+ * These defaults are applied when creating new users or can be used
+ * as reference when changing a user's role.
+ *
+ * Response: { roleDefaults: [...] }
+ */
+router.get('/api/admin/role-defaults', requireAdmin, (req, res) => {
+  try {
+    const defaults = database.roleDefaults.listAll();
+
+    const roleDefaults = defaults.map(rd => ({
+      role: rd.role,
+      dailyTokenLimit: rd.daily_token_limit,
+      monthlyTokenLimit: rd.monthly_token_limit,
+      color: rd.color,
+      displayOrder: rd.display_order,
+      updatedAt: rd.updated_at
+    }));
+
+    res.json({ roleDefaults });
+  } catch (err) {
+    console.error('Admin list role defaults error:', err.message);
+    res.status(500).json({ error: 'Failed to load role defaults' });
+  }
+});
+
+/**
+ * PUT /api/admin/role-defaults/:role
+ *
+ * Update default token limits for a specific role.
+ * These defaults are applied to new users with this role.
+ *
+ * Request body (all optional):
+ *   {
+ *     dailyTokenLimit?: number,   // -1 = unlimited, 0 = restricted, >0 = limit
+ *     monthlyTokenLimit?: number  // -1 = unlimited, 0 = restricted, >0 = limit
+ *   }
+ *
+ * Response: { roleDefault: {...} }
+ */
+router.put('/api/admin/role-defaults/:role', requireAdmin, (req, res) => {
+  try {
+    const { role } = req.params;
+
+    if (!VALID_ROLES.includes(role)) {
+      return res.status(400).json({
+        error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}`
+      });
+    }
+
+    const existing = database.roleDefaults.get(role);
+    if (!existing) {
+      return res.status(404).json({ error: 'Role defaults not found' });
+    }
+
+    const { dailyTokenLimit, monthlyTokenLimit } = req.body;
+    const fields = {};
+
+    // Token limit validation: -1 = unlimited, 0 = restricted, >0 = specific limit
+    if (dailyTokenLimit !== undefined) {
+      const limit = parseInt(dailyTokenLimit, 10);
+      if (isNaN(limit) || limit < -1) {
+        return res.status(400).json({
+          error: 'Daily token limit must be -1 (unlimited), 0 (restricted), or a positive number'
+        });
+      }
+      if (limit > MAX_TOKEN_LIMIT) {
+        return res.status(400).json({
+          error: `Daily token limit cannot exceed ${MAX_TOKEN_LIMIT.toLocaleString()}`
+        });
+      }
+      fields.daily_token_limit = limit;
+    }
+
+    if (monthlyTokenLimit !== undefined) {
+      const limit = parseInt(monthlyTokenLimit, 10);
+      if (isNaN(limit) || limit < -1) {
+        return res.status(400).json({
+          error: 'Monthly token limit must be -1 (unlimited), 0 (restricted), or a positive number'
+        });
+      }
+      if (limit > MAX_TOKEN_LIMIT) {
+        return res.status(400).json({
+          error: `Monthly token limit cannot exceed ${MAX_TOKEN_LIMIT.toLocaleString()}`
+        });
+      }
+      fields.monthly_token_limit = limit;
+    }
+
+    if (Object.keys(fields).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const updated = database.roleDefaults.update(role, fields);
+    if (!updated) {
+      return res.status(500).json({ error: 'Failed to update role defaults' });
+    }
+
+    res.json({
+      roleDefault: {
+        role: updated.role,
+        dailyTokenLimit: updated.daily_token_limit,
+        monthlyTokenLimit: updated.monthly_token_limit,
+        color: updated.color,
+        displayOrder: updated.display_order,
+        updatedAt: updated.updated_at
+      }
+    });
+  } catch (err) {
+    console.error('Admin update role defaults error:', err.message);
+    res.status(500).json({ error: 'Failed to update role defaults' });
   }
 });
 

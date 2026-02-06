@@ -37,7 +37,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { API_BASE_URL, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
+import { API_BASE_URL, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS, GUEST_USER } from '../constants';
 import { decodeJwt, isTokenExpired } from '../utils/jwtUtils';
 import { fetchWithTimeout } from '../utils/fetchUtils';
 
@@ -74,8 +74,11 @@ export function AuthProvider({ children }) {
 
   /**
    * Store tokens and user in localStorage.
+   * Also clears any guest mode flag to prevent conflicts.
    */
   const storeAuth = useCallback((accessToken, refreshToken, userData) => {
+    // Clear guest mode flag when storing real auth
+    localStorage.removeItem(AUTH_KEYS.GUEST);
     localStorage.setItem(AUTH_KEYS.TOKEN, accessToken);
     localStorage.setItem(AUTH_KEYS.REFRESH, refreshToken);
     localStorage.setItem(AUTH_KEYS.USER, JSON.stringify(userData));
@@ -83,13 +86,33 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
-   * Clear all stored auth data.
+   * Clear all stored auth data (including guest mode).
    */
   const clearAuth = useCallback(() => {
     localStorage.removeItem(AUTH_KEYS.TOKEN);
     localStorage.removeItem(AUTH_KEYS.REFRESH);
     localStorage.removeItem(AUTH_KEYS.USER);
+    localStorage.removeItem(AUTH_KEYS.GUEST);
     setUser(null);
+  }, []);
+
+  /**
+   * Enter guest mode without authentication.
+   * Sets up a guest user with viewer role that can preview the app.
+   */
+  const enterGuestMode = useCallback(() => {
+    try {
+      // Clear any existing auth data first
+      localStorage.removeItem(AUTH_KEYS.TOKEN);
+      localStorage.removeItem(AUTH_KEYS.REFRESH);
+      localStorage.removeItem(AUTH_KEYS.USER);
+      // Set guest mode flag
+      localStorage.setItem(AUTH_KEYS.GUEST, 'true');
+    } catch {
+      // localStorage may be full, disabled, or blocked in private browsing
+      // Continue anyway - guest mode will work for this session only
+    }
+    setUser(GUEST_USER);
   }, []);
 
   /**
@@ -234,6 +257,13 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function checkAuth() {
+      // Check for guest mode first
+      if (localStorage.getItem(AUTH_KEYS.GUEST) === 'true') {
+        setUser(GUEST_USER);
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem(AUTH_KEYS.TOKEN);
       const refreshToken = localStorage.getItem(AUTH_KEYS.REFRESH);
 
@@ -282,9 +312,11 @@ export function AuthProvider({ children }) {
     user,
     loading,
     isAuthenticated: !!user,
+    isGuest: user?.isGuest === true,
     login,
     register,
-    logout
+    logout,
+    enterGuestMode
   };
 
   return (
@@ -298,7 +330,7 @@ export function AuthProvider({ children }) {
  * Hook to access auth context.
  * Must be used within an AuthProvider.
  *
- * @returns {{ user, loading, isAuthenticated, login, register, logout }}
+ * @returns {{ user, loading, isAuthenticated, isGuest, login, register, logout, enterGuestMode }}
  */
 export function useAuth() {
   const context = useContext(AuthContext);

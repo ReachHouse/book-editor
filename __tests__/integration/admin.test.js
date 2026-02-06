@@ -120,7 +120,7 @@ describe('GET /api/admin/users', () => {
     expect(user.id).toBeDefined();
     expect(user.username).toBe('admintest');
     expect(user.email).toBe('admintest@example.com');
-    expect(user.role).toBe('user');
+    expect(user.role).toBe('editor');
     expect(user.isActive).toBe(true);
     expect(user.dailyTokenLimit).toBeDefined();
     expect(user.monthlyTokenLimit).toBeDefined();
@@ -202,20 +202,20 @@ describe('PUT /api/admin/users/:id', () => {
     expect(res.status).toBe(200);
     expect(res.body.user.role).toBe('admin');
 
-    // Restore to regular user
+    // Restore to editor
     await adminPut(`/api/admin/users/${regularUser.id}`)
-      .send({ role: 'user' });
+      .send({ role: 'editor' });
   });
 
-  test('updates user role to user', async () => {
+  test('updates user role to editor', async () => {
     // First make them admin
     await adminPut(`/api/admin/users/${regularUser.id}`)
       .send({ role: 'admin' });
 
     const res = await adminPut(`/api/admin/users/${regularUser.id}`)
-      .send({ role: 'user' });
+      .send({ role: 'editor' });
     expect(res.status).toBe(200);
-    expect(res.body.user.role).toBe('user');
+    expect(res.body.user.role).toBe('editor');
   });
 
   test('returns 400 for invalid role', async () => {
@@ -258,11 +258,11 @@ describe('PUT /api/admin/users/:id', () => {
       .send({ monthlyTokenLimit: 10000000 });
   });
 
-  test('returns 400 for negative token limit', async () => {
+  test('returns 400 for negative token limit (other than -1)', async () => {
     const res = await adminPut(`/api/admin/users/${regularUser.id}`)
       .send({ dailyTokenLimit: -100 });
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain('non-negative');
+    expect(res.body.error).toContain('-1 (unlimited)');
   });
 
   test('returns 400 for token limit exceeding maximum', async () => {
@@ -282,7 +282,7 @@ describe('PUT /api/admin/users/:id', () => {
 
   test('prevents admin from changing own role', async () => {
     const res = await adminPut(`/api/admin/users/${adminUser.id}`)
-      .send({ role: 'user' });
+      .send({ role: 'editor' });
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Cannot change your own role');
   });
@@ -303,6 +303,40 @@ describe('PUT /api/admin/users/:id', () => {
     // Restore
     await adminPut(`/api/admin/users/${adminUser.id}`)
       .send({ dailyTokenLimit: 500000 });
+  });
+
+  test('prevents admin from setting own daily limit to restricted (0)', async () => {
+    const res = await adminPut(`/api/admin/users/${adminUser.id}`)
+      .send({ dailyTokenLimit: 0 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Cannot set your own daily limit to restricted');
+  });
+
+  test('prevents admin from setting own monthly limit to restricted (0)', async () => {
+    const res = await adminPut(`/api/admin/users/${adminUser.id}`)
+      .send({ monthlyTokenLimit: 0 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Cannot set your own monthly limit to restricted');
+  });
+
+  test('allows admin to set unlimited (-1) for own limits', async () => {
+    const res = await adminPut(`/api/admin/users/${adminUser.id}`)
+      .send({ dailyTokenLimit: -1, monthlyTokenLimit: -1 });
+    expect(res.status).toBe(200);
+    expect(res.body.user.dailyTokenLimit).toBe(-1);
+    expect(res.body.user.monthlyTokenLimit).toBe(-1);
+  });
+
+  test('allows admin to set restricted (0) for other users', async () => {
+    const res = await adminPut(`/api/admin/users/${regularUser.id}`)
+      .send({ dailyTokenLimit: 0, monthlyTokenLimit: 0 });
+    expect(res.status).toBe(200);
+    expect(res.body.user.dailyTokenLimit).toBe(0);
+    expect(res.body.user.monthlyTokenLimit).toBe(0);
+
+    // Restore
+    await adminPut(`/api/admin/users/${regularUser.id}`)
+      .send({ dailyTokenLimit: 500000, monthlyTokenLimit: 10000000 });
   });
 
   test('updates multiple fields at once', async () => {
