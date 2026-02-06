@@ -19,6 +19,7 @@
 import React, { useState } from 'react';
 import { FileText, BookOpen, LogOut, Loader, User, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { USER_ROLES } from '../constants';
 
 /**
  * Header component displaying app title, style guide access, and user controls.
@@ -50,9 +51,9 @@ function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }
           <div className="flex items-center gap-2 text-sm text-surface-400">
             <User className="w-3.5 h-3.5" />
             <span>{user.username}</span>
-            {user.role === 'admin' && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-400 font-medium">
-                Admin
+            {user.role && USER_ROLES[user.role] && (
+              <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${USER_ROLES[user.role].badgeClass}`}>
+                {USER_ROLES[user.role].label}
               </span>
             )}
           </div>

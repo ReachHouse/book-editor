@@ -20,30 +20,59 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Users, KeyRound, ArrowLeft, RefreshCw, Plus, Shield, ShieldOff,
-  Trash2, Copy, Check, AlertTriangle, Loader, Infinity
+  Users, KeyRound, ArrowLeft, RefreshCw, Plus,
+  Trash2, Copy, Check, AlertTriangle, Loader, Infinity, Settings
 } from 'lucide-react';
 import {
   adminListUsers, adminUpdateUser, adminDeleteUser,
-  adminListInviteCodes, adminCreateInviteCode, adminDeleteInviteCode
+  adminListInviteCodes, adminCreateInviteCode, adminDeleteInviteCode,
+  adminGetRoleDefaults, adminUpdateRoleDefaults
 } from '../services/api';
+import { USER_ROLES, TOKEN_LIMITS } from '../constants';
+import { useAuth } from '../contexts/AuthContext';
 
 // =============================================================================
 // HELPERS
 // =============================================================================
 
+/**
+ * Format a token count for display.
+ * Token limit semantics:
+ *   -1 = Unlimited (no restrictions)
+ *    0 = Restricted (cannot use API)
+ *   >0 = Specific limit
+ */
 function formatTokenCount(count, isLimit = false) {
-  if (isLimit && count === 0) return 'Unlimited';
+  if (isLimit) {
+    if (count === -1) return 'Unlimited';
+    if (count === 0) return 'Restricted';
+  }
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${Math.round(count / 1000)}K`;
   return count.toString();
 }
 
 /**
- * Check if a user has unlimited access (both limits are 0)
+ * Check if a user has unlimited access (both limits are -1)
  */
 function isUserUnlimited(user) {
+  return user.dailyTokenLimit === -1 && user.monthlyTokenLimit === -1;
+}
+
+/**
+ * Check if a user has restricted access (both limits are 0)
+ */
+function isUserRestricted(user) {
   return user.dailyTokenLimit === 0 && user.monthlyTokenLimit === 0;
+}
+
+/**
+ * Get the color class for a limit value
+ */
+function getLimitColorClass(limit) {
+  if (limit === -1) return 'text-amber-400 font-medium';
+  if (limit === 0) return 'text-red-400 font-medium';
+  return '';
 }
 
 /**
@@ -64,6 +93,7 @@ function formatDate(dateStr) {
 // =============================================================================
 
 function UsersTab() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -99,13 +129,19 @@ function UsersTab() {
     }
   };
 
-  const handleToggleRole = async (user) => {
+  const handleRoleChange = async (userId, newRole) => {
     if (pendingUserId) return; // Prevent concurrent operations
-    setPendingUserId(user.id);
+    // Prevent changing own role
+    if (currentUser && userId === currentUser.userId) {
+      setError('Cannot change your own role');
+      return;
+    }
+    setPendingUserId(userId);
     try {
-      const newRole = user.role === 'admin' ? 'user' : 'admin';
-      await adminUpdateUser(user.id, { role: newRole });
+      await adminUpdateUser(userId, { role: newRole });
       await loadUsers();
+      // Notify other components (like UsageDisplay) to refresh
+      dispatchUsageUpdatedEvent();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -151,10 +187,10 @@ function UsersTab() {
     setPendingUserId(user.id);
     try {
       const isCurrentlyUnlimited = isUserUnlimited(user);
-      // Toggle: if unlimited, restore defaults; if limited, set to unlimited (0)
+      // Toggle: if unlimited (-1), restore defaults; if limited, set to unlimited (-1)
       const newLimits = isCurrentlyUnlimited
         ? { dailyTokenLimit: 500000, monthlyTokenLimit: 10000000 }
-        : { dailyTokenLimit: 0, monthlyTokenLimit: 0 };
+        : { dailyTokenLimit: TOKEN_LIMITS.UNLIMITED, monthlyTokenLimit: TOKEN_LIMITS.UNLIMITED };
       await adminUpdateUser(user.id, newLimits);
       await loadUsers();
       // Notify other components (like UsageDisplay) to refresh
@@ -202,18 +238,25 @@ function UsersTab() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium text-surface-200 text-sm truncate">{user.username}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                    user.role === 'admin'
-                      ? 'bg-brand-500/20 text-brand-400'
-                      : 'bg-surface-700/50 text-surface-400'
-                  }`}>
-                    {user.role}
-                  </span>
+                  {/* Role badge with proper color */}
+                  {USER_ROLES[user.role] && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${USER_ROLES[user.role].badgeClass}`}>
+                      {USER_ROLES[user.role].label}
+                    </span>
+                  )}
+                  {/* Unlimited badge (amber) */}
                   {isUserUnlimited(user) && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">
                       Unlimited
                     </span>
                   )}
+                  {/* Restricted badge (red) */}
+                  {isUserRestricted(user) && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
+                      Restricted
+                    </span>
+                  )}
+                  {/* Inactive badge */}
                   {!user.isActive && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
                       Inactive
@@ -225,13 +268,13 @@ function UsersTab() {
                   <span>{user.projectCount} project{user.projectCount !== 1 ? 's' : ''}</span>
                   <span>
                     Daily: {formatTokenCount(user.daily.total)}/
-                    <span className={user.daily.limit === 0 ? 'text-amber-400 font-medium' : ''}>
+                    <span className={getLimitColorClass(user.daily.limit)}>
                       {formatTokenCount(user.daily.limit, true)}
                     </span>
                   </span>
                   <span>
                     Monthly: {formatTokenCount(user.monthly.total)}/
-                    <span className={user.monthly.limit === 0 ? 'text-amber-400 font-medium' : ''}>
+                    <span className={getLimitColorClass(user.monthly.limit)}>
                       {formatTokenCount(user.monthly.limit, true)}
                     </span>
                   </span>
@@ -240,14 +283,22 @@ function UsersTab() {
               </div>
 
               <div className="flex items-center gap-1 flex-shrink-0">
-                <button
-                  onClick={() => handleToggleRole(user)}
-                  className="p-1.5 rounded text-surface-500 hover:text-brand-400 hover:bg-surface-800/50 transition-colors"
-                  title={user.role === 'admin' ? 'Demote to user' : 'Promote to admin'}
-                  aria-label={user.role === 'admin' ? `Demote ${user.username} to user` : `Promote ${user.username} to admin`}
+                {/* Role dropdown */}
+                <select
+                  value={user.role}
+                  onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                  disabled={pendingUserId === user.id || (currentUser && user.id === currentUser.userId)}
+                  className={`text-xs px-2 py-1 rounded bg-surface-800 border border-surface-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
+                    currentUser && user.id === currentUser.userId
+                      ? 'text-surface-500 cursor-not-allowed'
+                      : 'text-surface-300 cursor-pointer hover:border-surface-600'
+                  }`}
+                  title={currentUser && user.id === currentUser.userId ? 'Cannot change your own role' : 'Change user role'}
                 >
-                  {user.role === 'admin' ? <ShieldOff className="w-4 h-4" aria-hidden="true" /> : <Shield className="w-4 h-4" aria-hidden="true" />}
-                </button>
+                  {Object.entries(USER_ROLES).map(([value, { label }]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
                 <button
                   onClick={() => handleToggleActive(user)}
                   className={`p-1.5 rounded transition-colors ${
@@ -273,15 +324,15 @@ function UsersTab() {
                   <Infinity className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <button
-                  onClick={() => !isUserUnlimited(user) && setEditingUser(editingUser === user.id ? null : user.id)}
-                  disabled={isUserUnlimited(user)}
+                  onClick={() => !isUserUnlimited(user) && !isUserRestricted(user) && setEditingUser(editingUser === user.id ? null : user.id)}
+                  disabled={isUserUnlimited(user) || isUserRestricted(user)}
                   className={`p-1.5 rounded transition-colors text-xs ${
-                    isUserUnlimited(user)
+                    isUserUnlimited(user) || isUserRestricted(user)
                       ? 'text-surface-600 cursor-not-allowed'
                       : 'text-surface-500 hover:text-surface-300 hover:bg-surface-800/50'
                   }`}
-                  title={isUserUnlimited(user) ? 'User has unlimited access' : 'Edit limits'}
-                  aria-label={isUserUnlimited(user) ? `${user.username} has unlimited access` : `Edit token limits for ${user.username}`}
+                  title={isUserUnlimited(user) ? 'User has unlimited access' : isUserRestricted(user) ? 'User is restricted' : 'Edit limits'}
+                  aria-label={isUserUnlimited(user) ? `${user.username} has unlimited access` : isUserRestricted(user) ? `${user.username} is restricted` : `Edit token limits for ${user.username}`}
                   aria-expanded={editingUser === user.id}
                 >
                   Limits
@@ -297,8 +348,8 @@ function UsersTab() {
               </div>
             </div>
 
-            {/* Edit Limits Panel - only show if not unlimited */}
-            {editingUser === user.id && !isUserUnlimited(user) && (
+            {/* Edit Limits Panel - only show if not unlimited and not restricted */}
+            {editingUser === user.id && !isUserUnlimited(user) && !isUserRestricted(user) && (
               <LimitEditor
                 dailyLimit={user.dailyTokenLimit}
                 monthlyLimit={user.monthlyTokenLimit}
@@ -340,10 +391,10 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
   const [daily, setDaily] = useState(dailyLimit.toString());
   const [monthly, setMonthly] = useState(monthlyLimit.toString());
 
-  // Validate that value is a positive integer (> 0 since unlimited users won't see this)
+  // Validate that value is a valid limit: -1 (unlimited), 0 (restricted), or positive integer
   const isValidLimit = (val) => {
     const num = parseInt(val, 10);
-    return !isNaN(num) && num > 0 && String(num) === val.trim();
+    return !isNaN(num) && num >= -1 && String(num) === val.trim();
   };
 
   const isDailyValid = isValidLimit(daily);
@@ -367,7 +418,7 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
             className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
               isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
             }`}
-            min="1"
+            min="-1"
             aria-invalid={!isDailyValid}
           />
         </div>
@@ -381,13 +432,13 @@ function LimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
             className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
               isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
             }`}
-            min="1"
+            min="-1"
             aria-invalid={!isMonthlyValid}
           />
         </div>
       </div>
       <p className="text-xs text-surface-500 mb-3">
-        Use the <Infinity className="w-3 h-3 inline text-amber-400" /> button to set unlimited access.
+        Use <span className="text-amber-400 font-medium">-1</span> for unlimited, <span className="text-red-400 font-medium">0</span> for restricted, or enter a specific limit.
       </p>
       <div className="flex gap-2">
         <button
@@ -639,6 +690,215 @@ function InviteCodesTab() {
 }
 
 // =============================================================================
+// ROLE DEFAULTS TAB
+// =============================================================================
+
+function RoleDefaultsTab() {
+  const [roleDefaults, setRoleDefaults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editingRole, setEditingRole] = useState(null);
+  const [pendingRole, setPendingRole] = useState(null);
+
+  const loadDefaults = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminGetRoleDefaults();
+      setRoleDefaults(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadDefaults(); }, [loadDefaults]);
+
+  const handleSaveDefaults = async (role, dailyLimit, monthlyLimit) => {
+    if (pendingRole) return;
+    setPendingRole(role);
+    try {
+      await adminUpdateRoleDefaults(role, {
+        dailyTokenLimit: parseInt(dailyLimit, 10),
+        monthlyTokenLimit: parseInt(monthlyLimit, 10)
+      });
+      setEditingRole(null);
+      await loadDefaults();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPendingRole(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="py-10 text-center">
+        <Loader className="w-6 h-6 mx-auto mb-2 text-brand-400 animate-spin" />
+        <p className="text-surface-400 text-sm">Loading role defaults...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {error && (
+        <div role="alert" className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          {error}
+        </div>
+      )}
+
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-sm text-surface-400">
+          Default token limits for new users with each role
+        </p>
+        <button
+          onClick={loadDefaults}
+          className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-300 transition-colors py-1 px-2 rounded hover:bg-surface-800/50"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Refresh
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {roleDefaults.map(rd => (
+          <div key={rd.role} className="glass-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  {USER_ROLES[rd.role] && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${USER_ROLES[rd.role].badgeClass}`}>
+                      {USER_ROLES[rd.role].label}
+                    </span>
+                  )}
+                  {rd.dailyTokenLimit === -1 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">
+                      Unlimited
+                    </span>
+                  )}
+                  {rd.dailyTokenLimit === 0 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
+                      Restricted
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-surface-500">
+                  <span>
+                    Daily:{' '}
+                    <span className={getLimitColorClass(rd.dailyTokenLimit)}>
+                      {formatTokenCount(rd.dailyTokenLimit, true)}
+                    </span>
+                  </span>
+                  <span>
+                    Monthly:{' '}
+                    <span className={getLimitColorClass(rd.monthlyTokenLimit)}>
+                      {formatTokenCount(rd.monthlyTokenLimit, true)}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setEditingRole(editingRole === rd.role ? null : rd.role)}
+                className="p-1.5 rounded transition-colors text-xs text-surface-500 hover:text-surface-300 hover:bg-surface-800/50"
+                title="Edit defaults"
+                aria-label={`Edit default limits for ${rd.role}`}
+                aria-expanded={editingRole === rd.role}
+              >
+                Edit
+              </button>
+            </div>
+
+            {/* Edit Defaults Panel */}
+            {editingRole === rd.role && (
+              <RoleDefaultsEditor
+                dailyLimit={rd.dailyTokenLimit}
+                monthlyLimit={rd.monthlyTokenLimit}
+                onSave={(daily, monthly) => handleSaveDefaults(rd.role, daily, monthly)}
+                onCancel={() => setEditingRole(null)}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RoleDefaultsEditor({ dailyLimit, monthlyLimit, onSave, onCancel }) {
+  const [daily, setDaily] = useState(dailyLimit.toString());
+  const [monthly, setMonthly] = useState(monthlyLimit.toString());
+
+  const isValidLimit = (val) => {
+    const num = parseInt(val, 10);
+    return !isNaN(num) && num >= -1 && String(num) === val.trim();
+  };
+
+  const isDailyValid = isValidLimit(daily);
+  const isMonthlyValid = isValidLimit(monthly);
+  const canSave = isDailyValid && isMonthlyValid;
+
+  const dailyId = `role-daily-${React.useId ? React.useId() : Math.random().toString(36).slice(2)}`;
+  const monthlyId = `role-monthly-${React.useId ? React.useId() : Math.random().toString(36).slice(2)}`;
+
+  return (
+    <div className="mt-3 p-3 rounded-lg bg-surface-800/50 border border-surface-700/50">
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label htmlFor={dailyId} className="text-xs text-surface-400 block mb-1">Daily Token Limit</label>
+          <input
+            id={dailyId}
+            type="number"
+            value={daily}
+            onChange={(e) => setDaily(e.target.value)}
+            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
+              isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+            }`}
+            min="-1"
+            aria-invalid={!isDailyValid}
+          />
+        </div>
+        <div>
+          <label htmlFor={monthlyId} className="text-xs text-surface-400 block mb-1">Monthly Token Limit</label>
+          <input
+            id={monthlyId}
+            type="number"
+            value={monthly}
+            onChange={(e) => setMonthly(e.target.value)}
+            className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
+              isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+            }`}
+            min="-1"
+            aria-invalid={!isMonthlyValid}
+          />
+        </div>
+      </div>
+      <p className="text-xs text-surface-500 mb-3">
+        Use <span className="text-amber-400 font-medium">-1</span> for unlimited, <span className="text-red-400 font-medium">0</span> for restricted, or enter a specific limit.
+      </p>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onSave(daily, monthly)}
+          disabled={!canSave}
+          className="text-xs px-3 py-1.5 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Save
+        </button>
+        <button
+          onClick={onCancel}
+          className="text-xs px-3 py-1.5 rounded bg-surface-800 text-surface-400 hover:bg-surface-700 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // MAIN ADMIN DASHBOARD
 // =============================================================================
 
@@ -647,7 +907,8 @@ function AdminDashboard({ onClose }) {
 
   const tabs = [
     { id: 'users', label: 'Users', icon: Users },
-    { id: 'codes', label: 'Invite Codes', icon: KeyRound }
+    { id: 'codes', label: 'Invite Codes', icon: KeyRound },
+    { id: 'roles', label: 'Role Defaults', icon: Settings }
   ];
 
   return (
@@ -702,6 +963,9 @@ function AdminDashboard({ onClose }) {
       </div>
       <div role="tabpanel" id="tabpanel-codes" aria-labelledby="tab-codes" hidden={activeTab !== 'codes'}>
         {activeTab === 'codes' && <InviteCodesTab />}
+      </div>
+      <div role="tabpanel" id="tabpanel-roles" aria-labelledby="tab-roles" hidden={activeTab !== 'roles'}>
+        {activeTab === 'roles' && <RoleDefaultsTab />}
       </div>
     </div>
   );

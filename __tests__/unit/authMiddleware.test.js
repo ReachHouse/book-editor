@@ -217,7 +217,7 @@ describe('requireAdmin', () => {
       username: 'regular',
       email: 'regular@example.com',
       password_hash: hash,
-      role: 'user'
+      role: 'editor'
     });
 
     const token = generateAccessToken(user);

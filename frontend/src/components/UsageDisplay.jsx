@@ -20,13 +20,19 @@ import { getUsage } from '../services/api';
 /**
  * Format a token count for display (e.g., 500000 -> "500K").
  *
+ * Token limit semantics:
+ *   -1 = Unlimited (no restrictions)
+ *    0 = Restricted (cannot use API)
+ *   >0 = Specific limit
+ *
  * @param {number} count - Token count
- * @param {boolean} isLimit - Whether this is a limit value (0 = unlimited)
+ * @param {boolean} isLimit - Whether this is a limit value
  * @returns {string} Formatted string
  */
 function formatTokenCount(count, isLimit = false) {
-  if (isLimit && count === 0) {
-    return 'Unlimited';
+  if (isLimit) {
+    if (count === -1) return 'Unlimited';
+    if (count === 0) return 'Restricted';
   }
   if (count >= 1000000) {
     return `${(count / 1000000).toFixed(1)}M`;
@@ -38,13 +44,35 @@ function formatTokenCount(count, isLimit = false) {
 }
 
 /**
- * Check if a limit value represents unlimited.
+ * Check if a limit value represents unlimited (-1).
  *
  * @param {number} limit - The limit value
  * @returns {boolean} True if unlimited
  */
 function isUnlimited(limit) {
+  return limit === -1;
+}
+
+/**
+ * Check if a limit value represents restricted (0).
+ *
+ * @param {number} limit - The limit value
+ * @returns {boolean} True if restricted
+ */
+function isRestricted(limit) {
   return limit === 0;
+}
+
+/**
+ * Get the color class for a limit value.
+ *
+ * @param {number} limit - The limit value
+ * @returns {string} Tailwind color class
+ */
+function getLimitColorClass(limit) {
+  if (isUnlimited(limit)) return 'text-amber-400 font-medium';
+  if (isRestricted(limit)) return 'text-red-400 font-medium';
+  return '';
 }
 
 /**
@@ -112,14 +140,14 @@ function UsageDisplay() {
         <BarChart3 className="w-3.5 h-3.5" />
         <span>
           Today: {formatTokenCount(usage.daily.total)} /{' '}
-          <span className={isUnlimited(usage.daily.limit) ? 'text-amber-400' : ''}>
+          <span className={getLimitColorClass(usage.daily.limit)}>
             {formatTokenCount(usage.daily.limit, true)}
           </span>
         </span>
         <span className="text-surface-600">|</span>
         <span>
           Month: {formatTokenCount(usage.monthly.total)} /{' '}
-          <span className={isUnlimited(usage.monthly.limit) ? 'text-amber-400' : ''}>
+          <span className={getLimitColorClass(usage.monthly.limit)}>
             {formatTokenCount(usage.monthly.limit, true)}
           </span>
         </span>
@@ -132,18 +160,20 @@ function UsageDisplay() {
           <div>
             <div className="flex justify-between text-xs mb-1">
               <span className="text-surface-400">Daily Usage</span>
-              <span className={isUnlimited(usage.daily.limit) ? 'text-amber-400 font-medium' : 'text-surface-500'}>
+              <span className={getLimitColorClass(usage.daily.limit) || 'text-surface-500'}>
                 {formatTokenCount(usage.daily.total)} / {formatTokenCount(usage.daily.limit, true)} tokens
               </span>
             </div>
             {isUnlimited(usage.daily.limit) ? (
               <div className="h-2 rounded-full bg-gradient-to-r from-amber-600/30 via-amber-500/40 to-amber-600/30" />
+            ) : isRestricted(usage.daily.limit) ? (
+              <div className="h-2 rounded-full bg-gradient-to-r from-red-600/30 via-red-500/40 to-red-600/30" />
             ) : (
               <>
                 <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${getBarColor(usage.daily.percentage)}`}
-                    style={{ width: `${usage.daily.percentage}%` }}
+                    style={{ width: `${usage.daily.percentage || 0}%` }}
                   />
                 </div>
                 {usage.daily.percentage >= 90 && (
@@ -159,18 +189,20 @@ function UsageDisplay() {
           <div>
             <div className="flex justify-between text-xs mb-1">
               <span className="text-surface-400">Monthly Usage</span>
-              <span className={isUnlimited(usage.monthly.limit) ? 'text-amber-400 font-medium' : 'text-surface-500'}>
+              <span className={getLimitColorClass(usage.monthly.limit) || 'text-surface-500'}>
                 {formatTokenCount(usage.monthly.total)} / {formatTokenCount(usage.monthly.limit, true)} tokens
               </span>
             </div>
             {isUnlimited(usage.monthly.limit) ? (
               <div className="h-2 rounded-full bg-gradient-to-r from-amber-600/30 via-amber-500/40 to-amber-600/30" />
+            ) : isRestricted(usage.monthly.limit) ? (
+              <div className="h-2 rounded-full bg-gradient-to-r from-red-600/30 via-red-500/40 to-red-600/30" />
             ) : (
               <>
                 <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${getBarColor(usage.monthly.percentage)}`}
-                    style={{ width: `${usage.monthly.percentage}%` }}
+                    style={{ width: `${usage.monthly.percentage || 0}%` }}
                   />
                 </div>
                 {usage.monthly.percentage >= 90 && (

@@ -125,6 +125,60 @@ export const AUTH_KEYS = {
 export const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
 
 // =============================================================================
+// ROLE SYSTEM CONFIGURATION
+// =============================================================================
+
+/**
+ * Valid user roles and their display properties.
+ *
+ * ROLES:
+ * - admin:      Full access, unlimited tokens by default (green badge)
+ * - management: Standard access, 500K daily / 10M monthly default (purple badge)
+ * - editor:     Standard access, 500K daily / 10M monthly default (amber badge)
+ * - viewer:     Restricted access, 0 tokens by default (gray badge)
+ *
+ * Each role has:
+ * - label: Display name (Title Case for consistency)
+ * - badgeClass: Tailwind classes for badge styling
+ * - color: Color name for reference
+ */
+export const USER_ROLES = {
+  admin: {
+    label: 'Admin',
+    badgeClass: 'bg-green-500/20 text-green-400',
+    color: 'green'
+  },
+  management: {
+    label: 'Management',
+    badgeClass: 'bg-purple-500/20 text-purple-400',
+    color: 'purple'
+  },
+  editor: {
+    label: 'Editor',
+    badgeClass: 'bg-amber-500/20 text-amber-400',
+    color: 'amber'
+  },
+  viewer: {
+    label: 'Viewer',
+    badgeClass: 'bg-gray-500/20 text-gray-400',
+    color: 'gray'
+  }
+};
+
+/**
+ * Token limit special values.
+ *
+ * TOKEN LIMIT SEMANTICS:
+ * - UNLIMITED (-1): No restrictions, user can use as many tokens as needed
+ * - RESTRICTED (0): Cannot use the editing API at all
+ * - Positive values: Specific limit in tokens
+ */
+export const TOKEN_LIMITS = {
+  UNLIMITED: -1,
+  RESTRICTED: 0
+};
+
+// =============================================================================
 // STYLE GUIDE (CONDENSED VERSION FOR UI DISPLAY)
 // =============================================================================
 
