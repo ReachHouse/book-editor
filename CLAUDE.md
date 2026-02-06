@@ -17,7 +17,7 @@ This documentation provides a complete file system map for both local developmen
 
 ```bash
 # Local Development
-npm test                              # Run all tests (477 tests)
+npm test                              # Run all tests (522 tests)
 npm start                             # Start backend on port 3001
 cd frontend && npm run dev            # Start Vite dev server on port 5173
 
@@ -61,7 +61,7 @@ curl http://localhost:3002/health     # Verify health
 └── book-editor-backend/       # *** MAIN APPLICATION - see below ***
 ```
 
-### /root/book-editor-backend/ (Application Root) - 95 Files
+### /root/book-editor-backend/ (Application Root) - 107 Files
 
 ```
 /root/book-editor-backend/
@@ -84,15 +84,20 @@ curl http://localhost:3002/health     # Verify health
 │   │   ├── setup.test.js      # First-time setup wizard tests
 │   │   └── usage.test.js      # Token usage tracking tests
 │   └── unit/                  # Unit tests for services
+│       ├── appConfig.test.js        # Centralized config tests
 │       ├── authMiddleware.test.js   # JWT verification tests
 │       ├── authService.test.js      # Login/register logic tests
+│       ├── circuitBreaker.test.js   # Circuit breaker state tests
 │       ├── database.test.js         # SQLite operations tests
+│       ├── errors.test.js           # Custom error class tests
+│       ├── logger.test.js           # Structured logging tests
 │       ├── diffService.test.js      # LCS diff algorithm tests
 │       ├── documentService.test.js  # DOCX generation tests
 │       ├── projects.test.js         # Project service tests
 │       └── styleRules.test.js       # Style rule validation tests
 │
 ├── config/
+│   ├── app.js                 # Centralized backend configuration constants
 │   └── styleGuide.js          # Reach House Style Guide - used in AI prompts
 │
 ├── database/
@@ -103,9 +108,13 @@ curl http://localhost:3002/health     # Verify health
 │       ├── 004_roles_and_limits.js  # role system (legacy: admin/management/editor/guest)
 │       ├── 005_role_defaults.js     # role_defaults table for configurable limits
 │       ├── 006_rename_restricted_to_guest.js  # rename 'restricted' role to 'guest'
-│       └── 007_merge_roles_to_user.js  # merge management/editor into 'user' role
+│       ├── 007_merge_roles_to_user.js  # merge management/editor into 'user' role
+│       └── 008_indexes.js             # performance indexes for common queries
 │
 ├── deploy.sh                  # *** DEPLOYMENT SCRIPT - generates .env, builds, deploys ***
+├── docs/
+│   ├── API.md                 # Complete API reference with examples
+│   └── DEPLOYMENT.md          # Deployment guide and troubleshooting
 ├── docker-compose.yml         # Docker orchestration - ports, volumes, env
 ├── jest.config.js             # Backend Jest configuration
 │
@@ -186,10 +195,12 @@ curl http://localhost:3002/health     # Verify health
 ├── server.js                  # *** EXPRESS ENTRY POINT - middleware, routes, startup ***
 │
 ├── services/                  # Business logic layer
-│   ├── anthropicService.js    # Claude API communication (editChunk, generateStyleGuide)
+│   ├── anthropicService.js    # Claude API communication with circuit breaker
 │   ├── authService.js         # Login/register/JWT logic (bcrypt, tokens)
 │   ├── database.js            # SQLite wrapper + auto-migration runner
 │   ├── diffService.js         # LCS diff algorithm for Track Changes
+│   ├── errors.js              # Custom error class hierarchy (AppError, etc.)
+│   ├── logger.js              # Structured logging (JSON prod, readable dev)
 │   │
 │   ├── document/              # DOCX generation with Track Changes
 │   │   ├── categorization.js  # Classify changes (spelling, grammar, etc.)
@@ -215,7 +226,7 @@ curl http://localhost:3002/health     # Verify health
 └── update.sh                  # Quick update script (git pull + rebuild)
 ```
 
-**Total: 95 source files** (excluding node_modules, .git, dist)
+**Total: 107 source files** (excluding node_modules, .git, dist)
 
 ---
 
@@ -387,7 +398,10 @@ export const TOKEN_LIMITS = {
 | File | Purpose |
 |------|---------|
 | `server.js` | Express server setup, middleware, route mounting |
-| `services/anthropicService.js` | Claude API integration (model: claude-sonnet-4-20250514) |
+| `services/anthropicService.js` | Claude API integration with circuit breaker |
+| `services/logger.js` | Structured logging (JSON prod, readable dev) |
+| `services/errors.js` | Custom error class hierarchy |
+| `config/app.js` | Centralized backend configuration |
 | `services/database.js` | SQLite wrapper with auto-migrations |
 | `services/diffService.js` | LCS diff for Track Changes |
 | `services/document/generation.js` | DOCX creation with JSZip |
@@ -429,7 +443,7 @@ export const TOKEN_LIMITS = {
 
 ### Local Development
 ```bash
-npm test                          # Run all 477 tests
+npm test                          # Run all 522 tests
 npm start                         # Start backend on port 3001
 cd frontend && npm run dev        # Start Vite dev server
 cd frontend && npm run build      # Build for production
@@ -499,6 +513,7 @@ This documentation enables future Claude sessions to understand the project with
 
 | Version | Changes |
 |---------|---------|
+| v1.52.0 | Complete roadmap: logger, error classes, circuit breaker, config, indexes, pagination, docs |
 | v1.51.0 | Merge Management/Editor roles into single 'User' role (3 roles: Admin/User/Guest) |
 | v1.50.0 | Rename 'Restricted' role to 'Guest', add limit status tags (Unlimited/Limited/Restricted) |
 | v1.49.0 | Continue as Guest mode for app preview |
@@ -523,4 +538,4 @@ This documentation enables future Claude sessions to understand the project with
 
 *Last updated: 2026-02-06*
 *VPS: srv1321944 (72.62.133.62)*
-*Total source files: 97*
+*Total source files: 107*

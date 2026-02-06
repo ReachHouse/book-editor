@@ -47,6 +47,7 @@ const compression = require('compression');
 const helmet = require('helmet');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const logger = require('./services/logger');
 
 // -----------------------------------------------------------------------------
 // Route Imports
@@ -134,6 +135,25 @@ app.use(cors(corsOptions));
 
 // Compression: Reduce response size for faster transfers
 app.use(compression());
+
+// Response Timing: Add X-Response-Time header for performance monitoring
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const duration = Number(process.hrtime.bigint() - start) / 1e6; // ms
+    res.setHeader('X-Response-Time', `${duration.toFixed(1)}ms`);
+    // Log slow responses (>1000ms for API routes)
+    if (req.path.startsWith('/api/') && duration > 1000) {
+      logger.warn('Slow response', {
+        method: req.method,
+        path: req.path,
+        duration: Math.round(duration),
+        status: res.statusCode
+      });
+    }
+  });
+  next();
+});
 
 // Rate Limiting: Protect against API abuse and quota exhaustion
 // Limits each IP to 100 requests per 15 minutes for API endpoints
@@ -226,17 +246,36 @@ app.get('*', (req, res) => {
 
 // Express error handler middleware (must have 4 parameters)
 // Catches any unhandled errors from route handlers
-// Generates a unique error ID for tracking and user support
+// Handles typed AppError instances and unknown errors
+const { AppError } = require('./services/errors');
+
 app.use((err, req, res, next) => {
   // Generate a short error ID for tracking (8 hex chars)
   const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
-  const timestamp = new Date().toISOString();
 
-  // Log full error details server-side with error ID
-  console.error(`[${timestamp}] Error ${errorId}:`, err.message);
-  if (process.env.NODE_ENV === 'development') {
-    console.error(err.stack);
+  // Typed application errors (ValidationError, AuthError, etc.)
+  if (err instanceof AppError) {
+    logger.warn('Application error', {
+      errorId,
+      status: err.status,
+      code: err.code,
+      message: err.message,
+      path: req.path
+    });
+    return res.status(err.status).json({
+      error: err.message,
+      code: err.code,
+      errorId
+    });
   }
+
+  // Unknown/unexpected errors
+  logger.error('Unhandled error', {
+    errorId,
+    message: err.message,
+    path: req.path,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 
   // Return sanitized response with error ID for user support
   res.status(500).json({
@@ -255,21 +294,15 @@ app.use((err, req, res, next) => {
 const envIssues = validateEnvironment();
 
 // Initialize the SQLite database (runs migrations, seeds defaults)
-console.log('Initializing database...');
+logger.info('Initializing database...');
 try {
   database.init();
-  console.log('Database ready.');
+  logger.info('Database ready');
 } catch (err) {
-  console.error('═══════════════════════════════════════════════════════════');
-  console.error('FATAL: Database initialization failed');
-  console.error('═══════════════════════════════════════════════════════════');
-  console.error(`Error: ${err.message}`);
-  console.error('');
-  console.error('Possible causes:');
-  console.error('  - Disk full or no write permission to data directory');
-  console.error('  - Corrupted database file');
-  console.error('  - Invalid DB_PATH environment variable');
-  console.error('═══════════════════════════════════════════════════════════');
+  logger.error('FATAL: Database initialization failed', {
+    error: err.message,
+    hint: 'Check disk space, permissions, or DB_PATH'
+  });
   process.exit(1);
 }
 
@@ -280,10 +313,10 @@ const cleanupIntervalId = setInterval(() => {
   try {
     const deleted = database.sessions.deleteExpired();
     if (deleted > 0) {
-      console.log(`Session cleanup: removed ${deleted} expired session(s)`);
+      logger.info('Session cleanup', { deleted });
     }
   } catch (err) {
-    console.error('Session cleanup error:', err.message);
+    logger.error('Session cleanup error', { error: err.message });
   }
 }, SESSION_CLEANUP_INTERVAL_MS);
 

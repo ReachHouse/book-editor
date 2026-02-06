@@ -139,8 +139,13 @@ function ProcessingView({ progress, debugLog }) {
         </span>
       </div>
 
-      {/* Section counter */}
-      <p className="text-xs text-surface-500 text-center mb-6 tabular-nums">
+      {/* Section counter (live region for screen reader updates) */}
+      <p
+        className="text-xs text-surface-500 text-center mb-6 tabular-nums"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         {progress.current} of {progress.total} sections completed
       </p>
 

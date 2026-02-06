@@ -37,11 +37,24 @@
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { database } = require('../services/database');
 
 // Bcrypt cost factor (matches authService.js: 10 = ~100ms on modern hardware)
 const BCRYPT_SALT_ROUNDS = 10;
+
+/**
+ * Rate limit for setup completion to prevent brute-force secret guessing.
+ * 5 attempts per 15-minute window per IP.
+ */
+const setupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many setup attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 /**
  * Check if setup is needed (no users exist).
@@ -220,7 +233,7 @@ router.get('/api/setup/status', (req, res) => {
  *   403 - Setup already completed (users exist) or setup disabled
  *   500 - Server error
  */
-router.post('/api/setup/complete', async (req, res) => {
+router.post('/api/setup/complete', setupLimiter, async (req, res) => {
   try {
     // SECURITY: Check setup is still required before proceeding
     // This prevents race conditions where setup completes between page load and submit

@@ -104,16 +104,38 @@ function formatProjectFull(row) {
 /**
  * GET /api/projects
  *
- * List all projects for the authenticated user.
+ * List projects for the authenticated user with pagination.
  * Returns metadata only (no large text fields) for efficient listing.
  *
- * Response: { projects: [...] }
+ * Query params:
+ *   limit  (optional, default 20, max 50)
+ *   offset (optional, default 0)
+ *
+ * Response: { projects: [...], total: number, limit: number, offset: number }
  */
 router.get('/api/projects', requireAuth, (req, res) => {
   try {
-    const rows = database.projects.listByUser(req.user.userId);
+    const parsedLimit = parseInt(req.query.limit, 10);
+    const parsedOffset = parseInt(req.query.offset, 10);
+    const limit = Math.max(1, Math.min(isNaN(parsedLimit) ? 20 : parsedLimit, MAX_PROJECTS_PER_USER));
+    const offset = Math.max(0, isNaN(parsedOffset) ? 0 : parsedOffset);
+
+    const total = database.projects.count(req.user.userId);
+    const rows = database.projects.listByUser(req.user.userId, limit, offset);
     const projects = rows.map(formatProjectMeta);
-    res.json({ projects });
+
+    // ETag based on latest updated_at for cache validation
+    if (rows.length > 0) {
+      const latestUpdate = rows[0].updated_at;
+      const etag = `"projects-${req.user.userId}-${latestUpdate}"`;
+      res.setHeader('ETag', etag);
+
+      if (req.headers['if-none-match'] === etag) {
+        return res.status(304).end();
+      }
+    }
+
+    res.json({ projects, total, limit, offset });
   } catch (err) {
     console.error('List projects error:', err.message);
     res.status(500).json({ error: 'Failed to load projects' });
