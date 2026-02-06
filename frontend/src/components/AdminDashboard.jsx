@@ -38,13 +38,14 @@ import { useAuth } from '../contexts/AuthContext';
 /**
  * Format a token count for display.
  * Token limit semantics:
- *   -1 = Unlimited (no restrictions)
+ *   <0 = Unlimited (no restrictions) - any negative value is treated as unlimited
  *    0 = Restricted (cannot use API)
  *   >0 = Specific limit
  */
 function formatTokenCount(count, isLimit = false) {
   if (isLimit) {
-    if (count === -1) return 'Unlimited';
+    // Any negative value is treated as unlimited (handles edge cases/corruption)
+    if (count < 0) return 'Unlimited';
     if (count === 0) return 'Restricted';
   }
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
@@ -53,10 +54,10 @@ function formatTokenCount(count, isLimit = false) {
 }
 
 /**
- * Check if a user has unlimited access (both limits are -1)
+ * Check if a user has unlimited access (any negative value is unlimited)
  */
 function isUserUnlimited(user) {
-  return user.dailyTokenLimit === -1 && user.monthlyTokenLimit === -1;
+  return user.dailyTokenLimit < 0 && user.monthlyTokenLimit < 0;
 }
 
 /**
@@ -67,10 +68,11 @@ function isUserRestricted(user) {
 }
 
 /**
- * Get the color class for a limit value
+ * Get the color class for a limit value.
+ * Any negative value is treated as unlimited.
  */
 function getLimitColorClass(limit) {
-  if (limit === -1) return 'text-amber-400 font-medium';
+  if (limit < 0) return 'text-amber-400 font-medium';
   if (limit === 0) return 'text-red-400 font-medium';
   return '';
 }

@@ -305,6 +305,40 @@ describe('PUT /api/admin/users/:id', () => {
       .send({ dailyTokenLimit: 500000 });
   });
 
+  test('prevents admin from setting own daily limit to restricted (0)', async () => {
+    const res = await adminPut(`/api/admin/users/${adminUser.id}`)
+      .send({ dailyTokenLimit: 0 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Cannot set your own daily limit to restricted');
+  });
+
+  test('prevents admin from setting own monthly limit to restricted (0)', async () => {
+    const res = await adminPut(`/api/admin/users/${adminUser.id}`)
+      .send({ monthlyTokenLimit: 0 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Cannot set your own monthly limit to restricted');
+  });
+
+  test('allows admin to set unlimited (-1) for own limits', async () => {
+    const res = await adminPut(`/api/admin/users/${adminUser.id}`)
+      .send({ dailyTokenLimit: -1, monthlyTokenLimit: -1 });
+    expect(res.status).toBe(200);
+    expect(res.body.user.dailyTokenLimit).toBe(-1);
+    expect(res.body.user.monthlyTokenLimit).toBe(-1);
+  });
+
+  test('allows admin to set restricted (0) for other users', async () => {
+    const res = await adminPut(`/api/admin/users/${regularUser.id}`)
+      .send({ dailyTokenLimit: 0, monthlyTokenLimit: 0 });
+    expect(res.status).toBe(200);
+    expect(res.body.user.dailyTokenLimit).toBe(0);
+    expect(res.body.user.monthlyTokenLimit).toBe(0);
+
+    // Restore
+    await adminPut(`/api/admin/users/${regularUser.id}`)
+      .send({ dailyTokenLimit: 500000, monthlyTokenLimit: 10000000 });
+  });
+
   test('updates multiple fields at once', async () => {
     const res = await adminPut(`/api/admin/users/${regularUser.id}`)
       .send({

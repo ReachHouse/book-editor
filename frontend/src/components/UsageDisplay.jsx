@@ -21,7 +21,7 @@ import { getUsage } from '../services/api';
  * Format a token count for display (e.g., 500000 -> "500K").
  *
  * Token limit semantics:
- *   -1 = Unlimited (no restrictions)
+ *   -1 (or < -1) = Unlimited (no restrictions)
  *    0 = Restricted (cannot use API)
  *   >0 = Specific limit
  *
@@ -31,7 +31,8 @@ import { getUsage } from '../services/api';
  */
 function formatTokenCount(count, isLimit = false) {
   if (isLimit) {
-    if (count === -1) return 'Unlimited';
+    // Any negative value is treated as unlimited (handles edge cases/corruption)
+    if (count < 0) return 'Unlimited';
     if (count === 0) return 'Restricted';
   }
   if (count >= 1000000) {
@@ -44,13 +45,14 @@ function formatTokenCount(count, isLimit = false) {
 }
 
 /**
- * Check if a limit value represents unlimited (-1).
+ * Check if a limit value represents unlimited.
+ * Any negative value is treated as unlimited (handles edge cases/corruption).
  *
  * @param {number} limit - The limit value
  * @returns {boolean} True if unlimited
  */
 function isUnlimited(limit) {
-  return limit === -1;
+  return limit < 0;
 }
 
 /**

@@ -121,7 +121,7 @@ router.get('/api/admin/users', requireAdmin, (req, res) => {
  * PUT /api/admin/users/:id
  *
  * Update a user's role, active status, or token limits.
- * Admins cannot deactivate or change their own role.
+ * Admins cannot deactivate, change their own role, or set their own limits to 0 (restricted).
  *
  * Request body (all optional):
  *   {
@@ -148,13 +148,20 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
     const { role, isActive, dailyTokenLimit, monthlyTokenLimit } = req.body;
     const isSelf = req.user.userId === targetId;
 
-    // Prevent admins from changing their own role or deactivating themselves
+    // Prevent admins from locking themselves out
     if (isSelf) {
       if (role !== undefined && role !== targetUser.role) {
         return res.status(400).json({ error: 'Cannot change your own role' });
       }
       if (isActive !== undefined && !isActive) {
         return res.status(400).json({ error: 'Cannot deactivate your own account' });
+      }
+      // Prevent setting own limits to 0 (restricted) - would lock out of API
+      if (dailyTokenLimit !== undefined && parseInt(dailyTokenLimit, 10) === 0) {
+        return res.status(400).json({ error: 'Cannot set your own daily limit to restricted (0)' });
+      }
+      if (monthlyTokenLimit !== undefined && parseInt(monthlyTokenLimit, 10) === 0) {
+        return res.status(400).json({ error: 'Cannot set your own monthly limit to restricted (0)' });
       }
     }
 

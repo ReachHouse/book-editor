@@ -10,12 +10,18 @@
  * - Updates role CHECK constraint: ('admin', 'user') -> ('admin', 'management', 'editor', 'viewer')
  * - Migrates 'user' role to 'editor'
  * - Sets admin users to unlimited (-1) limits
- * - Converts existing 0 limits: admin users get -1 (unlimited), others keep 0 (now restricted)
+ * - Converts existing 0 limits for ALL users to appropriate values:
+ *   - Admin users: 0 -> -1 (unlimited)
+ *   - Non-admin users: 0 -> default limits (500K/10M) to avoid breaking access
  *
  * TOKEN LIMIT SEMANTICS (NEW):
  * - -1 = Unlimited (no restrictions)
  * -  0 = Restricted (cannot use API)
  * - >0 = Specific limit (enforced)
+ *
+ * SECURITY NOTE: In the old system, 0 often meant "no limit set" or "use default".
+ * Converting non-admin users with 0 to the restricted state would break their access.
+ * This migration safely converts them to default limits instead.
  *
  * NOTE: SQLite doesn't support ALTER TABLE for CHECK constraints, so we must
  * recreate the table with the new constraint.
@@ -31,7 +37,7 @@
  * @param {import('better-sqlite3').Database} db
  */
 function up(db) {
-  // Check for any non-admin users with limit=0 (will become restricted)
+  // Check for any non-admin users with limit=0 (will be converted to defaults)
   const usersWithZeroLimit = db.prepare(`
     SELECT id, username, role, daily_token_limit, monthly_token_limit
     FROM users
@@ -39,11 +45,11 @@ function up(db) {
   `).all();
 
   if (usersWithZeroLimit.length > 0) {
-    console.warn('\n[Migration 004] WARNING: The following non-admin users have limit=0 (will become RESTRICTED):');
+    console.log('\n[Migration 004] Converting non-admin users with limit=0 to default limits:');
     usersWithZeroLimit.forEach(u => {
-      console.warn(`  - ${u.username} (id: ${u.id}): daily=${u.daily_token_limit}, monthly=${u.monthly_token_limit}`);
+      console.log(`  - ${u.username} (id: ${u.id}): 0 -> 500K daily, 10M monthly`);
     });
-    console.warn('These users will not be able to use the editing API until their limits are changed.\n');
+    console.log('This prevents breaking access for users who had "no limit" in the old system.\n');
   }
 
   db.exec(`
@@ -71,8 +77,9 @@ function up(db) {
     -- Step 2: Copy data with role migration
     -- - 'user' role becomes 'editor'
     -- - 'admin' role stays 'admin'
-    -- - For admin users: convert 0 limits to -1 (unlimited)
-    -- - For non-admin users: 0 limits stay 0 (now means restricted)
+    -- - For admin users: all get unlimited (-1)
+    -- - For non-admin users with 0 limits: convert to defaults (500K/10M)
+    --   This prevents breaking access for users who had "no limit" in old system
     -- =========================================================================
     INSERT INTO users_new (
       id, username, email, password_hash, role, is_active,
@@ -88,13 +95,13 @@ function up(db) {
       CASE WHEN role = 'user' THEN 'editor' ELSE role END,
       is_active,
       CASE
-        WHEN role = 'admin' AND daily_token_limit = 0 THEN -1
         WHEN role = 'admin' THEN -1  -- All admins get unlimited
+        WHEN daily_token_limit = 0 THEN 500000  -- Convert old "no limit" to default
         ELSE daily_token_limit
       END,
       CASE
-        WHEN role = 'admin' AND monthly_token_limit = 0 THEN -1
         WHEN role = 'admin' THEN -1  -- All admins get unlimited
+        WHEN monthly_token_limit = 0 THEN 10000000  -- Convert old "no limit" to default
         ELSE monthly_token_limit
       END,
       created_at,
