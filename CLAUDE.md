@@ -9,7 +9,7 @@
 | Environment | Location | Purpose |
 |-------------|----------|---------|
 | **Local Dev** | `/home/user/book-editor` | Development, testing, code changes |
-| **VPS Production** | `/docker/book-editor-app` | Live site at editor.reachpublishers.co.uk |
+| **VPS Production** | `/docker/book-editor-app` | Live site at reachhouse.cloud |
 
 ---
 
