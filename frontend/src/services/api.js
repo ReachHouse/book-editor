@@ -561,7 +561,7 @@ export async function adminDeleteInviteCode(codeId) {
 
 /**
  * Get all role defaults.
- * Returns default token limits for each role (admin, management, editor, guest).
+ * Returns default token limits for each role (admin, user, guest).
  *
  * @returns {Promise<Array>} List of role defaults
  */
@@ -584,7 +584,7 @@ export async function adminGetRoleDefaults() {
 /**
  * Update default token limits for a role.
  *
- * @param {string} role - Role to update (admin, management, editor, guest)
+ * @param {string} role - Role to update (admin, user, guest)
  * @param {Object} fields - Fields to update
  * @param {number} [fields.dailyTokenLimit] - Daily limit (-1 = unlimited, 0 = restricted, >0 = limit)
  * @param {number} [fields.monthlyTokenLimit] - Monthly limit (-1 = unlimited, 0 = restricted, >0 = limit)

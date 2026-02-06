@@ -162,7 +162,7 @@ describe('Registration', () => {
     expect(result.user).toBeDefined();
     expect(result.user.username).toBe('newuser');
     expect(result.user.email).toBe('new@example.com');
-    expect(result.user.role).toBe('editor');
+    expect(result.user.role).toBe('user');
     expect(result.accessToken).toBeDefined();
     expect(result.refreshToken).toBeDefined();
     // Password hash should NOT be exposed
@@ -459,7 +459,7 @@ describe('Login', () => {
       username: 'plainuser',
       email: 'plain@test.com',
       password_hash: 'plain:MigrationPass1',
-      role: 'editor'
+      role: 'user'
     });
 
     const user = db.users.findByUsername('plainuser');

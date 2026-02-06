@@ -213,7 +213,7 @@ class DatabaseService {
        * @param {Object} data - { username, email, password_hash, role?, daily_token_limit?, monthly_token_limit? }
        * @returns {Object} The created user
        */
-      create({ username, email, password_hash, role = 'editor', daily_token_limit, monthly_token_limit }) {
+      create({ username, email, password_hash, role = 'user', daily_token_limit, monthly_token_limit }) {
         // If limits not provided, use defaults (500K daily, 10M monthly for editor)
         const dailyLimit = daily_token_limit !== undefined ? daily_token_limit : 500000;
         const monthlyLimit = monthly_token_limit !== undefined ? monthly_token_limit : 10000000;
@@ -745,7 +745,7 @@ class DatabaseService {
     return {
       /**
        * Get defaults for a specific role.
-       * @param {string} role - 'admin', 'management', 'editor', or 'guest'
+       * @param {string} role - 'admin', 'user', or 'guest'
        * @returns {Object|undefined}
        */
       get(role) {

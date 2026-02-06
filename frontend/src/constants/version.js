@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.51.0 [Feature]  - 2026-02-06: Merge Management and Editor roles into single 'User' role — simplifies role system to 3 roles (Admin/User/Guest), migration 007 for database merge, update all role references throughout codebase (481 tests)
  * v1.50.0 [Feature]  - 2026-02-06: Rename 'Restricted' role to 'Guest' throughout codebase, add limit status tags (Unlimited/Limited/Restricted) as second badge for all users in Admin Dashboard, migration 006 for database rename (481 tests)
  * v1.49.0 [Feature]  - 2026-02-06: Continue as Viewer guest mode — skip login to preview app, GUEST_USER constant, enterGuestMode() in AuthContext, guest restrictions on editing/saving, register prompt modal, Sign in button in header for guests (481 tests)
  * v1.48.0 [Feature]  - 2026-02-06: Role system with 4 roles — Admin (green, unlimited), Management (purple), Editor (amber), Viewer (gray, restricted); configurable token limits per role, role defaults table, admin self-lockout prevention (481 tests)
@@ -141,7 +142,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.50.0';
+export const VERSION = '1.51.0';
 
 /**
  * Tag describing the type of changes in this version

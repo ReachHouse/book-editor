@@ -133,10 +133,9 @@ export const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
  * Valid user roles and their display properties.
  *
  * ROLES:
- * - admin:      Full access, unlimited tokens by default (green badge)
- * - management: Standard access, 500K daily / 10M monthly default (purple badge)
- * - editor:     Standard access, 500K daily / 10M monthly default (amber badge)
- * - guest:      Guest access, 0 tokens by default (gray badge)
+ * - admin: Full access, unlimited tokens by default (green badge)
+ * - user:  Standard access, 500K daily / 10M monthly default (amber badge)
+ * - guest: Guest access, 0 tokens by default (gray badge)
  *
  * Each role has:
  * - label: Display name (Title Case for consistency)
@@ -149,13 +148,8 @@ export const USER_ROLES = {
     badgeClass: 'bg-green-500/20 text-green-400',
     color: 'green'
   },
-  management: {
-    label: 'Management',
-    badgeClass: 'bg-purple-500/20 text-purple-400',
-    color: 'purple'
-  },
-  editor: {
-    label: 'Editor',
+  user: {
+    label: 'User',
     badgeClass: 'bg-amber-500/20 text-amber-400',
     color: 'amber'
   },

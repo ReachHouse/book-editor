@@ -120,7 +120,7 @@ describe('GET /api/admin/users', () => {
     expect(user.id).toBeDefined();
     expect(user.username).toBe('admintest');
     expect(user.email).toBe('admintest@example.com');
-    expect(user.role).toBe('editor');
+    expect(user.role).toBe('user');
     expect(user.isActive).toBe(true);
     expect(user.dailyTokenLimit).toBeDefined();
     expect(user.monthlyTokenLimit).toBeDefined();
@@ -204,7 +204,7 @@ describe('PUT /api/admin/users/:id', () => {
 
     // Restore to editor
     await adminPut(`/api/admin/users/${regularUser.id}`)
-      .send({ role: 'editor' });
+      .send({ role: 'user' });
   });
 
   test('updates user role to editor', async () => {
@@ -213,9 +213,9 @@ describe('PUT /api/admin/users/:id', () => {
       .send({ role: 'admin' });
 
     const res = await adminPut(`/api/admin/users/${regularUser.id}`)
-      .send({ role: 'editor' });
+      .send({ role: 'user' });
     expect(res.status).toBe(200);
-    expect(res.body.user.role).toBe('editor');
+    expect(res.body.user.role).toBe('user');
   });
 
   test('returns 400 for invalid role', async () => {
@@ -282,7 +282,7 @@ describe('PUT /api/admin/users/:id', () => {
 
   test('prevents admin from changing own role', async () => {
     const res = await adminPut(`/api/admin/users/${adminUser.id}`)
-      .send({ role: 'editor' });
+      .send({ role: 'user' });
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Cannot change your own role');
   });
