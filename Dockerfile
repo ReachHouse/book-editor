@@ -38,7 +38,7 @@
 # DEPLOYMENT ON HOSTINGER VPS:
 # ----------------------------
 # 1. SSH into VPS
-# 2. Navigate to /home/user/book-editor
+# 2. Navigate to /docker/book-editor
 # 3. Set API key: export ANTHROPIC_API_KEY=sk-ant-xxx
 # 4. Build: docker compose build
 # 5. Run: docker compose up -d
