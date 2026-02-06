@@ -45,7 +45,7 @@ import { useAuth } from '../contexts/AuthContext';
 function formatTokenCount(count, isLimit = false) {
   if (isLimit) {
     // Any negative value is treated as unlimited (handles edge cases/corruption)
-    if (count < 0) return 'Unlimited';
+    if (count < 0) return '∞';
     if (count === 0) return 'Restricted';
   }
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
@@ -244,12 +244,6 @@ function UsersTab() {
                   {USER_ROLES[user.role] && (
                     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${USER_ROLES[user.role].badgeClass}`}>
                       {USER_ROLES[user.role].label}
-                    </span>
-                  )}
-                  {/* Unlimited badge (amber) */}
-                  {isUserUnlimited(user) && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">
-                      Unlimited
                     </span>
                   )}
                   {/* Restricted badge (red) */}
