@@ -60,6 +60,8 @@
  */
 
 import { API_BASE_URL, API_CONFIG, API_TIMEOUTS, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
+import { decodeJwt } from '../utils/jwtUtils';
+import { fetchWithTimeout } from '../utils/fetchUtils';
 
 // =============================================================================
 // AUTHENTICATION HELPERS
@@ -71,19 +73,6 @@ import { API_BASE_URL, API_CONFIG, API_TIMEOUTS, AUTH_KEYS, TOKEN_REFRESH_BUFFER
  * refresh request is sent to the server at a time.
  */
 let refreshPromise = null;
-
-/**
- * Decode a JWT payload to check expiry (no signature verification).
- * @param {string} token
- * @returns {Object|null}
- */
-function decodeJwt(token) {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Refresh the access token using the stored refresh token.
@@ -147,35 +136,6 @@ async function getAuthHeaders() {
     headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
-}
-
-/**
- * Fetch wrapper with timeout support using AbortController.
- *
- * @param {string} url - URL to fetch
- * @param {Object} options - Fetch options (method, headers, body, etc.)
- * @param {number} timeoutMs - Timeout in milliseconds (default from constants)
- * @returns {Promise<Response>} Fetch response
- * @throws {Error} If request times out or fails
- */
-async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUTS.EDIT) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    return response;
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out. Please try again.');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
 }
 
 /**
