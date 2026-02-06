@@ -100,8 +100,10 @@ curl http://localhost:3002/health     # Verify health
 │       ├── 001_initial_schema.js    # users, sessions, invite_codes, usage_logs
 │       ├── 002_projects.js          # projects table for save/resume
 │       ├── 003_custom_style_guide.js # custom_style_guide column per user
-│       ├── 004_roles_and_limits.js  # role system (admin/management/editor/viewer)
-│       └── 005_role_defaults.js     # role_defaults table for configurable limits
+│       ├── 004_roles_and_limits.js  # role system (legacy: admin/management/editor/guest)
+│       ├── 005_role_defaults.js     # role_defaults table for configurable limits
+│       ├── 006_rename_restricted_to_guest.js  # rename 'restricted' role to 'guest'
+│       └── 007_merge_roles_to_user.js  # merge management/editor into 'user' role
 │
 ├── deploy.sh                  # *** DEPLOYMENT SCRIPT - generates .env, builds, deploys ***
 ├── docker-compose.yml         # Docker orchestration - ports, volumes, env
@@ -344,33 +346,32 @@ SETUP_SECRET=dev-setup-secret
 | Role | Badge Color | Default Daily | Default Monthly |
 |------|-------------|---------------|-----------------|
 | **Admin** | Green | Unlimited (-1) | Unlimited (-1) |
-| **Management** | Purple | 500K | 10M |
-| **Editor** | Amber | 500K | 10M |
-| **Viewer** | Gray | Restricted (0) | Restricted (0) |
+| **User** | Amber | 500K | 10M |
+| **Guest** | Gray | Restricted (0) | Restricted (0) |
 
-### Token Limit Values
+### Token Limit Values (Displayed as Second Badge)
 
 | Value | Meaning | Display |
 |-------|---------|---------|
-| `-1` | Unlimited | Golden/amber text, no restrictions |
-| `0` | Restricted | Red text, cannot use editing API |
-| `> 0` | Specific limit | Normal progress bar |
+| `-1` | Unlimited | Amber "Unlimited" badge |
+| `0` | Restricted | Red "Restricted" badge |
+| `> 0` | Specific limit | Blue "Limited" badge |
 
 ### Role Constraints
 
 - Users can only have ONE role at a time
 - Admins CANNOT change their own role (prevents self-lockout)
-- New users default to 'editor' role with role defaults applied
+- New users default to 'user' role with role defaults applied
 - Role defaults are configurable in Admin Dashboard → Role Defaults tab
+- All users display a second badge showing their limit status (Unlimited/Limited/Restricted)
 
 ### Frontend Role Constants (`frontend/src/constants/index.js`)
 
 ```javascript
 export const USER_ROLES = {
   admin: { label: 'Admin', badgeClass: 'bg-green-500/20 text-green-400' },
-  management: { label: 'Management', badgeClass: 'bg-purple-500/20 text-purple-400' },
-  editor: { label: 'Editor', badgeClass: 'bg-amber-500/20 text-amber-400' },
-  viewer: { label: 'Viewer', badgeClass: 'bg-gray-500/20 text-gray-400' }
+  user: { label: 'User', badgeClass: 'bg-amber-500/20 text-amber-400' },
+  guest: { label: 'Guest', badgeClass: 'bg-gray-500/20 text-gray-400' }
 };
 
 export const TOKEN_LIMITS = {
@@ -498,7 +499,10 @@ This documentation enables future Claude sessions to understand the project with
 
 | Version | Changes |
 |---------|---------|
-| v1.48.0 | Role system (Admin/Management/Editor/Viewer) with configurable limits |
+| v1.51.0 | Merge Management/Editor roles into single 'User' role (3 roles: Admin/User/Guest) |
+| v1.50.0 | Rename 'Restricted' role to 'Guest', add limit status tags (Unlimited/Limited/Restricted) |
+| v1.49.0 | Continue as Guest mode for app preview |
+| v1.48.0 | Role system (Admin/Management/Editor/Guest) with configurable limits |
 | v1.47.0 | Comprehensive CLAUDE.md documentation |
 | v1.46.0 | Editable style guide feature |
 | v1.45.0 | Comprehensive formatting support |
@@ -519,4 +523,4 @@ This documentation enables future Claude sessions to understand the project with
 
 *Last updated: 2026-02-06*
 *VPS: srv1321944 (72.62.133.62)*
-*Total source files: 95*
+*Total source files: 97*

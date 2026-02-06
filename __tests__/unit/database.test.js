@@ -158,7 +158,7 @@ describe('Users', () => {
     expect(user.id).toBe(2);
     expect(user.username).toBe('testuser');
     expect(user.email).toBe('test@example.com');
-    expect(user.role).toBe('editor');
+    expect(user.role).toBe('user');
     expect(user.is_active).toBe(1);
     expect(user.daily_token_limit).toBe(500000);
     expect(user.monthly_token_limit).toBe(10000000);
@@ -402,7 +402,7 @@ describe('Sessions', () => {
       username: 'sessionuser',
       email: 'session@test.com',
       password_hash: 'hash',
-      role: 'editor'
+      role: 'user'
     });
   });
 
@@ -474,7 +474,7 @@ describe('Usage Logs', () => {
       username: 'usageuser',
       email: 'usage@test.com',
       password_hash: 'hash',
-      role: 'editor'
+      role: 'user'
     });
   });
 

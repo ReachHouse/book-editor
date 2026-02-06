@@ -7,7 +7,7 @@
  * semantics to support "Unlimited" (-1) and "Restricted" (0) states.
  *
  * CHANGES:
- * - Updates role CHECK constraint: ('admin', 'user') -> ('admin', 'management', 'editor', 'viewer')
+ * - Updates role CHECK constraint: ('admin', 'user') -> ('admin', 'management', 'editor', 'restricted')
  * - Migrates 'user' role to 'editor'
  * - Sets admin users to unlimited (-1) limits
  * - Converts existing 0 limits for ALL users to appropriate values:
@@ -62,7 +62,7 @@ function up(db) {
       email           TEXT    NOT NULL UNIQUE COLLATE NOCASE,
       password_hash   TEXT    NOT NULL,
       role            TEXT    NOT NULL DEFAULT 'editor'
-                      CHECK(role IN ('admin', 'management', 'editor', 'viewer')),
+                      CHECK(role IN ('admin', 'management', 'editor', 'restricted')),
       is_active       INTEGER NOT NULL DEFAULT 1,
       daily_token_limit   INTEGER NOT NULL DEFAULT 500000,
       monthly_token_limit INTEGER NOT NULL DEFAULT 10000000,

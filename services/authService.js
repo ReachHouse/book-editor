@@ -244,13 +244,13 @@ const authService = {
         throw Object.assign(new Error('An account with this email or username already exists'), { status: 409 });
       }
 
-      // Get role defaults for 'editor' (the default role for new users)
-      const roleDefaults = database.roleDefaults.get('editor');
+      // Get role defaults for 'user' (the default role for new users)
+      const roleDefaults = database.roleDefaults.get('user');
       const newUser = database.users.create({
         username: normalizedUsername,
         email: normalizedEmail,
         password_hash: passwordHash,
-        role: 'editor',
+        role: 'user',
         daily_token_limit: roleDefaults?.daily_token_limit ?? 500000,
         monthly_token_limit: roleDefaults?.monthly_token_limit ?? 10000000
       });
