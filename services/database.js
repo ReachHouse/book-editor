@@ -745,7 +745,7 @@ class DatabaseService {
     return {
       /**
        * Get defaults for a specific role.
-       * @param {string} role - 'admin', 'management', 'editor', or 'restricted'
+       * @param {string} role - 'admin', 'management', 'editor', or 'guest'
        * @returns {Object|undefined}
        */
       get(role) {

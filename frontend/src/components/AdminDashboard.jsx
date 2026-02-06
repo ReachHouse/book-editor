@@ -68,6 +68,37 @@ function isUserRestricted(user) {
 }
 
 /**
+ * Check if a user has limited access (specific limits, not unlimited or restricted)
+ */
+function isUserLimited(user) {
+  return !isUserUnlimited(user) && !isUserRestricted(user);
+}
+
+/**
+ * Get the limit status tag for a user.
+ * Returns { label, className } for the appropriate limit status.
+ */
+function getLimitStatusTag(user) {
+  if (isUserUnlimited(user)) {
+    return {
+      label: 'Unlimited',
+      className: 'bg-amber-500/20 text-amber-400'
+    };
+  }
+  if (isUserRestricted(user)) {
+    return {
+      label: 'Restricted',
+      className: 'bg-red-500/20 text-red-400'
+    };
+  }
+  // Limited (specific limits > 0)
+  return {
+    label: 'Limited',
+    className: 'bg-blue-500/20 text-blue-400'
+  };
+}
+
+/**
  * Get the color class for a limit value.
  * Any negative value is treated as unlimited.
  */
@@ -246,12 +277,15 @@ function UsersTab() {
                       {USER_ROLES[user.role].label}
                     </span>
                   )}
-                  {/* Restricted badge (red) */}
-                  {isUserRestricted(user) && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
-                      Restricted
-                    </span>
-                  )}
+                  {/* Limit status badge (Unlimited/Limited/Restricted) */}
+                  {(() => {
+                    const tag = getLimitStatusTag(user);
+                    return (
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${tag.className}`}>
+                        {tag.label}
+                      </span>
+                    );
+                  })()}
                   {/* Inactive badge */}
                   {!user.isActive && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
@@ -770,14 +804,18 @@ function RoleDefaultsTab() {
                       {USER_ROLES[rd.role].label}
                     </span>
                   )}
-                  {rd.dailyTokenLimit === -1 && (
+                  {/* Limit status badge (Unlimited/Limited/Restricted) */}
+                  {rd.dailyTokenLimit < 0 ? (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">
                       Unlimited
                     </span>
-                  )}
-                  {rd.dailyTokenLimit === 0 && (
+                  ) : rd.dailyTokenLimit === 0 ? (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
                       Restricted
+                    </span>
+                  ) : (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium">
+                      Limited
                     </span>
                   )}
                 </div>

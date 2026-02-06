@@ -22,7 +22,7 @@
  * - admin:      Full access, unlimited tokens (-1)
  * - management: Standard access, 500K daily / 10M monthly default
  * - editor:     Standard access, 500K daily / 10M monthly default
- * - restricted: Restricted access, 0 tokens (cannot use API)
+ * - guest:      Guest access, 0 tokens (cannot use API)
  *
  * TOKEN LIMIT SEMANTICS:
  * ----------------------
@@ -42,7 +42,7 @@ const { requireAdmin } = require('../middleware/auth');
 const { database } = require('../services/database');
 
 // Valid roles for the system
-const VALID_ROLES = ['admin', 'management', 'editor', 'restricted'];
+const VALID_ROLES = ['admin', 'management', 'editor', 'guest'];
 
 // Maximum token limit (100 million) - prevents unreasonable values
 const MAX_TOKEN_LIMIT = 100000000;
@@ -125,7 +125,7 @@ router.get('/api/admin/users', requireAdmin, (req, res) => {
  *
  * Request body (all optional):
  *   {
- *     role?: 'admin' | 'management' | 'editor' | 'restricted',
+ *     role?: 'admin' | 'management' | 'editor' | 'guest',
  *     isActive?: boolean,
  *     dailyTokenLimit?: number,   // -1 = unlimited, 0 = restricted, >0 = limit
  *     monthlyTokenLimit?: number  // -1 = unlimited, 0 = restricted, >0 = limit
