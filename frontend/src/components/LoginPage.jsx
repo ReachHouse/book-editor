@@ -153,7 +153,7 @@ function LoginPage({ onSwitchToRegister }) {
             <div className="flex-1 h-px bg-surface-700/50" />
           </div>
 
-          {/* Continue as Viewer button */}
+          {/* Continue as Guest button */}
           <button
             type="button"
             onClick={enterGuestMode}
@@ -161,7 +161,7 @@ function LoginPage({ onSwitchToRegister }) {
             className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-surface-400 hover:text-surface-200 border border-surface-700/50 hover:border-surface-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Eye className="w-4 h-4" />
-            Continue as Viewer
+            Continue as Guest
           </button>
           <p className="mt-2 text-xs text-surface-500 text-center">
             Preview the app without an account

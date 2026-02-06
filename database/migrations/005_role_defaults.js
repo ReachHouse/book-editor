@@ -10,7 +10,7 @@
  * - Admin:      Unlimited (-1) daily/monthly
  * - Management: 500K daily, 10M monthly
  * - Editor:     500K daily, 10M monthly
- * - Viewer:     Restricted (0) daily/monthly
+ * - Restricted: Restricted (0) daily/monthly
  *
  * The 'color' field stores the Tailwind color name for badge display.
  * The 'display_order' field controls the order in dropdowns and lists.
@@ -35,7 +35,7 @@ function up(db) {
     -- =========================================================================
     CREATE TABLE IF NOT EXISTS role_defaults (
       role                TEXT    PRIMARY KEY
-                          CHECK(role IN ('admin', 'management', 'editor', 'viewer')),
+                          CHECK(role IN ('admin', 'management', 'editor', 'restricted')),
       daily_token_limit   INTEGER NOT NULL,
       monthly_token_limit INTEGER NOT NULL,
       color               TEXT    NOT NULL,
@@ -48,7 +48,7 @@ function up(db) {
       ('admin',      -1,       -1,        'green',  1),
       ('management', 500000,   10000000,  'purple', 2),
       ('editor',     500000,   10000000,  'amber',  3),
-      ('viewer',     0,        0,         'gray',   4);
+      ('restricted', 0,        0,         'gray',   4);
   `);
 
   console.log('[Migration 005] Role defaults table created with initial values.');

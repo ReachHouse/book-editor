@@ -139,17 +139,17 @@ describe('LoginPage', () => {
   });
 
   // Guest mode tests
-  test('renders Continue as Viewer button', () => {
+  test('renders Continue as Guest button', () => {
     render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
 
-    expect(screen.getByText('Continue as Viewer')).toBeInTheDocument();
+    expect(screen.getByText('Continue as Guest')).toBeInTheDocument();
     expect(screen.getByText('Preview the app without an account')).toBeInTheDocument();
   });
 
-  test('calls enterGuestMode when Continue as Viewer clicked', () => {
+  test('calls enterGuestMode when Continue as Guest clicked', () => {
     render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
 
-    fireEvent.click(screen.getByText('Continue as Viewer'));
+    fireEvent.click(screen.getByText('Continue as Guest'));
     expect(mockEnterGuestMode).toHaveBeenCalledTimes(1);
   });
 });

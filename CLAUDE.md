@@ -100,7 +100,7 @@ curl http://localhost:3002/health     # Verify health
 │       ├── 001_initial_schema.js    # users, sessions, invite_codes, usage_logs
 │       ├── 002_projects.js          # projects table for save/resume
 │       ├── 003_custom_style_guide.js # custom_style_guide column per user
-│       ├── 004_roles_and_limits.js  # role system (admin/management/editor/viewer)
+│       ├── 004_roles_and_limits.js  # role system (admin/management/editor/restricted)
 │       └── 005_role_defaults.js     # role_defaults table for configurable limits
 │
 ├── deploy.sh                  # *** DEPLOYMENT SCRIPT - generates .env, builds, deploys ***
@@ -346,7 +346,7 @@ SETUP_SECRET=dev-setup-secret
 | **Admin** | Green | Unlimited (-1) | Unlimited (-1) |
 | **Management** | Purple | 500K | 10M |
 | **Editor** | Amber | 500K | 10M |
-| **Viewer** | Gray | Restricted (0) | Restricted (0) |
+| **Restricted** | Gray | Restricted (0) | Restricted (0) |
 
 ### Token Limit Values
 
@@ -370,7 +370,7 @@ export const USER_ROLES = {
   admin: { label: 'Admin', badgeClass: 'bg-green-500/20 text-green-400' },
   management: { label: 'Management', badgeClass: 'bg-purple-500/20 text-purple-400' },
   editor: { label: 'Editor', badgeClass: 'bg-amber-500/20 text-amber-400' },
-  viewer: { label: 'Viewer', badgeClass: 'bg-gray-500/20 text-gray-400' }
+  restricted: { label: 'Restricted', badgeClass: 'bg-gray-500/20 text-gray-400' }
 };
 
 export const TOKEN_LIMITS = {
@@ -498,7 +498,7 @@ This documentation enables future Claude sessions to understand the project with
 
 | Version | Changes |
 |---------|---------|
-| v1.48.0 | Role system (Admin/Management/Editor/Viewer) with configurable limits |
+| v1.48.0 | Role system (Admin/Management/Editor/Restricted) with configurable limits |
 | v1.47.0 | Comprehensive CLAUDE.md documentation |
 | v1.46.0 | Editable style guide feature |
 | v1.45.0 | Comprehensive formatting support |

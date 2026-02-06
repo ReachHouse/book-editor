@@ -98,7 +98,7 @@ export function AuthProvider({ children }) {
 
   /**
    * Enter guest mode without authentication.
-   * Sets up a guest user with viewer role that can preview the app.
+   * Sets up a guest user with restricted role that can preview the app.
    */
   const enterGuestMode = useCallback(() => {
     try {
