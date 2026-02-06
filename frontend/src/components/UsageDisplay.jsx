@@ -14,8 +14,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Lock } from 'lucide-react';
 import { getUsage } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Format a token count for display (e.g., 500000 -> "500K").
@@ -90,11 +91,15 @@ function getBarColor(percentage) {
 }
 
 function UsageDisplay() {
+  const { isGuest, logout } = useAuth();
   const [usage, setUsage] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
   // Track mounted state to prevent state updates after unmount
   useEffect(() => {
+    // Don't fetch usage for guests (no auth token)
+    if (isGuest) return;
+
     let mounted = true;
 
     const fetchUsage = async () => {
@@ -126,7 +131,26 @@ function UsageDisplay() {
       clearInterval(interval);
       window.removeEventListener('usage-updated', handleUsageUpdated);
     };
-  }, []);
+  }, [isGuest]);
+
+  // Show restricted access message for guests
+  if (isGuest) {
+    return (
+      <div className="mt-4 mb-2 animate-fade-in">
+        <div className="flex items-center justify-center gap-2 text-xs text-surface-500 py-1 px-3">
+          <Lock className="w-3.5 h-3.5 text-red-400" />
+          <span className="text-red-400 font-medium">Restricted Access</span>
+          <span className="text-surface-600">—</span>
+          <button
+            onClick={logout}
+            className="text-brand-400 hover:text-brand-300 transition-colors"
+          >
+            Register to unlock editing
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!usage) return null;
 

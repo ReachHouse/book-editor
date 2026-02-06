@@ -115,7 +115,8 @@ export const CHUNK_SIZES = {
 export const AUTH_KEYS = {
   TOKEN: 'book_editor_access_token',
   REFRESH: 'book_editor_refresh_token',
-  USER: 'book_editor_user'
+  USER: 'book_editor_user',
+  GUEST: 'book_editor_guest_mode'
 };
 
 /**
@@ -176,6 +177,30 @@ export const USER_ROLES = {
 export const TOKEN_LIMITS = {
   UNLIMITED: -1,
   RESTRICTED: 0
+};
+
+/**
+ * Guest user object for "Continue as Viewer" mode.
+ * Used when user skips login to preview the app without an account.
+ *
+ * Guest users can:
+ * - Upload and analyze documents (client-side only)
+ * - View the style guide
+ * - See the main editor interface
+ *
+ * Guest users CANNOT:
+ * - Edit documents (no auth token)
+ * - Save or load projects (requires user ID)
+ * - Download edited documents
+ */
+export const GUEST_USER = {
+  id: 'guest',
+  username: 'Guest',
+  email: null,
+  role: 'viewer',
+  isGuest: true,
+  dailyTokenLimit: 0,
+  monthlyTokenLimit: 0
 };
 
 // =============================================================================

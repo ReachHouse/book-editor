@@ -17,7 +17,7 @@
  */
 
 import React, { useState } from 'react';
-import { FileText, BookOpen, LogOut, Loader, User, Settings } from 'lucide-react';
+import { FileText, BookOpen, LogOut, Loader, User, Settings, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { USER_ROLES } from '../constants';
 
@@ -31,13 +31,23 @@ import { USER_ROLES } from '../constants';
  * @param {'edit'|'view'} [props.styleGuideMode] - Style guide mode (default: 'view')
  */
 function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }) {
-  const { logout } = useAuth();
+  const { logout, isGuest } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
       await logout();
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  // Handle sign in for guests (clears guest mode and redirects to login)
+  const handleSignIn = async () => {
+    setLoggingOut(true);
+    try {
+      await logout(); // Clears guest mode, redirects to login via !isAuthenticated
     } finally {
       setLoggingOut(false);
     }
@@ -57,7 +67,8 @@ function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }
               </span>
             )}
           </div>
-          {user.role === 'admin' && onShowAdmin && (
+          {/* Admin dashboard button (admin only, not for guests) */}
+          {!isGuest && user.role === 'admin' && onShowAdmin && (
             <button
               onClick={onShowAdmin}
               className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-300 transition-colors py-1 px-2 rounded hover:bg-surface-800/50"
@@ -67,19 +78,36 @@ function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }
               Admin
             </button>
           )}
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-300 transition-colors py-1 px-2 rounded hover:bg-surface-800/50 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Sign out"
-          >
-            {loggingOut ? (
-              <Loader className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <LogOut className="w-3.5 h-3.5" />
-            )}
-            Sign out
-          </button>
+          {/* Sign in button for guests, Sign out for authenticated users */}
+          {isGuest ? (
+            <button
+              onClick={handleSignIn}
+              disabled={loggingOut}
+              className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 transition-colors py-1 px-2 rounded hover:bg-surface-800/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Sign in"
+            >
+              {loggingOut ? (
+                <Loader className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <LogIn className="w-3.5 h-3.5" />
+              )}
+              Sign in
+            </button>
+          ) : (
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-300 transition-colors py-1 px-2 rounded hover:bg-surface-800/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Sign out"
+            >
+              {loggingOut ? (
+                <Loader className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <LogOut className="w-3.5 h-3.5" />
+              )}
+              Sign out
+            </button>
+          )}
         </div>
       )}
 
