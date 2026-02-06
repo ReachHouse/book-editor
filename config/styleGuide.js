@@ -3,7 +3,7 @@
  * REACH PUBLISHERS HOUSE STYLE GUIDE
  * =============================================================================
  *
- * This file contains the official Reach Publishers House Style Guide that
+ * This file contains the official Reach House House Style Guide that
  * governs all manuscript editing. This is the SINGLE SOURCE OF TRUTH for
  * editing standards - both the backend AI prompts and frontend display
  * reference this file.

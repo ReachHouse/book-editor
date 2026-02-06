@@ -5,7 +5,7 @@
  *
  * This service handles all communication with the Anthropic Claude API.
  * It sends manuscript text to Claude for editing according to the
- * Reach Publishers House Style Guide.
+ * Reach House House Style Guide.
  *
  * API CONFIGURATION:
  * ------------------
@@ -33,7 +33,7 @@
  * PROMPT ENGINEERING:
  * -------------------
  * The system prompt includes:
- * - Full Reach Publishers House Style Guide
+ * - Full Reach House House Style Guide
  * - Instructions to return ONLY edited text (no explanations)
  * - Context from previous sections (for subsequent chunks)
  *
@@ -161,7 +161,7 @@ async function makeAnthropicRequest(body) {
 /**
  * Edit a chunk of manuscript text using Claude.
  *
- * Sends text to Claude with the Reach Publishers style guide and
+ * Sends text to Claude with the Reach House style guide and
  * instructions to return only the edited text.
  *
  * @param {string} text - The text chunk to edit (~2000 words)
@@ -194,7 +194,7 @@ async function editChunk(text, styleGuide, isFirst, customStyleGuide = null) {
  *
  * The prompt includes:
  * 1. Role definition (professional book editor)
- * 2. Full Reach Publishers House Style Guide (or user's custom guide)
+ * 2. Full Reach House House Style Guide (or user's custom guide)
  * 3. Context from previous sections (if not first chunk)
  * 4. Instruction to return only edited text
  *
@@ -210,7 +210,7 @@ function buildEditingPrompt(styleGuide, isFirst, customStyleGuide = null) {
     : STYLE_GUIDE;
 
   // Base prompt with role and style guide
-  const basePrompt = `You are a professional book editor for Reach Publishers. You MUST follow the Reach Publishers House Style Guide strictly and without exception.
+  const basePrompt = `You are a professional book editor for Reach House. You MUST follow the Reach House House Style Guide strictly and without exception.
 
 ${effectiveStyleGuide}`;
 
@@ -239,7 +239,7 @@ Return ONLY the edited text with no preamble, no explanations, no comments - jus
  */
 async function generateStyleGuide(editedText) {
   // Default fallback if generation fails
-  const defaultGuide = 'Professional, clear, and engaging style following Reach Publishers standards.';
+  const defaultGuide = 'Professional, clear, and engaging style following Reach House standards.';
 
   // Can't generate without API key
   if (!process.env.ANTHROPIC_API_KEY) {

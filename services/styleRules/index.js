@@ -3,7 +3,7 @@
  * STYLE RULES MODULE
  * =============================================================================
  *
- * Defines detection functions for Reach Publishers House Style Guide rules.
+ * Defines detection functions for Reach House House Style Guide rules.
  * Used by documentService.js to categorize changes and provide educational
  * comments explaining WHY a change was made.
  *

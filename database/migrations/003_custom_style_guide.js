@@ -23,7 +23,7 @@ function up(db) {
     -- ADD CUSTOM STYLE GUIDE COLUMN
     -- =========================================================================
     -- Stores user-customized style guide content per project.
-    -- NULL means use the default Reach Publishers style guide.
+    -- NULL means use the default Reach House style guide.
     -- Max recommended size: 50KB (about 10,000 words)
     -- =========================================================================
     ALTER TABLE projects ADD COLUMN custom_style_guide TEXT;

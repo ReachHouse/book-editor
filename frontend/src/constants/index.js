@@ -11,7 +11,7 @@
  * ---------
  * 1. API Configuration - Backend communication settings
  * 2. Document Processing - Chunk sizes for text processing
- * 3. Style Guide - Reach Publishers House Style (condensed for UI)
+ * 3. Style Guide - Reach House House Style (condensed for UI)
  * 4. Full Style Guide - Complete document for modal display
  * 5. Version Exports - Re-exported from version.js
  *
@@ -129,7 +129,7 @@ export const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
 // =============================================================================
 
 /**
- * Condensed Reach Publishers House Style Guide.
+ * Condensed Reach House House Style Guide.
  *
  * This is displayed in the UI and used as a quick reference.
  * The full version (FULL_STYLE_GUIDE_DOCUMENT below) is shown in the modal.
@@ -171,10 +171,10 @@ CRITICAL: All changes must be highlighted/tracked.`;
 // =============================================================================
 
 /**
- * Complete Reach Publishers New Editors' Guidelines.
+ * Complete Reach House New Editors' Guidelines.
  *
  * This comprehensive document is displayed in the Style Guide Modal
- * when users click "View Reach Publishers Style Guide" button.
+ * when users click "View Reach House Style Guide" button.
  *
  * It contains the full editing brief from Sally Veenman including:
  * - UK English requirements
@@ -252,7 +252,7 @@ The aim is to change whatever needs changing so the book reads well in good Engl
 
 Kind regards
 Sally Veenman
-Reach Publishers, Head of Editing Department`;
+Reach House, Head of Editing Department`;
 
 /**
  * Maximum length for custom style guide content (in characters).

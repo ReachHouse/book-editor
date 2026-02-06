@@ -2,7 +2,7 @@
  * Unit Tests for styleRules.js
  *
  * Tests the style rule detection functions used to identify
- * Reach Publishers House Style Guide violations.
+ * Reach House House Style Guide violations.
  */
 
 const { STYLE_RULES, detectStyleViolations, getStyleRuleById } = require('../../services/styleRules');
