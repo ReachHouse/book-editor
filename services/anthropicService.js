@@ -18,17 +18,18 @@
  */
 
 const { STYLE_GUIDE } = require('../config/styleGuide');
+const config = require('../config/app');
 const logger = require('./logger');
 const { ServiceUnavailableError } = require('./errors');
 
 // =============================================================================
-// API CONFIGURATION
+// API CONFIGURATION (from centralized config)
 // =============================================================================
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-const ANTHROPIC_VERSION = '2023-06-01';
-const MODEL = 'claude-sonnet-4-20250514';
-const API_TIMEOUT_MS = 4 * 60 * 1000;
+const ANTHROPIC_API_URL = config.ANTHROPIC.API_URL;
+const ANTHROPIC_VERSION = config.ANTHROPIC.API_VERSION;
+const MODEL = config.ANTHROPIC.MODEL;
+const API_TIMEOUT_MS = config.ANTHROPIC.TIMEOUT_MS;
 
 // =============================================================================
 // CIRCUIT BREAKER
@@ -52,8 +53,8 @@ const circuitBreaker = {
   state: 'CLOSED', // CLOSED | OPEN | HALF_OPEN
   failures: 0,
   lastFailureTime: null,
-  FAILURE_THRESHOLD: 5,
-  RESET_TIMEOUT_MS: 60 * 1000,
+  FAILURE_THRESHOLD: config.ANTHROPIC.CIRCUIT_BREAKER.FAILURE_THRESHOLD,
+  RESET_TIMEOUT_MS: config.ANTHROPIC.CIRCUIT_BREAKER.RESET_TIMEOUT_MS,
 
   /**
    * Check if requests are allowed through the circuit.
@@ -212,7 +213,7 @@ async function editChunk(text, styleGuide, isFirst, customStyleGuide = null) {
 
   const data = await makeAnthropicRequest({
     model: MODEL,
-    max_tokens: 4000,
+    max_tokens: config.ANTHROPIC.MAX_TOKENS_EDIT,
     system: systemPrompt,
     messages: [{ role: 'user', content: text }]
   });
@@ -267,7 +268,7 @@ async function generateStyleGuide(editedText) {
   try {
     const data = await makeAnthropicRequest({
       model: MODEL,
-      max_tokens: 500,
+      max_tokens: config.ANTHROPIC.MAX_TOKENS_STYLE_GUIDE,
       messages: [{
         role: 'user',
         content: `Based on this edited text, create a brief style guide (3-4 sentences) noting: tone, formality level, punctuation preferences, and any special terminology. Text: ${editedText.substring(0, 1000)}`

@@ -513,6 +513,7 @@ This documentation enables future Claude sessions to understand the project with
 
 | Version | Changes |
 |---------|---------|
+| v1.53.0 | Code audit: fix X-Response-Time bug, wire centralized config & logger into all files, remove duplicates |
 | v1.52.0 | Complete roadmap: logger, error classes, circuit breaker, config, indexes, pagination, docs |
 | v1.51.0 | Merge Management/Editor roles into single 'User' role (3 roles: Admin/User/Guest) |
 | v1.50.0 | Rename 'Restricted' role to 'Guest', add limit status tags (Unlimited/Limited/Restricted) |

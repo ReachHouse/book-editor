@@ -32,42 +32,31 @@ const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { authService } = require('../services/authService');
 const { requireAuth } = require('../middleware/auth');
+const config = require('../config/app');
 
 // =============================================================================
-// AUTH-SPECIFIC RATE LIMITERS
+// AUTH-SPECIFIC RATE LIMITERS (values from centralized config)
 // =============================================================================
 
-/**
- * Stricter rate limit for login attempts to prevent brute-force attacks.
- * 20 attempts per 15-minute window per IP.
- */
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
+  windowMs: config.RATE_LIMIT.LOGIN.windowMs,
+  max: config.RATE_LIMIT.LOGIN.max,
   message: { error: 'Too many login attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false
 });
 
-/**
- * Rate limit for registration to prevent invite code enumeration.
- * 10 attempts per 15-minute window per IP.
- */
 const registerLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  windowMs: config.RATE_LIMIT.REGISTER.windowMs,
+  max: config.RATE_LIMIT.REGISTER.max,
   message: { error: 'Too many registration attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false
 });
 
-/**
- * Rate limit for token refresh to prevent token-spinning attacks.
- * 30 attempts per 15-minute window per IP.
- */
 const refreshLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
+  windowMs: config.RATE_LIMIT.REFRESH.windowMs,
+  max: config.RATE_LIMIT.REFRESH.max,
   message: { error: 'Too many refresh attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false

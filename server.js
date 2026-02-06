@@ -48,6 +48,7 @@ const helmet = require('helmet');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 const logger = require('./services/logger');
+const config = require('./config/app');
 
 // -----------------------------------------------------------------------------
 // Route Imports
@@ -73,9 +74,8 @@ const { database } = require('./services/database');
 
 const app = express();
 
-// Port configuration: Use environment variable or default to 3001
-// In Docker, this is mapped to external port 3002 via docker-compose.yml
-const PORT = process.env.PORT || 3001;
+// Port configuration from centralized config
+const PORT = config.PORT;
 
 // =============================================================================
 // MIDDLEWARE STACK
@@ -136,12 +136,11 @@ app.use(cors(corsOptions));
 // Compression: Reduce response size for faster transfers
 app.use(compression());
 
-// Response Timing: Add X-Response-Time header for performance monitoring
+// Response Timing: Log slow responses for performance monitoring
 app.use((req, res, next) => {
   const start = process.hrtime.bigint();
   res.on('finish', () => {
     const duration = Number(process.hrtime.bigint() - start) / 1e6; // ms
-    res.setHeader('X-Response-Time', `${duration.toFixed(1)}ms`);
     // Log slow responses (>1000ms for API routes)
     if (req.path.startsWith('/api/') && duration > 1000) {
       logger.warn('Slow response', {
@@ -156,20 +155,18 @@ app.use((req, res, next) => {
 });
 
 // Rate Limiting: Protect against API abuse and quota exhaustion
-// Limits each IP to 100 requests per 15 minutes for API endpoints
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: config.RATE_LIMIT.API.windowMs,
+  max: config.RATE_LIMIT.API.max,
   message: { error: 'Too many requests, please try again later.' },
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false // Disable `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false
 });
 app.use('/api/', apiLimiter);
 
 // Request Timeout: Prevent indefinite hangs (5 minutes for large documents)
-const REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
 app.use((req, res, next) => {
-  res.setTimeout(REQUEST_TIMEOUT_MS, () => {
+  res.setTimeout(config.REQUEST_TIMEOUT_MS, () => {
     if (!res.headersSent) {
       res.status(408).json({ error: 'Request timeout' });
     }
@@ -178,8 +175,7 @@ app.use((req, res, next) => {
 });
 
 // JSON Parser: Accept large payloads for manuscript processing
-// 10MB limit accommodates large documents while preventing abuse
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: config.MAX_JSON_SIZE }));
 
 // Static Files: Serve the built React frontend from /public
 // The Dockerfile copies the Vite build output here during container build
@@ -308,7 +304,6 @@ try {
 
 // Periodic cleanup: remove expired sessions every hour.
 // Prevents the sessions table from growing unbounded.
-const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const cleanupIntervalId = setInterval(() => {
   try {
     const deleted = database.sessions.deleteExpired();
@@ -318,7 +313,7 @@ const cleanupIntervalId = setInterval(() => {
   } catch (err) {
     logger.error('Session cleanup error', { error: err.message });
   }
-}, SESSION_CLEANUP_INTERVAL_MS);
+}, config.SESSION_CLEANUP_INTERVAL_MS);
 
 // Start listening on all network interfaces (0.0.0.0)
 // This is required for Docker container networking
@@ -348,9 +343,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // Handle server startup errors (port in use, binding failures)
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`Error: Port ${PORT} is already in use`);
+    logger.error(`Port ${PORT} is already in use`);
   } else {
-    console.error('Server startup error:', err.message);
+    logger.error('Server startup error', { error: err.message });
   }
   process.exit(1);
 });
@@ -366,22 +361,22 @@ server.on('error', (err) => {
  * @param {string} signal - The signal that triggered shutdown (SIGTERM, SIGINT, etc.)
  */
 function gracefulShutdown(signal) {
-  console.log(`${signal} received. Shutting down gracefully...`);
+  logger.info(`${signal} received, shutting down gracefully`);
 
   // Clear the session cleanup interval
   clearInterval(cleanupIntervalId);
 
   // Close the HTTP server (stop accepting new connections)
   server.close(() => {
-    console.log('HTTP server closed.');
+    logger.info('HTTP server closed');
   });
 
   // Close the database connection
   try {
     database.close();
-    console.log('Database connection closed.');
+    logger.info('Database connection closed');
   } catch (err) {
-    console.error('Error closing database:', err.message);
+    logger.error('Error closing database', { error: err.message });
   }
 
   process.exit(0);
@@ -400,8 +395,7 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 // Handle uncaught exceptions (synchronous errors that weren't caught)
 process.on('uncaughtException', (err) => {
   const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
-  console.error(`[${new Date().toISOString()}] Uncaught Exception ${errorId}:`, err.message);
-  console.error(err.stack);
+  logger.error(`Uncaught Exception ${errorId}`, { error: err.message, stack: err.stack });
   // Exit with failure code - the process manager should restart us
   process.exit(1);
 });
@@ -409,7 +403,7 @@ process.on('uncaughtException', (err) => {
 // Handle unhandled promise rejections (async errors that weren't caught)
 process.on('unhandledRejection', (reason, promise) => {
   const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
-  console.error(`[${new Date().toISOString()}] Unhandled Rejection ${errorId}:`, reason);
+  logger.error(`Unhandled Rejection ${errorId}`, { reason: String(reason) });
   // Exit with failure code - the process manager should restart us
   process.exit(1);
 });

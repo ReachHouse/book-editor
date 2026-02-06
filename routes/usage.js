@@ -24,6 +24,7 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { database } = require('../services/database');
+const logger = require('../services/logger');
 
 // =============================================================================
 // USER USAGE ENDPOINTS
@@ -80,7 +81,7 @@ router.get('/api/usage', requireAuth, (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Usage summary error:', err.message);
+    logger.error('Usage summary error', { error: err.message });
     res.status(500).json({ error: 'Failed to load usage data' });
   }
 });
@@ -115,7 +116,7 @@ router.get('/api/usage/history', requireAuth, (req, res) => {
       }))
     });
   } catch (err) {
-    console.error('Usage history error:', err.message);
+    logger.error('Usage history error', { error: err.message });
     res.status(500).json({ error: 'Failed to load usage history' });
   }
 });
@@ -184,7 +185,7 @@ router.get('/api/admin/usage', requireAdmin, (req, res) => {
       users: userUsage
     });
   } catch (err) {
-    console.error('Admin usage error:', err.message);
+    logger.error('Admin usage error', { error: err.message });
     res.status(500).json({ error: 'Failed to load usage statistics' });
   }
 });

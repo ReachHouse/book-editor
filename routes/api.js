@@ -36,15 +36,14 @@ const { editChunk, generateStyleGuide, MODEL } = require('../services/anthropicS
 const { generateDocxBuffer } = require('../services/document');
 const { requireAuth } = require('../middleware/auth');
 const { database } = require('../services/database');
+const config = require('../config/app');
+const logger = require('../services/logger');
 
 // =============================================================================
 // INPUT VALIDATION HELPERS
 // =============================================================================
 
-/**
- * Maximum text length for API requests (500,000 characters ≈ 100,000 words)
- */
-const MAX_TEXT_LENGTH = 500000;
+const MAX_TEXT_LENGTH = config.MAX_TEXT_LENGTH;
 
 /**
  * Sanitize filename for Content-Disposition header.
@@ -168,7 +167,7 @@ function logUsage(userId, endpoint, usage, projectId) {
     });
   } catch (err) {
     // Usage logging is non-critical — don't fail the request
-    console.error('Usage logging error:', err.message);
+    logger.error('Usage logging error', { error: err.message });
   }
 }
 
@@ -214,8 +213,8 @@ router.post('/api/edit-chunk', requireAuth, async (req, res) => {
       if (typeof styleGuide !== 'string') {
         return res.status(400).json({ error: 'styleGuide must be a string' });
       }
-      if (styleGuide.length > 10000) {
-        return res.status(400).json({ error: 'styleGuide exceeds maximum size (10KB)' });
+      if (styleGuide.length > config.PROJECTS.MAX_STYLE_GUIDE_LENGTH) {
+        return res.status(400).json({ error: `styleGuide exceeds maximum size (${config.PROJECTS.MAX_STYLE_GUIDE_LENGTH.toLocaleString()} chars)` });
       }
     }
 
@@ -230,8 +229,8 @@ router.post('/api/edit-chunk', requireAuth, async (req, res) => {
       if (typeof customStyleGuide !== 'string') {
         return res.status(400).json({ error: 'customStyleGuide must be a string' });
       }
-      if (customStyleGuide.length > 50000) {
-        return res.status(400).json({ error: 'customStyleGuide exceeds maximum size (50KB)' });
+      if (customStyleGuide.length > config.PROJECTS.MAX_CUSTOM_STYLE_GUIDE_LENGTH) {
+        return res.status(400).json({ error: `customStyleGuide exceeds maximum size (${config.PROJECTS.MAX_CUSTOM_STYLE_GUIDE_LENGTH.toLocaleString()} chars)` });
       }
     }
 
@@ -257,8 +256,7 @@ router.post('/api/edit-chunk', requireAuth, async (req, res) => {
     res.json({ editedText: result.text });
 
   } catch (error) {
-    console.error('Edit chunk error:', error);
-    // Return generic message to client, log full error server-side
+    logger.error('Edit chunk error', { error: error.message });
     return res.status(500).json({ error: 'Failed to process text. Please try again.' });
   }
 });
@@ -316,8 +314,7 @@ router.post('/api/generate-style-guide', requireAuth, async (req, res) => {
     res.json({ styleGuide: result.text });
 
   } catch (error) {
-    console.error('Style guide generation error:', error.message);
-    // Return default instead of error - style guide is non-critical
+    logger.error('Style guide generation error', { error: error.message });
     return res.json({
       styleGuide: 'Professional, clear, and engaging style following Reach House standards.'
     });
@@ -367,12 +364,10 @@ router.post('/api/generate-docx', requireAuth, async (req, res) => {
       return res.status(400).json({ error: editedError });
     }
 
-    // Log generation start (development only to avoid log spam)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Generating document with Native Track Changes...');
-      console.log('Original length:', originalText.length, 'characters');
-      console.log('Edited length:', editedText.length, 'characters');
-    }
+    logger.debug('Generating document with Track Changes', {
+      originalLength: originalText.length,
+      editedLength: editedText.length
+    });
 
     // Generate the .docx buffer
     const buffer = await generateDocxBuffer(originalText, editedText);
@@ -393,13 +388,10 @@ router.post('/api/generate-docx', requireAuth, async (req, res) => {
     // Send the binary buffer
     res.send(buffer);
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Document generated successfully:', outputFileName);
-    }
+    logger.debug('Document generated successfully', { fileName: outputFileName });
 
   } catch (error) {
-    console.error('Document generation error:', error);
-    // Return generic message to client, log full error server-side
+    logger.error('Document generation error', { error: error.message });
     return res.status(500).json({ error: 'Failed to generate document. Please try again.' });
   }
 });

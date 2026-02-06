@@ -727,18 +727,6 @@ class DatabaseService {
       },
 
       /**
-       * Count projects for a user.
-       *
-       * @param {number} userId
-       * @returns {number}
-       */
-      count(userId) {
-        return db.prepare(
-          'SELECT COUNT(*) AS count FROM projects WHERE user_id = ?'
-        ).get(userId).count;
-      },
-
-      /**
        * Get project counts for ALL users in a single query.
        * Returns a Map of userId -> count
        * @returns {Map<number, number>}

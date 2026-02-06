@@ -39,12 +39,12 @@ const crypto = require('crypto');
 const router = express.Router();
 const { requireAdmin } = require('../middleware/auth');
 const { database } = require('../services/database');
+const config = require('../config/app');
+const logger = require('../services/logger');
 
-// Valid roles for the system
-const VALID_ROLES = ['admin', 'user', 'guest'];
-
-// Maximum token limit (100 million) - prevents unreasonable values
-const MAX_TOKEN_LIMIT = 100000000;
+// Valid roles and limits from centralized config
+const VALID_ROLES = config.VALID_ROLES;
+const MAX_TOKEN_LIMIT = config.TOKEN_LIMITS.MAX;
 
 // =============================================================================
 // USER MANAGEMENT
@@ -111,7 +111,7 @@ router.get('/api/admin/users', requireAdmin, (req, res) => {
 
     res.json({ users });
   } catch (err) {
-    console.error('Admin list users error:', err.message);
+    logger.error('Admin list users error', { error: err.message });
     res.status(500).json({ error: 'Failed to load users' });
   }
 });
@@ -234,7 +234,7 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Admin update user error:', err.message);
+    logger.error('Admin update user error', { error: err.message });
     res.status(500).json({ error: 'Failed to update user' });
   }
 });
@@ -266,7 +266,7 @@ router.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
     database.users.delete(targetId);
     res.json({ success: true });
   } catch (err) {
-    console.error('Admin delete user error:', err.message);
+    logger.error('Admin delete user error', { error: err.message });
     res.status(500).json({ error: 'Failed to delete user' });
   }
 });
@@ -302,7 +302,7 @@ router.get('/api/admin/invite-codes', requireAdmin, (req, res) => {
 
     res.json({ codes });
   } catch (err) {
-    console.error('Admin list invite codes error:', err.message);
+    logger.error('Admin list invite codes error', { error: err.message });
     res.status(500).json({ error: 'Failed to load invite codes' });
   }
 });
@@ -329,7 +329,7 @@ router.post('/api/admin/invite-codes', requireAdmin, (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Admin create invite code error:', err.message);
+    logger.error('Admin create invite code error', { error: err.message });
     res.status(500).json({ error: 'Failed to generate invite code' });
   }
 });
@@ -356,7 +356,7 @@ router.delete('/api/admin/invite-codes/:id', requireAdmin, (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Admin delete invite code error:', err.message);
+    logger.error('Admin delete invite code error', { error: err.message });
     res.status(500).json({ error: 'Failed to delete invite code' });
   }
 });
@@ -389,7 +389,7 @@ router.get('/api/admin/role-defaults', requireAdmin, (req, res) => {
 
     res.json({ roleDefaults });
   } catch (err) {
-    console.error('Admin list role defaults error:', err.message);
+    logger.error('Admin list role defaults error', { error: err.message });
     res.status(500).json({ error: 'Failed to load role defaults' });
   }
 });
@@ -477,7 +477,7 @@ router.put('/api/admin/role-defaults/:role', requireAdmin, (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Admin update role defaults error:', err.message);
+    logger.error('Admin update role defaults error', { error: err.message });
     res.status(500).json({ error: 'Failed to update role defaults' });
   }
 });
