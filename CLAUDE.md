@@ -6,15 +6,26 @@
 
 ## VPS PATH WARNINGS - READ FIRST
 
-| Path | Status | Notes |
-|------|--------|-------|
-| `/docker/book-editor` | **CORRECT** | Use this for all VPS operations |
-| `/docker/book-editor-app` | **DOES NOT EXIST** | Wrong path - never use |
-| `~/book-editor` | **DOES NOT EXIST** | Wrong path - never use |
-| `/root/book-editor-backend` | **LEGACY** | Old deployment - do not use |
-| `/root/book-editor-backend-OLD` | **LEGACY** | Old backup - do not use |
+**BEFORE DEPLOYING: Always verify the actual deployment location first!**
 
-**If you get "No such file or directory", you are using the wrong path.**
+```bash
+# Find where docker-compose is actually running from:
+docker ps --format '{{.Names}}' | head -1 | xargs -I {} docker inspect {} --format '{{.Config.Labels}}'
+
+# Or check what's in each directory:
+ls -la /root/book-editor-backend/
+ls -la /docker/book-editor/
+```
+
+| Path | Status (as of 2026-02-06) | Notes |
+|------|---------------------------|-------|
+| `/root/book-editor-backend` | **LIKELY CURRENT** | Check if deploy.sh exists here |
+| `/docker/book-editor` | **EXISTS BUT EMPTY** | Directory exists, no repo cloned |
+| `/docker/book-editor-app` | **DOES NOT EXIST** | Never existed |
+| `~/book-editor` | **DOES NOT EXIST** | Never existed |
+| `/root/book-editor-backend-OLD` | **BACKUP** | Old backup copy |
+
+**CRITICAL: Do not trust this file blindly. VERIFY paths on VPS before running commands.**
 
 ---
 
@@ -23,7 +34,9 @@
 | Environment | Location | Purpose |
 |-------------|----------|---------|
 | **Local Dev** | `/home/user/book-editor` | Development, testing, code changes |
-| **VPS Production** | `/docker/book-editor` | Live site at reachhouse.cloud |
+| **VPS Production** | `/root/book-editor-backend` | Live site at reachhouse.cloud |
+
+**Note:** `/docker/book-editor` exists but is EMPTY (no git repo). The actual deployment is in `/root/book-editor-backend`.
 
 ---
 
@@ -32,13 +45,13 @@
 ### To Update Live Site (after pushing to main):
 
 ```bash
-cd /docker/book-editor && ./deploy.sh
+cd /root/book-editor-backend && ./deploy.sh
 ```
 
 ### Quick Update (alternative):
 
 ```bash
-cd /docker/book-editor && ./update.sh
+cd /root/book-editor-backend && ./update.sh
 ```
 
 ---
@@ -188,7 +201,7 @@ cd frontend && npm run dev  # Start frontend dev server
 
 ### VPS Production:
 ```bash
-cd /docker/book-editor
+cd /root/book-editor-backend
 ./deploy.sh                 # Full deployment with health check
 ./update.sh                 # Quick update
 docker compose logs -f      # View logs
@@ -203,29 +216,30 @@ docker compose down         # Stop containers
 2. Run `npm test` to verify
 3. Commit and push to branch
 4. Merge to main via PR
-5. SSH to VPS: `cd /docker/book-editor && ./deploy.sh`
+5. SSH to VPS: `cd /root/book-editor-backend && ./deploy.sh`
 
 ---
 
 ## VPS Directory Structure (Hostinger)
 
 ```
-/root/                           # User home
-├── book-editor-backend/         # LEGACY - do not use
-├── book-editor-backend-OLD/     # LEGACY - do not use
+/root/                           # User home (root user)
+├── book-editor-backend/         # CURRENT PRODUCTION DEPLOYMENT
+│   ├── .git/
+│   ├── .env                     # Secrets (auto-generated)
+│   ├── deploy.sh
+│   ├── docker-compose.yml
+│   └── ... (cloned repo)
+├── book-editor-backend-OLD/     # Backup copy
 └── package-lock.json
 
 /docker/
-└── book-editor/                 # CURRENT PRODUCTION DEPLOYMENT
-    ├── .git/
-    ├── .env                     # Secrets (auto-generated)
-    ├── deploy.sh
-    ├── docker-compose.yml
-    └── ... (cloned repo)
+└── book-editor/                 # EMPTY DIRECTORY - not used
+    └── (nothing - no .git, no files)
 
 /var/lib/docker/volumes/
-├── book-editor-app_book-editor-data/    # Docker volume (active)
-└── book-editor-backend_book-editor-data/ # Docker volume (legacy)
+├── book-editor-app_book-editor-data/    # Docker volume
+└── book-editor-backend_book-editor-data/ # Docker volume
 ```
 
 ---
@@ -255,10 +269,11 @@ docker compose down         # Stop containers
 
 ## Common Mistakes to Avoid
 
-1. **Wrong VPS path**: Always use `/docker/book-editor`, never `/docker/book-editor-app`
-2. **Confusing local/VPS paths**: Local is `/home/user/book-editor`, VPS is `/docker/book-editor`
-3. **Legacy directories**: Don't use `/root/book-editor-backend` - that's old
-4. **Missing docxService.js**: This file does NOT exist - docx handling uses mammoth library
+1. **Wrong VPS path**: Use `/root/book-editor-backend`, NOT `/docker/book-editor` (which is empty)
+2. **Confusing local/VPS paths**: Local is `/home/user/book-editor`, VPS is `/root/book-editor-backend`
+3. **Empty directory trap**: `/docker/book-editor` EXISTS but is EMPTY - don't use it
+4. **Non-existent paths**: `/docker/book-editor-app` and `~/book-editor` do NOT exist
+5. **Missing docxService.js**: This file does NOT exist - docx handling uses mammoth library
 
 ---
 
