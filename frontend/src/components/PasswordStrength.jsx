@@ -21,7 +21,7 @@ function PasswordStrength({ password }) {
 
   const metCount = requirements.filter(r => r.met).length;
   const strengthPercent = (metCount / requirements.length) * 100;
-  const strengthColor = metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-amber-500' : metCount <= 3 ? 'bg-blue-500' : 'bg-green-500';
+  const strengthColor = metCount <= 1 ? 'bg-rose-500' : metCount <= 2 ? 'bg-amber-500' : metCount <= 3 ? 'bg-teal-500' : 'bg-brand-500';
   const strengthLabel = metCount <= 1 ? 'Weak' : metCount <= 2 ? 'Fair' : metCount <= 3 ? 'Good' : 'Strong';
 
   return (
@@ -46,11 +46,11 @@ function PasswordStrength({ password }) {
         {requirements.map((req, i) => (
           <div key={i} className="flex items-center gap-1.5">
             {req.met ? (
-              <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" aria-hidden="true" />
+              <CheckCircle className="w-3 h-3 text-brand-400 flex-shrink-0" aria-hidden="true" />
             ) : (
               <X className="w-3 h-3 text-surface-600 flex-shrink-0" aria-hidden="true" />
             )}
-            <span className={`text-xs ${req.met ? 'text-green-400' : 'text-surface-500'}`}>
+            <span className={`text-xs ${req.met ? 'text-brand-400' : 'text-surface-500'}`}>
               {req.label}
             </span>
           </div>

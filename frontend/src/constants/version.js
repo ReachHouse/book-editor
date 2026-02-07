@@ -9,7 +9,7 @@
  * Full version history lives in CHANGELOG.md.
  */
 
-export const VERSION = '1.57.0';
-export const VERSION_TAG = 'Refactor';
+export const VERSION = '1.58.0';
+export const VERSION_TAG = 'UI';
 export const VERSION_DATE = '2026-02-07';
 export const VERSION_DISPLAY = `v${VERSION} [${VERSION_TAG}]`;

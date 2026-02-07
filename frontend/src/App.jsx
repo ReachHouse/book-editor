@@ -592,7 +592,7 @@ function App() {
         {/* Top ambient glow - green tinted */}
         <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full opacity-[0.035] ambient-glow-green" />
         {/* Bottom ambient warmth */}
-        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02] ambient-glow-blue" />
+        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02] ambient-glow-teal" />
         {/* Subtle noise texture */}
         <div className="absolute inset-0 opacity-[0.015] noise-texture" />
       </div>

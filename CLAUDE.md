@@ -137,7 +137,7 @@ SQLite with 8 migrations in `database/migrations/` (001-008). Migrations run aut
 
 ## Role System
 
-Three roles: **admin** (green badge, unlimited tokens), **user** (amber badge, 500K daily / 10M monthly default), **guest** (gray badge, restricted). Token limit values: `-1` = unlimited, `0` = restricted, `> 0` = specific limit. Role defaults are configurable in Admin Dashboard. Admins cannot change their own role. Middleware reads role from DB (not JWT) for immediate effect. Frontend constants: `USER_ROLES` and `TOKEN_LIMITS` in `frontend/src/constants/index.js`.
+Three roles: **admin** (mauve badge, unlimited tokens), **user** (teal badge, 500K daily / 10M monthly default), **guest** (slate badge, restricted). Token limit values: `-1` = unlimited, `0` = restricted, `> 0` = specific limit. Role defaults are configurable in Admin Dashboard. Admins cannot change their own role. Middleware reads role from DB (not JWT) for immediate effect. Frontend constants: `USER_ROLES` and `TOKEN_LIMITS` in `frontend/src/constants/index.js`.
 
 ---
 
@@ -155,6 +155,8 @@ Three roles: **admin** (green badge, unlimited tokens), **user** (amber badge, 5
 | Duplicating deployment docs | VPS details, Docker config, and maintenance commands live in `docs/DEPLOYMENT.md`. Do not duplicate here. |
 | Vite build output path | `npm run build` outputs to `frontend/dist/`. Dockerfile copies this to `public/`. Express serves static files from `public/`. |
 | Mixing environments | Local dev: `/home/user/book-editor` (ports 3001/5173). VPS production: `/root/book-editor-backend` (port 3002 -> 3001). |
+| Using old CSS class names | `info-box-blue` was renamed to `info-box-teal`, `info-box-red` to `info-box-rose`, `ambient-glow-blue` to `ambient-glow-teal` (v1.58.0 palette update). |
+| Using old color utilities | `red-*` classes are now `rose-*`, `blue-*` info/accent classes are now `teal-*`, `green-*` success classes are now `brand-*`. Tailwind config defines 6 custom scales: `brand`, `surface`, `teal`, `amber`, `rose`, `mauve`. |
 
 ---
 

@@ -56,19 +56,19 @@ export function getLimitStatusTag(user) {
   if (isUserUnlimited(user)) {
     return {
       label: 'Unlimited',
-      className: 'bg-amber-500/20 text-amber-400'
+      className: 'bg-amber-500/15 text-amber-200'
     };
   }
   if (isUserRestricted(user)) {
     return {
       label: 'Restricted',
-      className: 'bg-red-500/20 text-red-400'
+      className: 'bg-rose-500/15 text-rose-200'
     };
   }
   // Limited (specific limits > 0)
   return {
     label: 'Limited',
-    className: 'bg-blue-500/20 text-blue-400'
+    className: 'bg-teal-500/15 text-teal-200'
   };
 }
 
@@ -77,8 +77,8 @@ export function getLimitStatusTag(user) {
  * Any negative value is treated as unlimited.
  */
 export function getLimitColorClass(limit) {
-  if (limit < 0) return 'text-amber-400 font-medium';
-  if (limit === 0) return 'text-red-400 font-medium';
+  if (limit < 0) return 'text-amber-200 font-medium';
+  if (limit === 0) return 'text-rose-200 font-medium';
   return '';
 }
 

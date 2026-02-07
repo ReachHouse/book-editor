@@ -137,7 +137,7 @@ function UsersTab() {
   return (
     <div>
       {error && (
-        <div role="alert" className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+        <div role="alert" className="mb-4 p-3 rounded-lg bg-rose-500/15 border border-rose-500/20 text-rose-200 text-sm flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           {error}
         </div>
@@ -178,7 +178,7 @@ function UsersTab() {
                   })()}
                   {/* Inactive badge */}
                   {!user.isActive && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-200 font-medium">
                       Inactive
                     </span>
                   )}
@@ -223,8 +223,8 @@ function UsersTab() {
                   onClick={() => handleToggleActive(user)}
                   className={`p-1.5 rounded transition-colors ${
                     user.isActive
-                      ? 'text-surface-500 hover:text-amber-400 hover:bg-surface-800/50'
-                      : 'text-amber-400 hover:text-green-400 hover:bg-surface-800/50'
+                      ? 'text-surface-500 hover:text-amber-200 hover:bg-surface-800/50'
+                      : 'text-amber-200 hover:text-brand-400 hover:bg-surface-800/50'
                   }`}
                   title={user.isActive ? 'Deactivate' : 'Reactivate'}
                   aria-label={user.isActive ? `Deactivate ${user.username}` : `Reactivate ${user.username}`}
@@ -235,8 +235,8 @@ function UsersTab() {
                   onClick={() => handleToggleUnlimited(user)}
                   className={`p-1.5 rounded transition-colors ${
                     isUserUnlimited(user)
-                      ? 'text-amber-400 hover:text-surface-400 hover:bg-surface-800/50'
-                      : 'text-surface-500 hover:text-amber-400 hover:bg-surface-800/50'
+                      ? 'text-amber-200 hover:text-surface-400 hover:bg-surface-800/50'
+                      : 'text-surface-500 hover:text-amber-200 hover:bg-surface-800/50'
                   }`}
                   title={isUserUnlimited(user) ? 'Remove unlimited' : 'Set unlimited'}
                   aria-label={isUserUnlimited(user) ? `Remove unlimited from ${user.username}` : `Set ${user.username} to unlimited`}
@@ -259,7 +259,7 @@ function UsersTab() {
                 </button>
                 <button
                   onClick={() => setConfirmDelete(user.id)}
-                  className="p-1.5 rounded text-surface-500 hover:text-red-400 hover:bg-surface-800/50 transition-colors"
+                  className="p-1.5 rounded text-surface-500 hover:text-rose-200 hover:bg-surface-800/50 transition-colors"
                   title="Delete user"
                   aria-label={`Delete ${user.username}`}
                 >
@@ -280,14 +280,14 @@ function UsersTab() {
 
             {/* Delete Confirmation */}
             {confirmDelete === user.id && (
-              <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                <p className="text-sm text-red-400 mb-2">
+              <div className="mt-3 p-3 rounded-lg bg-rose-500/15 border border-rose-500/20">
+                <p className="text-sm text-rose-200 mb-2">
                   Delete <strong>{user.username}</strong>? This removes all their projects and data.
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleDelete(user.id)}
-                    className="text-xs px-3 py-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                    className="text-xs px-3 py-1.5 rounded bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 transition-colors"
                   >
                     Delete
                   </button>
