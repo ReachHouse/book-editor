@@ -5,6 +5,14 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import DocumentAnalysis from '../DocumentAnalysis';
 
+// Mock the AuthContext
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    isGuest: false,
+    logout: jest.fn()
+  })
+}));
+
 describe('DocumentAnalysis', () => {
   const mockAnalysis = {
     fileName: 'test-document.docx',

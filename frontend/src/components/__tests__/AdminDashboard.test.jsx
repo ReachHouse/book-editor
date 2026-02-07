@@ -5,6 +5,13 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import AdminDashboard from '../AdminDashboard';
 
+// Mock the AuthContext
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { userId: 999 }
+  })
+}));
+
 // Mock the API module
 const mockAdminListUsers = jest.fn();
 const mockAdminUpdateUser = jest.fn();
@@ -143,7 +150,7 @@ describe('AdminDashboard', () => {
       render(<AdminDashboard onClose={jest.fn()} />);
     });
 
-    const codesTab = screen.getByRole('button', { name: /Invite Codes/i });
+    const codesTab = screen.getByRole('tab', { name: /Invite Codes/i });
     fireEvent.click(codesTab);
 
     await waitFor(() => {
@@ -159,7 +166,7 @@ describe('AdminDashboard', () => {
       render(<AdminDashboard onClose={jest.fn()} />);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Invite Codes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Invite Codes/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Available')).toBeInTheDocument();
@@ -180,7 +187,7 @@ describe('AdminDashboard', () => {
       render(<AdminDashboard onClose={jest.fn()} />);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Invite Codes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Invite Codes/i }));
 
     await waitFor(() => {
       expect(screen.getByText('1 available, 1 used')).toBeInTheDocument();
@@ -238,7 +245,7 @@ describe('AdminDashboard', () => {
       render(<AdminDashboard onClose={jest.fn()} />);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Invite Codes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Invite Codes/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Generate Code')).toBeInTheDocument();
@@ -319,8 +326,8 @@ describe('AdminDashboard', () => {
       render(<AdminDashboard onClose={jest.fn()} />);
     });
 
-    // Each user card should have a role badge
-    const roleBadges = screen.getAllByText(/^(admin|user)$/);
+    // Each user card should have a role badge (labels are capitalized)
+    const roleBadges = screen.getAllByText(/^(Admin|User)$/);
     // At least 2 badges (one per mock user) - may have more depending on UI
     expect(roleBadges.length).toBeGreaterThanOrEqual(2);
   });

@@ -47,7 +47,7 @@ describe('CompletionView', () => {
       />
     );
 
-    expect(screen.getByText(/Track Changes/)).toBeInTheDocument();
+    expect(screen.getByText(/Word Document:/)).toBeInTheDocument();
   });
 
   test('renders download button with correct text when not downloading', () => {

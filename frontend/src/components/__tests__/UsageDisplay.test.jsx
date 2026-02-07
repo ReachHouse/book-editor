@@ -5,6 +5,14 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import UsageDisplay from '../UsageDisplay';
 
+// Mock the AuthContext
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    isGuest: false,
+    logout: jest.fn()
+  })
+}));
+
 // Mock the API module
 const mockGetUsage = jest.fn();
 jest.mock('../../services/api', () => ({

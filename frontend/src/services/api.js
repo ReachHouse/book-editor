@@ -167,7 +167,7 @@ export async function editChunk(text, styleGuide, isFirst, logFn, retryCount = 0
       method: 'POST',
       headers,
       body: JSON.stringify({ text, styleGuide, isFirst, customStyleGuide })
-    });
+    }, API_TIMEOUTS.EDIT);
 
     // Handle HTTP errors
     if (!response.ok) {
