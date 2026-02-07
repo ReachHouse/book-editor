@@ -71,7 +71,7 @@ module.exports = {
   SESSION_CLEANUP_INTERVAL_MS: 60 * 60 * 1000, // 1 hour
 
   // Valid roles
-  VALID_ROLES: ['admin', 'user', 'guest'],
+  VALID_ROLES: ['admin', 'user'],
 
   // Slow query threshold
   SLOW_QUERY_MS: 100

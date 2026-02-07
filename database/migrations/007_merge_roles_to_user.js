@@ -3,16 +3,18 @@
  * MIGRATION 007: Merge 'management' and 'editor' roles into 'user'
  * =============================================================================
  *
- * Simplifies the role system from 4 roles to 3 roles:
+ * Simplifies the role system from 4 roles to 2 roles:
  * - admin: Full access, unlimited tokens
- * - user: Standard access (replaces management and editor)
- * - guest: Restricted access, 0 tokens
+ * - user: Standard access (replaces management, editor, and guest)
+ *
+ * NOTE: 'guest' is not a database role — it is a frontend-only browsing mode
+ * for unauthenticated users who skip registration (see GUEST_USER in frontend).
  *
  * CHANGES:
- * - Updates role CHECK constraint in users table: ('admin', 'user', 'guest')
- * - Migrates all users with role='management' or role='editor' to role='user'
+ * - Updates role CHECK constraint in users table: ('admin', 'user')
+ * - Migrates all users with role='management', 'editor', or 'guest' to role='user'
  * - Updates role CHECK constraint in role_defaults table
- * - Removes 'management' and 'editor' rows from role_defaults
+ * - Removes 'management', 'editor', and 'guest' rows from role_defaults
  * - Keeps 'user' role defaults (500K daily, 10M monthly)
  *
  * NOTE: SQLite doesn't support ALTER TABLE for CHECK constraints, so we must
@@ -51,7 +53,7 @@ function up(db) {
       email           TEXT    NOT NULL UNIQUE COLLATE NOCASE,
       password_hash   TEXT    NOT NULL,
       role            TEXT    NOT NULL DEFAULT 'user'
-                      CHECK(role IN ('admin', 'user', 'guest')),
+                      CHECK(role IN ('admin', 'user')),
       is_active       INTEGER NOT NULL DEFAULT 1,
       daily_token_limit   INTEGER NOT NULL DEFAULT 500000,
       monthly_token_limit INTEGER NOT NULL DEFAULT 10000000,
@@ -79,6 +81,7 @@ function up(db) {
       CASE
         WHEN role = 'management' THEN 'user'
         WHEN role = 'editor' THEN 'user'
+        WHEN role = 'guest' THEN 'user'
         ELSE role
       END,
       is_active,
@@ -108,7 +111,7 @@ function up(db) {
     -- =========================================================================
     CREATE TABLE role_defaults_new (
       role                TEXT    PRIMARY KEY
-                          CHECK(role IN ('admin', 'user', 'guest')),
+                          CHECK(role IN ('admin', 'user')),
       daily_token_limit   INTEGER NOT NULL,
       monthly_token_limit INTEGER NOT NULL,
       color               TEXT    NOT NULL,
@@ -117,7 +120,7 @@ function up(db) {
     );
 
     -- =========================================================================
-    -- Step 6: Copy role_defaults data (only admin, user, guest)
+    -- Step 6: Copy role_defaults data (only admin and user)
     -- Use editor's settings for the new 'user' role
     -- =========================================================================
     INSERT INTO role_defaults_new (role, daily_token_limit, monthly_token_limit, color, display_order, updated_at)
@@ -133,12 +136,6 @@ function up(db) {
            'amber',
            2,
            datetime('now');
-
-    -- Insert guest role
-    INSERT INTO role_defaults_new (role, daily_token_limit, monthly_token_limit, color, display_order, updated_at)
-    SELECT role, daily_token_limit, monthly_token_limit, color, 3, updated_at
-    FROM role_defaults
-    WHERE role = 'guest';
 
     -- =========================================================================
     -- Step 7: Drop old table and rename new one

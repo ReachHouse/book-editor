@@ -135,7 +135,9 @@ export const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
  * ROLES:
  * - admin: Full access, unlimited tokens by default (mauve badge)
  * - user:  Standard access, 500K daily / 10M monthly default (teal badge)
- * - guest: Guest access, 0 tokens by default (slate badge)
+ *
+ * NOTE: 'Guest' is a frontend-only browsing mode for unauthenticated users,
+ * not a database role. See GUEST_USER below for the guest mode object.
  *
  * Each role has:
  * - label: Display name (Title Case for consistency)
@@ -152,11 +154,6 @@ export const USER_ROLES = {
     label: 'User',
     badgeClass: 'bg-teal-500/15 text-teal-200',
     color: 'teal'
-  },
-  guest: {
-    label: 'Guest',
-    badgeClass: 'bg-surface-600/15 text-surface-400',
-    color: 'slate'
   }
 };
 
