@@ -44,4 +44,4 @@ frontend/dist
 .eslintrc*
 .prettierrc*
 jest.config.js
-babel.config.js
+babel.config.cjs

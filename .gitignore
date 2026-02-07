@@ -9,7 +9,7 @@ frontend/dist/
 public/assets/
 public/index.html
 
-# Lock files (optional, but often excluded in app repos)
+# Lock files (excluded; Docker regenerates during build)
 package-lock.json
 frontend/package-lock.json
 
