@@ -102,23 +102,48 @@ class DatabaseService {
       .filter(f => f.endsWith('.js') && /^\d{3}_/.test(f))
       .sort();
 
-    for (const file of files) {
+    // Filter to only pending migrations
+    const pending = files.filter(file => {
       const version = parseInt(file.split('_')[0], 10);
+      return !applied.has(version);
+    });
 
-      if (applied.has(version)) continue;
+    if (pending.length === 0) return;
 
-      const migration = require(path.join(MIGRATIONS_DIR, file));
+    // Disable foreign keys for the duration of migrations.
+    // SQLite requires this for DROP TABLE + RENAME migrations when other
+    // tables have foreign key references to the table being recreated.
+    // See: https://www.sqlite.org/lang_altertable.html#otheralter
+    // PRAGMA foreign_keys cannot be changed inside a transaction.
+    this.db.pragma('foreign_keys = OFF');
 
-      // Run migration inside a transaction for atomicity
-      const runMigration = this.db.transaction(() => {
-        migration.up(this.db);
-        this.db.prepare(
-          'INSERT INTO schema_version (version, name) VALUES (?, ?)'
-        ).run(version, file);
-      });
+    try {
+      for (const file of pending) {
+        const version = parseInt(file.split('_')[0], 10);
+        const migration = require(path.join(MIGRATIONS_DIR, file));
 
-      runMigration();
-      console.log(`  Migration ${file} applied`);
+        // Run migration inside a transaction for atomicity
+        const runMigration = this.db.transaction(() => {
+          migration.up(this.db);
+          this.db.prepare(
+            'INSERT INTO schema_version (version, name) VALUES (?, ?)'
+          ).run(version, file);
+        });
+
+        runMigration();
+        console.log(`  Migration ${file} applied`);
+      }
+
+      // Verify foreign key integrity after all migrations complete
+      const fkErrors = this.db.pragma('foreign_key_check');
+      if (fkErrors.length > 0) {
+        throw new Error(
+          `Foreign key integrity check failed after migrations: ${fkErrors.length} violation(s)`
+        );
+      }
+    } finally {
+      // Re-enable foreign keys regardless of success or failure
+      this.db.pragma('foreign_keys = ON');
     }
   }
 
@@ -709,7 +734,7 @@ class DatabaseService {
     return {
       /**
        * Get defaults for a specific role.
-       * @param {string} role - 'admin', 'user', or 'guest'
+       * @param {string} role - 'admin' or 'user'
        * @returns {Object|undefined}
        */
       get(role) {

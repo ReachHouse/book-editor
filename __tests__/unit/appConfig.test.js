@@ -53,8 +53,8 @@ describe('Application Configuration', () => {
   test('exports valid roles', () => {
     expect(config.VALID_ROLES).toContain('admin');
     expect(config.VALID_ROLES).toContain('user');
-    expect(config.VALID_ROLES).toContain('guest');
-    expect(config.VALID_ROLES).toHaveLength(3);
+    expect(config.VALID_ROLES).not.toContain('guest');
+    expect(config.VALID_ROLES).toHaveLength(2);
   });
 
   test('exports slow query threshold', () => {

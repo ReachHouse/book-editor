@@ -137,7 +137,7 @@ SQLite with 8 migrations in `database/migrations/` (001-008). Migrations run aut
 
 ## Role System
 
-Three roles: **admin** (mauve badge, unlimited tokens), **user** (teal badge, 500K daily / 10M monthly default), **guest** (slate badge, restricted). Token limit values: `-1` = unlimited, `0` = restricted, `> 0` = specific limit. Role defaults are configurable in Admin Dashboard. Admins cannot change their own role. Middleware reads role from DB (not JWT) for immediate effect. Frontend constants: `USER_ROLES` and `TOKEN_LIMITS` in `frontend/src/constants/index.js`.
+Two roles: **admin** (mauve badge, unlimited tokens) and **user** (teal badge, 500K daily / 10M monthly default). Token limit values: `-1` = unlimited, `0` = restricted, `> 0` = specific limit. Role defaults are configurable in Admin Dashboard. Admins cannot change their own role. Middleware reads role from DB (not JWT) for immediate effect. Frontend has a separate **guest browsing mode** (not a database role) that lets unauthenticated users preview the app without an account — see `GUEST_USER` in `frontend/src/constants/index.js` and `enterGuestMode()` in `AuthContext.jsx`. Frontend constants: `USER_ROLES` and `TOKEN_LIMITS` in `frontend/src/constants/index.js`.
 
 ---
 
@@ -157,6 +157,8 @@ Three roles: **admin** (mauve badge, unlimited tokens), **user** (teal badge, 50
 | Mixing environments | Local dev: `/home/user/book-editor` (ports 3001/5173). VPS production: `/root/book-editor-backend` (port 3002 -> 3001). |
 | Using old CSS class names | `info-box-blue` was renamed to `info-box-teal`, `info-box-red` to `info-box-rose`, `ambient-glow-blue` to `ambient-glow-teal` (v1.58.0 palette update). |
 | Using old color utilities | `red-*` classes are now `rose-*`, `blue-*` info/accent classes are now `teal-*`, `green-*` success classes are now `brand-*`. Tailwind config defines 6 custom scales: `brand`, `surface`, `teal`, `amber`, `rose`, `mauve`. |
+| Treating guest as a DB role | `guest` is a **frontend-only browsing mode**, not a database role. Only `admin` and `user` exist in the DB. See `GUEST_USER` in `frontend/src/constants/index.js`. |
+| Skipping FK disable in migrations | The migration runner disables `PRAGMA foreign_keys` during migrations and verifies integrity after. Do NOT set `foreign_keys = ON` inside individual migrations — it's handled by `_runMigrations()` in `database.js`. |
 
 ---
 
