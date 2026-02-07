@@ -72,7 +72,7 @@ curl http://localhost:3002/health     # Verify health
 └── book-editor-backend/       # *** MAIN APPLICATION - see below ***
 ```
 
-### /root/book-editor-backend/ (Application Root) - 107 Files
+### /root/book-editor-backend/ (Application Root) - 105 Files
 
 ```
 /root/book-editor-backend/
@@ -85,7 +85,6 @@ curl http://localhost:3002/health     # Verify health
 ├── CLAUDE.md                  # THIS DOCUMENTATION FILE
 ├── Dockerfile                 # Multi-stage Docker build (Node 18-alpine)
 ├── README.md                  # Project overview and quick start guide
-├── ROADMAP_v1.38-v1.40.md     # Historical feature roadmap (archived)
 │
 ├── __tests__/                 # Jest test suites
 │   ├── integration/           # API integration tests
@@ -233,11 +232,9 @@ curl http://localhost:3002/health     # Verify health
 │       ├── index.js           # Rule module exports
 │       ├── punctuation.js     # Oxford comma, spacing
 │       └── spelling.js        # UK vs US spelling (realise vs realize)
-│
-└── update.sh                  # Quick update script (git pull + rebuild)
 ```
 
-**Total: 107 source files** (excluding node_modules, .git, dist)
+**Total: 105 source files** (excluding node_modules, .git, dist)
 
 ---
 
@@ -463,7 +460,6 @@ cd frontend && npm run build      # Build for production
 ```bash
 cd /root/book-editor-backend
 ./deploy.sh                       # Full deployment with health check
-./update.sh                       # Quick update (git pull + rebuild)
 docker compose logs -f            # View live logs
 docker compose down               # Stop containers
 docker compose up -d              # Start containers
@@ -550,4 +546,4 @@ This documentation enables future Claude sessions to understand the project with
 
 *Last updated: 2026-02-07*
 *VPS: srv1321944 (72.62.133.62)*
-*Total source files: 107*
+*Total source files: 105*

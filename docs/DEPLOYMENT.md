@@ -88,8 +88,8 @@ curl http://localhost:3002/health
 ## Updating
 
 ```bash
-# Quick update (git pull + rebuild)
-./update.sh
+# Update (pulls latest code, rebuilds, and deploys)
+./deploy.sh
 
 # Or manually:
 git pull origin main
@@ -131,7 +131,7 @@ docker compose up -d
 curl http://localhost:3002/health
 ```
 
-Response includes: status, timestamp, version, database connectivity.
+Response includes: status, message, apiKeyConfigured, databaseHealthy.
 
 ### Logs
 
