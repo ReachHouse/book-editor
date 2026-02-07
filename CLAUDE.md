@@ -1,6 +1,6 @@
 # Claude Code Reference - Book Editor
 
-**CRITICAL: Read this file before making any deployment or structural changes.**
+**CRITICAL: Read this file in full before making any changes to the codebase.**
 
 This documentation provides a complete file system map for both local development and VPS production environments, enabling future Claude sessions to understand the full project context without searching.
 
@@ -9,8 +9,8 @@ This documentation provides a complete file system map for both local developmen
 ## Rules
 
 - After completing a task that involves tool use, provide a quick summary of the work you've done.
-- Use parallel tool calls: If you intend to call multiple tools and there are no dependencies between the tool calls, make all of the independent tool calls in parallel. Prioritize calling tools simultaneously whenever the actions can be done in parallel rather than sequentially. For example, when reading 3 files, run 3 tool calls in parallel to read all 3 files into context at the same time. Maximize use of parallel tool calls where possible to increase speed and efficiency. However, if some tool calls depend on previous calls to inform dependent values like the parameters, do not call these tools in parallel and instead call them sequentially. Never use placeholders or guess missing parameters in tool calls.
-- Reduce hallucinations: Never speculate about code you have not opened. If the user references a specific file, you MUST read the file before answering. Make sure to investigate and read relevant files BEFORE answering questions about the codebase. Never make any claims about code before investigating unless you are certain of the correct answer - give grounded and hallucination-free answers.
+- Use parallel tool calls: When calling multiple tools with no dependencies between them, make all calls in parallel (e.g., read 3 files simultaneously instead of sequentially). If a call depends on a previous call's result, run them sequentially instead. Never use placeholders or guess missing parameters.
+- Reduce hallucinations: Never speculate about code you have not opened. If the user references a specific file, you MUST read it before answering. Always investigate and read relevant files BEFORE making claims about the codebase.
 - Keep CLAUDE.md accurate: Before pushing any change set to GitHub, review CLAUDE.md and update it to reflect your changes—add new files, update API endpoints, correct outdated information, and remove anything that is no longer true. This file is the single source of truth for future sessions; stale documentation causes mistakes.
 - Compress working context: Once you've read and understood CLAUDE.md and the codebase, proactively compress and compact your working context as you go so you maintain continuity and avoid forgetting details, making repeat mistakes, or complaining about prompt/token length/limits. Summarize what you've learned, discard redundant detail, and keep a tight mental model of the project.
 
@@ -115,7 +115,7 @@ curl http://localhost:3002/health     # Verify health
 │   └── migrations/            # SQLite schema migrations (run on startup)
 │       ├── 001_initial_schema.js    # users, sessions, invite_codes, usage_logs
 │       ├── 002_projects.js          # projects table for save/resume
-│       ├── 003_custom_style_guide.js # custom_style_guide column per user
+│       ├── 003_custom_style_guide.js # custom_style_guide column on projects table
 │       ├── 004_roles_and_limits.js  # role system (legacy: admin/management/editor/guest)
 │       ├── 005_role_defaults.js     # role_defaults table for configurable limits
 │       ├── 006_rename_restricted_to_guest.js  # rename 'restricted' role to 'guest'
@@ -188,7 +188,7 @@ curl http://localhost:3002/health     # Verify health
 │   └── vite.config.js         # Vite build configuration
 │
 ├── middleware/
-│   └── auth.js                # JWT verification middleware (requireAuth)
+│   └── auth.js                # JWT verification middleware (requireAuth, requireAdmin, optionalAuth)
 │
 ├── package.json               # Backend dependencies (Express, better-sqlite3, etc.)
 ├── public/
@@ -302,7 +302,7 @@ When deployed, the Docker container runs with this structure:
 ### Health Check
 ```bash
 curl http://localhost:3002/health
-# Expected: {"status":"ok","timestamp":"...","version":"..."}
+# Expected: {"status":"ok","message":"Book Editor Backend is running","apiKeyConfigured":true,"databaseHealthy":true}
 ```
 
 ---
@@ -497,8 +497,8 @@ ps aux | grep defunct
 ## Common Mistakes to Avoid
 
 1. **Wrong VPS path**: Production is ONLY at `/root/book-editor-backend`
-2. **Confusing environments**: Local = `/home/user/book-editor`, VPS = `/root/book-editor-backend`
-3. **Non-existent file**: `docxService.js` does NOT exist - DOCX uses `services/document/` module
+2. **Mixing up environments**: Local = `/home/user/book-editor`, VPS = `/root/book-editor-backend`
+3. **Hallucinated file**: `docxService.js` does NOT exist — DOCX generation lives in `services/document/` module
 4. **Duplicate utilities**: Use shared `jwtUtils.js` and `fetchUtils.js`, don't recreate
 5. **Style guide sync**: Frontend `constants/index.js` STYLE_GUIDE must match backend `config/styleGuide.js`
 
