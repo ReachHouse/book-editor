@@ -273,8 +273,10 @@ const authService = {
         const minutesLeft = Math.ceil((lockExpiry - now) / 60000);
         throw new RateLimitError(`Account locked. Try again in ${minutesLeft} minute(s).`);
       }
-      // Lock has expired — clear it
+      // Lock has expired — clear it and reset local state to avoid stale-count re-lock
       database.users.update(user.id, { failed_login_attempts: 0, locked_until: null });
+      user.failed_login_attempts = 0;
+      user.locked_until = null;
     }
 
     // Verify password

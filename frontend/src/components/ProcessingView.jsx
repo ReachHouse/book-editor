@@ -61,8 +61,8 @@ function ProcessingView({ progress, debugLog }) {
                       : 'bg-surface-800/40 border border-surface-700/20'
                   }
                 `}>
-                  {/* Show spinner for Complete step while processing */}
-                  {idx === 2 && !isDone ? (
+                  {/* Show spinner only for the active step */}
+                  {idx === 2 && isActive ? (
                     <Loader className="w-4 h-4 text-brand-400 animate-spin" />
                   ) : (
                     <Icon className={`w-4 h-4 transition-colors duration-500 ${

@@ -59,8 +59,9 @@ router.get('/health', (req, res) => {
     envIssues.push('Database not initialized');
   }
 
-  res.json({
-    status: envIssues.length === 0 ? 'ok' : 'warning',
+  const statusCode = dbHealthy ? 200 : 503;
+  res.status(statusCode).json({
+    status: !dbHealthy ? 'unhealthy' : (envIssues.length === 0 ? 'ok' : 'warning'),
     message: 'Book Editor Backend is running',
     apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,
     databaseHealthy: dbHealthy,

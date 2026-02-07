@@ -2,6 +2,7 @@
 
 const { STYLE_RULES } = require('../styleRules');
 const { countWords } = require('./utils');
+const logger = require('../logger');
 
 // Grammar patterns for generic categorization (module-level for performance)
 const GRAMMAR_PATTERNS = [
@@ -55,6 +56,7 @@ function categorizeChange(original, edited) {
       }
     } catch (error) {
       // Skip rule if detection fails
+      logger.error('Style rule detection error in categorization', { error: error.message });
     }
   }
 
@@ -142,14 +144,6 @@ function categorizeChange(original, edited) {
       ruleId: null
     };
   }
-
-  return {
-    category: "Style refinement",
-    rule: null,
-    explanation: "Style adjusted per house guidelines.",
-    isStyleRule: false,
-    ruleId: null
-  };
 }
 
 module.exports = {

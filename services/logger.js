@@ -29,7 +29,7 @@ function log(level, message, meta) {
 
   if (isProduction) {
     // JSON format for production log aggregation
-    const entry = { level, message, timestamp, ...meta };
+    const entry = { ...meta, level, message, timestamp };
     config.fn(JSON.stringify(entry));
   } else {
     // Human-readable format for development

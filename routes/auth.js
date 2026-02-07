@@ -98,13 +98,18 @@ router.post('/api/auth/refresh', refreshLimiter, (req, res) => {
 
 /** GET /api/auth/me — Get the authenticated user's profile. */
 router.get('/api/auth/me', requireAuth, (req, res) => {
-  const user = authService.getProfile(req.user.userId);
+  try {
+    const user = authService.getProfile(req.user.userId);
 
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ user });
+  } catch (err) {
+    logger.error('Profile fetch error', { error: err.message });
+    res.status(500).json({ error: 'Failed to fetch profile' });
   }
-
-  res.json({ user });
 });
 
 /** POST /api/auth/logout — Invalidate the provided refresh token. */

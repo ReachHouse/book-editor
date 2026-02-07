@@ -22,7 +22,7 @@ function createSummaryComment(stats, timestamp) {
     "AI EDITOR SUMMARY",
     "-------------------------------",
     "",
-    `Edited: ${new Date(timestamp).toLocaleString()}`,
+    `Edited: ${new Date(timestamp).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')}`,
     "",
     "CHANGE STATISTICS:",
     `- Total revisions: ${stats.totalInsertions + stats.totalDeletions}`,

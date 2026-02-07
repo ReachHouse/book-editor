@@ -170,7 +170,7 @@ class DatabaseService {
       },
 
       /**
-       * Find a user by email (case-insensitive).
+       * Find a user by email. Callers must normalize to lowercase before calling.
        * @param {string} email
        * @returns {Object|undefined}
        */
@@ -179,7 +179,7 @@ class DatabaseService {
       },
 
       /**
-       * Find a user by username (case-insensitive).
+       * Find a user by username. Lookup is case-sensitive; registration normalizes input.
        * @param {string} username
        * @returns {Object|undefined}
        */

@@ -402,7 +402,7 @@ describe('Usage limit enforcement', () => {
     const res = await userPost('/api/edit-chunk')
       .send({ text: 'Hello world' });
 
-    // Should NOT be 429 — it will be 500 (no API key) but not rate-limited
+    // Should NOT be 429 — it will be 503 (no API key) but not rate-limited
     expect(res.status).not.toBe(429);
   });
 });

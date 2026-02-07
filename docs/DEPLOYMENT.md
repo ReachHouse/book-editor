@@ -75,8 +75,8 @@ If you prefer not to use `deploy.sh`:
 # 1. Create .env file
 cat > .env << EOF
 ANTHROPIC_API_KEY=sk-ant-your-key
-JWT_SECRET=$(openssl rand -hex 32)
-SETUP_SECRET=$(openssl rand -hex 16)
+JWT_SECRET=$(openssl rand -hex 64)
+SETUP_SECRET=$(openssl rand -hex 32)
 EOF
 
 # 2. Build and start

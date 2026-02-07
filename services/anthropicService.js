@@ -166,10 +166,11 @@ async function makeAnthropicRequest(body) {
   } catch (error) {
     if (error.name === 'AbortError') {
       circuitBreaker.onFailure();
-      throw new Error('API request timed out after 4 minutes');
+      throw new Error(`API request timed out after ${Math.round(API_TIMEOUT_MS / 60000)} minutes`);
     }
-    // Network/system errors trip the breaker (ECONNREFUSED, ENOTFOUND, ETIMEDOUT, etc.)
-    if (error.code || error.type === 'system' || error.cause) {
+    // Network/system errors trip the breaker
+    const networkCodes = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'EAI_AGAIN'];
+    if (networkCodes.includes(error.code) || error.type === 'system') {
       circuitBreaker.onFailure();
     }
     throw error;
