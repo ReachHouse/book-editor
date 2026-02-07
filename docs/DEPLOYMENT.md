@@ -22,10 +22,12 @@ cd book-editor
 ```
 
 The deploy script automatically:
-- Reads `ANTHROPIC_API_KEY` from `~/.bashrc` or environment
+- Loads secrets from `.env` file (creates it on first run)
 - Generates `JWT_SECRET` and `SETUP_SECRET` (first run only)
-- Writes `.env` file
-- Builds the Docker image
+- Requires `ANTHROPIC_API_KEY` in `.env` or environment
+- Pulls latest code from GitHub
+- Tags current image as "previous" for rollback
+- Rebuilds the Docker image
 - Starts the container with health check
 - Displays the setup secret for first-time admin creation
 
