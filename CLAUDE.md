@@ -145,7 +145,14 @@ curl http://localhost:3002/health     # Verify health
 │   │   ├── main.jsx           # React entry point - renders App
 │   │   │
 │   │   ├── components/        # React UI components
-│   │   │   ├── AdminDashboard.jsx   # Admin user management UI
+│   │   │   ├── AdminDashboard.jsx   # Admin dashboard shell (imports admin/ tabs)
+│   │   │   ├── admin/              # Admin sub-components (decomposed from AdminDashboard)
+│   │   │   │   ├── helpers.js           # Shared helpers (formatTokenCount, getLimitStatusTag, etc.)
+│   │   │   │   ├── TokenLimitEditor.jsx # Unified token limit editor (was LimitEditor + RoleDefaultsEditor)
+│   │   │   │   ├── UsersTab.jsx         # User management tab
+│   │   │   │   ├── InviteCodesTab.jsx   # Invite codes tab
+│   │   │   │   ├── RoleDefaultsTab.jsx  # Role defaults config tab
+│   │   │   │   └── index.js             # Barrel exports
 │   │   │   ├── CompletionView.jsx   # Editing complete, download prompt
 │   │   │   ├── DebugLog.jsx         # Development debug panel
 │   │   │   ├── DocumentAnalysis.jsx # Document stats before editing
@@ -234,7 +241,7 @@ curl http://localhost:3002/health     # Verify health
 │       └── spelling.js        # UK vs US spelling (realise vs realize)
 ```
 
-**Total: 105 source files** (excluding node_modules, .git, dist)
+**Total: 111 source files** (excluding node_modules, .git, dist)
 
 ---
 
@@ -519,6 +526,7 @@ This documentation enables future Claude sessions to understand the project with
 
 | Version | Changes |
 |---------|---------|
+| v1.56.0 | Code quality: adopt error classes in authService, centralize default token limits, decompose AdminDashboard (1009→101 lines), deduplicate LimitEditor/RoleDefaultsEditor, fix circuit breaker network detection, Vite code splitting (699KB→73KB main bundle) |
 | v1.55.0 | Hardening pass: fix stale JWT role, token refresh race, Jaccard similarity >1.0, circuit breaker HALF_OPEN, null hash crash, add auth logging, session cleanup on user delete, timing-safe plain password |
 | v1.54.0 | Polish pass: fix editChunk timeout, API 404 handler, CORS 5173, broken frontend tests, dead code removal |
 | v1.53.0 | Code audit: fix X-Response-Time bug, wire centralized config & logger into all files, remove duplicates |
@@ -547,4 +555,4 @@ This documentation enables future Claude sessions to understand the project with
 
 *Last updated: 2026-02-07*
 *VPS: srv1321944 (72.62.133.62)*
-*Total source files: 105*
+*Total source files: 111*

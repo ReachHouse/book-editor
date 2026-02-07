@@ -42,6 +42,7 @@ const crypto = require('crypto');
 const { database } = require('./database');
 const config = require('../config/app');
 const logger = require('./logger');
+const { AppError, ValidationError, AuthError, ConflictError, RateLimitError } = require('./errors');
 
 // =============================================================================
 // CONFIGURATION (from centralized config)
@@ -183,7 +184,7 @@ const authService = {
   async register({ username, email, password, inviteCode }) {
     // Validate inputs
     if (!username || !email || !password || !inviteCode) {
-      throw Object.assign(new Error('All fields are required'), { status: 400 });
+      throw new ValidationError('All fields are required');
     }
 
     // Normalize inputs (trim whitespace, lowercase email)
@@ -192,35 +193,35 @@ const authService = {
     const normalizedInviteCode = inviteCode.trim().toUpperCase();
 
     if (normalizedUsername.length < 3 || normalizedUsername.length > 30) {
-      throw Object.assign(new Error('Username must be 3–30 characters'), { status: 400 });
+      throw new ValidationError('Username must be 3–30 characters');
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(normalizedUsername)) {
-      throw Object.assign(new Error('Username may only contain letters, numbers, hyphens, and underscores'), { status: 400 });
+      throw new ValidationError('Username may only contain letters, numbers, hyphens, and underscores');
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      throw Object.assign(new Error('Invalid email format'), { status: 400 });
+      throw new ValidationError('Invalid email format');
     }
 
     // RFC 5321 specifies max 254 characters for email addresses
     if (normalizedEmail.length > 254) {
-      throw Object.assign(new Error('Email address too long (max 254 characters)'), { status: 400 });
+      throw new ValidationError('Email address too long (max 254 characters)');
     }
 
     if (password.length < 8) {
-      throw Object.assign(new Error('Password must be at least 8 characters'), { status: 400 });
+      throw new ValidationError('Password must be at least 8 characters');
     }
 
     // Require password complexity: uppercase, lowercase, and number
     if (!/[A-Z]/.test(password)) {
-      throw Object.assign(new Error('Password must contain at least one uppercase letter'), { status: 400 });
+      throw new ValidationError('Password must contain at least one uppercase letter');
     }
     if (!/[a-z]/.test(password)) {
-      throw Object.assign(new Error('Password must contain at least one lowercase letter'), { status: 400 });
+      throw new ValidationError('Password must contain at least one lowercase letter');
     }
     if (!/[0-9]/.test(password)) {
-      throw Object.assign(new Error('Password must contain at least one number'), { status: 400 });
+      throw new ValidationError('Password must contain at least one number');
     }
 
     // Hash password before entering the transaction (bcrypt is async)
@@ -231,7 +232,7 @@ const authService = {
     const user = database.transaction(() => {
       // Check invite code validity
       if (!database.inviteCodes.isValid(normalizedInviteCode)) {
-        throw Object.assign(new Error('Invalid or already used invite code'), { status: 400 });
+        throw new ValidationError('Invalid or already used invite code');
       }
 
       // Check for existing users with same email or username
@@ -239,7 +240,7 @@ const authService = {
       const existingEmail = database.users.findByEmail(normalizedEmail);
       const existingUsername = database.users.findByUsername(normalizedUsername);
       if (existingEmail || existingUsername) {
-        throw Object.assign(new Error('An account with this email or username already exists'), { status: 409 });
+        throw new ConflictError('An account with this email or username already exists');
       }
 
       // Get role defaults for 'user' (the default role for new users)
@@ -249,14 +250,14 @@ const authService = {
         email: normalizedEmail,
         password_hash: passwordHash,
         role: 'user',
-        daily_token_limit: roleDefaults?.daily_token_limit ?? 500000,
-        monthly_token_limit: roleDefaults?.monthly_token_limit ?? 10000000
+        daily_token_limit: roleDefaults?.daily_token_limit ?? config.TOKEN_LIMITS.DEFAULT_DAILY,
+        monthly_token_limit: roleDefaults?.monthly_token_limit ?? config.TOKEN_LIMITS.DEFAULT_MONTHLY
       });
 
       // Mark invite code as used and verify it succeeded
       const marked = database.inviteCodes.markUsed(normalizedInviteCode, newUser.id);
       if (!marked) {
-        throw Object.assign(new Error('Failed to use invite code'), { status: 500 });
+        throw new AppError('Failed to use invite code', 500);
       }
 
       return newUser;
@@ -289,18 +290,18 @@ const authService = {
    */
   async login({ identifier, password }) {
     if (!identifier || !password) {
-      throw Object.assign(new Error('Email/username and password are required'), { status: 400 });
+      throw new ValidationError('Email/username and password are required');
     }
 
     // Find user by email or username
     const user = database.users.findByEmailOrUsername(identifier);
     if (!user) {
-      throw Object.assign(new Error('Invalid credentials'), { status: 401 });
+      throw new AuthError('Invalid credentials');
     }
 
     // Check if account is active
     if (!user.is_active) {
-      throw Object.assign(new Error('Account is deactivated'), { status: 403 });
+      throw new AppError('Account is deactivated', 403);
     }
 
     // Check lockout
@@ -309,10 +310,7 @@ const authService = {
       const lockExpiry = new Date(user.locked_until);
       if (lockExpiry > now) {
         const minutesLeft = Math.ceil((lockExpiry - now) / 60000);
-        throw Object.assign(
-          new Error(`Account locked. Try again in ${minutesLeft} minute(s).`),
-          { status: 429 }
-        );
+        throw new RateLimitError(`Account locked. Try again in ${minutesLeft} minute(s).`);
       }
       // Lock has expired — clear it
       database.users.update(user.id, { failed_login_attempts: 0, locked_until: null });
@@ -332,7 +330,7 @@ const authService = {
       }
 
       database.users.update(user.id, updates);
-      throw Object.assign(new Error('Invalid credentials'), { status: 401 });
+      throw new AuthError('Invalid credentials');
     }
 
     // Successful login — re-hash plain-text password if needed (v1.25.0 seed)
@@ -371,27 +369,27 @@ const authService = {
    */
   refreshToken(refreshToken) {
     if (!refreshToken) {
-      throw Object.assign(new Error('Refresh token is required'), { status: 400 });
+      throw new ValidationError('Refresh token is required');
     }
 
     // Look up the session
     const session = database.sessions.findByToken(refreshToken);
     if (!session) {
-      throw Object.assign(new Error('Invalid refresh token'), { status: 401 });
+      throw new AuthError('Invalid refresh token');
     }
 
     // Check expiry (use consistent timestamp to avoid race conditions)
     const now = new Date();
     if (new Date(session.expires_at) < now) {
       database.sessions.deleteByToken(refreshToken);
-      throw Object.assign(new Error('Refresh token expired'), { status: 401 });
+      throw new AuthError('Refresh token expired');
     }
 
     // Look up the user
     const user = database.users.findById(session.user_id);
     if (!user || !user.is_active) {
       database.sessions.deleteByToken(refreshToken);
-      throw Object.assign(new Error('User not found or deactivated'), { status: 401 });
+      throw new AuthError('User not found or deactivated');
     }
 
     // Token rotation: delete old, create new

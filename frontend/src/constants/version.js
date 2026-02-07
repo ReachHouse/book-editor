@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.56.0 [Refactor] - 2026-02-07: Code quality pass — adopt custom error classes in authService.js (18 throws replaced), centralize default token limits to config/app.js, decompose AdminDashboard.jsx (1009→101 lines) into 6 admin sub-components, deduplicate LimitEditor/RoleDefaultsEditor into TokenLimitEditor, fix brittle network error detection in circuit breaker, add Vite code splitting (main bundle 699KB→73KB) (648 tests)
  * v1.55.0 [Security] - 2026-02-07: Hardening pass — use database role instead of stale JWT role in auth middleware, fix token refresh race condition between api.js and AuthContext, fix Jaccard similarity exceeding 1.0 in diffService, fix circuit breaker allowing unlimited HALF_OPEN requests, guard verifyPassword against null hash, add timing-safe plain password comparison, add structured logging to auth routes, invalidate sessions on user delete, add 'use strict' to all backend files (648 tests)
  * v1.54.0 [Refactor] - 2026-02-07: Polish pass — fix missing 5-minute timeout on editChunk API call (was using 30s default), hoist crypto require to module level in server.js, add Vite dev port 5173 to CORS origins, return JSON 404 for unmatched /api/* routes instead of SPA HTML, restrict /index.html to GET, remove duplicate content in FULL_STYLE_GUIDE_DOCUMENT, remove dead default export from Toast.jsx, rename confusing grammar.js variables (522 tests)
  * v1.53.0 [Refactor] - 2026-02-06: Comprehensive code audit — fix X-Response-Time header bug (setHeader after finish), remove duplicate count() in database.js, wire centralized config/app.js into all backend files (server, services, routes), wire structured logger into all route handlers/middleware/services replacing console.error, sync package.json version with version.js, remove all hardcoded magic numbers in favor of config constants (522 tests)
@@ -146,13 +147,13 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.55.0';
+export const VERSION = '1.56.0';
 
 /**
  * Tag describing the type of changes in this version
  * Must be one of: Overhaul, Feature, Security, Refactor, Bugfix, Hotfix, UI, Docs, Config
  */
-export const VERSION_TAG = 'Security';
+export const VERSION_TAG = 'Refactor';
 
 /**
  * Date of this version release (YYYY-MM-DD format)

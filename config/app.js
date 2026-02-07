@@ -43,7 +43,9 @@ module.exports = {
   TOKEN_LIMITS: {
     MAX: 100000000, // 100 million
     UNLIMITED: -1,
-    RESTRICTED: 0
+    RESTRICTED: 0,
+    DEFAULT_DAILY: 500000,      // 500K tokens/day for new users
+    DEFAULT_MONTHLY: 10000000   // 10M tokens/month for new users
   },
 
   // Projects

@@ -170,7 +170,9 @@ export const USER_ROLES = {
  */
 export const TOKEN_LIMITS = {
   UNLIMITED: -1,
-  RESTRICTED: 0
+  RESTRICTED: 0,
+  DEFAULT_DAILY: 500000,
+  DEFAULT_MONTHLY: 10000000
 };
 
 /**

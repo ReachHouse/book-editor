@@ -191,8 +191,8 @@ async function makeAnthropicRequest(body) {
       circuitBreaker.onFailure();
       throw new Error('API request timed out after 4 minutes');
     }
-    // Network errors also trip the breaker
-    if (error.message.includes('fetch') || error.message.includes('network')) {
+    // Network/system errors trip the breaker (ECONNREFUSED, ENOTFOUND, ETIMEDOUT, etc.)
+    if (error.code || error.type === 'system' || error.cause) {
       circuitBreaker.onFailure();
     }
     throw error;
