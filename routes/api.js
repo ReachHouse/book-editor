@@ -30,6 +30,8 @@
  * =============================================================================
  */
 
+'use strict';
+
 const express = require('express');
 const router = express.Router();
 const { editChunk, generateStyleGuide, MODEL } = require('../services/anthropicService');

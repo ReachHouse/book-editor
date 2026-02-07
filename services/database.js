@@ -44,6 +44,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const config = require('../config/app');
 
 // Default database path — overridable via DB_PATH env var or init() argument.
 // In Docker, this should be inside a mounted volume (/app/data/).
@@ -214,9 +215,9 @@ class DatabaseService {
        * @returns {Object} The created user
        */
       create({ username, email, password_hash, role = 'user', daily_token_limit, monthly_token_limit }) {
-        // If limits not provided, use defaults (500K daily, 10M monthly for editor)
-        const dailyLimit = daily_token_limit !== undefined ? daily_token_limit : 500000;
-        const monthlyLimit = monthly_token_limit !== undefined ? monthly_token_limit : 10000000;
+        // If limits not provided, use defaults from centralized config
+        const dailyLimit = daily_token_limit !== undefined ? daily_token_limit : config.TOKEN_LIMITS.DEFAULT_DAILY;
+        const monthlyLimit = monthly_token_limit !== undefined ? monthly_token_limit : config.TOKEN_LIMITS.DEFAULT_MONTHLY;
 
         const result = db.prepare(`
           INSERT INTO users (username, email, password_hash, role, daily_token_limit, monthly_token_limit)
