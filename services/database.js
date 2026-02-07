@@ -130,8 +130,13 @@ class DatabaseService {
           ).run(version, file);
         });
 
-        runMigration();
-        console.log(`  Migration ${file} applied`);
+        try {
+          runMigration();
+          console.log(`  Migration ${file} applied`);
+        } catch (err) {
+          console.error(`  Migration ${file} FAILED: ${err.message}`);
+          throw err;
+        }
       }
 
       // Verify foreign key integrity after all migrations complete
