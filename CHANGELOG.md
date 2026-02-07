@@ -11,6 +11,10 @@ Canonical, reverse-chronological record of all meaningful changes merged into `m
 
 ---
 
+## 2026-02-08
+
+- Add migration 009: fix stale FK references to `users_old` in sessions, invite_codes, usage_logs, and projects tables. Earlier failed migration attempts ran `ALTER TABLE users RENAME TO users_old` with `foreign_keys = ON`, causing SQLite to rewrite FK references in dependent tables. Symptom: login succeeds (user found) but session creation fails with "no such table: main.users_old". Fix recreates affected tables with correct `REFERENCES users(id)`.
+
 ## 2026-02-07
 
 - Fix Hostinger VPS deployment crash (4-iteration debugging saga). Container was stuck in a restart loop with `CHECK constraint failed: role IN ('admin', 'management', 'editor', 'guest')`. Root cause: the VPS `role_defaults` table contained `viewer` (not `restricted` as expected), which passed through an `ELSE role END` CASE and violated the new CHECK constraint. Fixed by: (1) disabling `PRAGMA foreign_keys` during migrations, (2) rewriting migrations 004/006/007 to use reversed `RENAME-old → CREATE-new → INSERT → DROP-old` pattern with individual `db.exec()` calls and step logging, (3) switching `role_defaults` migration from `INSERT INTO...SELECT FROM` to programmatic JS inserts with whitelist filter, (4) adding defensive CASE statements that explicitly map every valid role, (5) adding per-migration error logging in `database.js`. Also removed `guest` from backend `VALID_ROLES` — only `admin` and `user` exist in the DB; guest is a frontend-only browsing mode.
