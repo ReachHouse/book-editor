@@ -55,7 +55,7 @@ book-editor/
 │   ├── document/              # DOCX generation module (8 files) — see Gotchas
 │   ├── styleRules.js          # Aggregates style rule modules
 │   └── styleRules/            # Individual rule definitions (spelling, grammar, punctuation, etc.)
-├── database/migrations/       # 8 migrations (001–008), auto-run on startup
+├── database/migrations/       # 9 migrations (001–009), auto-run on startup
 ├── __tests__/                 # integration/ and unit/ test suites
 ├── frontend/                  # React (Vite + Tailwind)
 │   └── src/
