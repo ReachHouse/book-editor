@@ -1,36 +1,9 @@
 /**
- * =============================================================================
- * FIRST-RUN SETUP ROUTES
- * =============================================================================
+ * First-Run Setup Routes — Initial admin account creation.
+ * Only works when the database has zero users and a valid SETUP_SECRET is provided.
  *
- * Provides a secure first-time setup wizard for creating the initial admin
- * account. These endpoints ONLY work when the database has zero users AND
- * a valid setup secret is provided.
- *
- * SECURITY MEASURES:
- * ------------------
- * 1. Endpoints disabled once any user exists (checked on every request)
- * 2. SETUP_SECRET environment variable required to complete setup
- *    - Prevents attackers from racing to create admin on fresh deployments
- *    - Secret is set in deployment environment, known only to deployer
- * 3. Uses database transaction for atomic user creation
- * 4. Applies same validation as regular registration (username, email, password)
- * 5. Passwords hashed with bcrypt before storage
- * 6. No sensitive data leaked in responses
- * 7. Setup completion logged for audit trail
- *
- * DEPLOYMENT NOTE:
- * ----------------
- * You MUST set SETUP_SECRET in your environment before deploying.
- * Without this secret, the setup wizard cannot be completed, protecting
- * against unauthorized admin account creation on public deployments.
- *
- * ENDPOINTS:
- * ----------
  * GET  /api/setup/status   - Check if first-time setup is needed
- * POST /api/setup/complete - Create the first admin account (requires setup_secret)
- *
- * =============================================================================
+ * POST /api/setup/complete - Create the first admin account
  */
 
 'use strict';
@@ -53,29 +26,16 @@ const setupLimiter = rateLimit({
   legacyHeaders: false
 });
 
-/**
- * Check if setup is needed (no users exist).
- * This is called on every request to verify setup state.
- *
- * @returns {boolean} True if database has zero users
- */
+/** Check if setup is needed (no users exist). */
 function isSetupRequired() {
   const count = database.users.count();
   return count === 0;
 }
 
-/**
- * Validate the setup secret against the environment variable.
- * The SETUP_SECRET must be set in the environment for setup to work.
- *
- * @param {string} providedSecret - Secret provided by user
- * @returns {{ valid: boolean, error?: string }}
- */
+/** Validate the setup secret against the SETUP_SECRET env var. */
 function validateSetupSecret(providedSecret) {
   const envSecret = process.env.SETUP_SECRET;
 
-  // SECURITY: If no SETUP_SECRET is configured, setup is completely disabled
-  // This prevents accidental exposure on misconfigured deployments
   if (!envSecret) {
     return {
       valid: false,
@@ -103,100 +63,56 @@ function validateSetupSecret(providedSecret) {
   return { valid: true };
 }
 
-/**
- * Validate username format and length.
- * Must be 3-30 characters, alphanumeric with hyphens/underscores.
- *
- * @param {string} username
- * @returns {{ valid: boolean, error?: string }}
- */
 function validateUsername(username) {
   if (!username || typeof username !== 'string') {
     return { valid: false, error: 'Username is required' };
   }
-
   const trimmed = username.trim();
-
   if (trimmed.length < 3 || trimmed.length > 30) {
     return { valid: false, error: 'Username must be 3-30 characters' };
   }
-
   if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
     return { valid: false, error: 'Username may only contain letters, numbers, hyphens, and underscores' };
   }
-
   return { valid: true };
 }
 
-/**
- * Validate email format and length.
- * RFC 5321 specifies max 254 characters.
- *
- * @param {string} email
- * @returns {{ valid: boolean, error?: string }}
- */
 function validateEmail(email) {
   if (!email || typeof email !== 'string') {
     return { valid: false, error: 'Email is required' };
   }
-
   const trimmed = email.trim().toLowerCase();
-
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
     return { valid: false, error: 'Invalid email format' };
   }
-
   if (trimmed.length > 254) {
     return { valid: false, error: 'Email address too long (max 254 characters)' };
   }
-
   return { valid: true };
 }
 
-/**
- * Validate password strength.
- * Requires: 8+ chars, uppercase, lowercase, number.
- *
- * @param {string} password
- * @returns {{ valid: boolean, error?: string }}
- */
 function validatePassword(password) {
   if (!password || typeof password !== 'string') {
     return { valid: false, error: 'Password is required' };
   }
-
   if (password.length < 8) {
     return { valid: false, error: 'Password must be at least 8 characters' };
   }
-
   if (!/[A-Z]/.test(password)) {
     return { valid: false, error: 'Password must contain at least one uppercase letter' };
   }
-
   if (!/[a-z]/.test(password)) {
     return { valid: false, error: 'Password must contain at least one lowercase letter' };
   }
-
   if (!/[0-9]/.test(password)) {
     return { valid: false, error: 'Password must contain at least one number' };
   }
-
   return { valid: true };
 }
 
-// =============================================================================
-// ROUTES
-// =============================================================================
+// --- Routes ---
 
-/**
- * GET /api/setup/status
- *
- * Check if first-time setup is required.
- * Returns { needsSetup: true } if no users exist.
- * Also indicates whether setup is properly configured (SETUP_SECRET set).
- *
- * Response: { needsSetup: boolean, setupEnabled: boolean }
- */
+/** GET /api/setup/status — Check if first-time setup is required. */
 router.get('/api/setup/status', (req, res) => {
   try {
     const needsSetup = isSetupRequired();
@@ -210,30 +126,10 @@ router.get('/api/setup/status', (req, res) => {
 
 /**
  * POST /api/setup/complete
- *
- * Create the first admin account. This endpoint ONLY works when:
- * 1. The database has zero users
- * 2. A valid setup_secret matching SETUP_SECRET env var is provided
- *
- * Request body:
- *   {
- *     username: string,      // 3-30 chars, alphanumeric/-/_
- *     email: string,         // valid email, max 254 chars
- *     password: string,      // 8+ chars, uppercase, lowercase, number
- *     setup_secret: string   // must match SETUP_SECRET environment variable
- *   }
- *
- * Response: { success: true, message: string }
- *
- * Errors:
- *   400 - Validation failed (including invalid setup secret)
- *   403 - Setup already completed (users exist) or setup disabled
- *   500 - Server error
+ * Create the first admin account. Requires zero existing users and valid setup_secret.
  */
 router.post('/api/setup/complete', setupLimiter, async (req, res) => {
   try {
-    // SECURITY: Check setup is still required before proceeding
-    // This prevents race conditions where setup completes between page load and submit
     if (!isSetupRequired()) {
       logger.warn('Setup attempt blocked: users already exist');
       return res.status(403).json({
@@ -244,15 +140,13 @@ router.post('/api/setup/complete', setupLimiter, async (req, res) => {
 
     const { username, email, password, setup_secret } = req.body;
 
-    // SECURITY: Validate setup secret FIRST before any other processing
-    // This is the critical protection against unauthorized setup attempts
+    // Validate setup secret first
     const secretCheck = validateSetupSecret(setup_secret);
     if (!secretCheck.valid) {
       logger.warn('Setup attempt blocked: invalid setup secret');
       return res.status(403).json({ error: secretCheck.error });
     }
 
-    // Validate all inputs
     const usernameCheck = validateUsername(username);
     if (!usernameCheck.valid) {
       return res.status(400).json({ error: usernameCheck.error });
@@ -268,30 +162,23 @@ router.post('/api/setup/complete', setupLimiter, async (req, res) => {
       return res.status(400).json({ error: passwordCheck.error });
     }
 
-    // Hash password before database transaction
     const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-    // Create admin user in a transaction for atomicity
-    // Double-check user count inside transaction to prevent race conditions
+    // Double-check inside transaction to prevent race conditions
     const result = database.transaction(() => {
-      // SECURITY: Re-verify no users exist inside the transaction
       const currentCount = database.users.count();
       if (currentCount > 0) {
         throw Object.assign(new Error('Setup already completed'), { status: 403 });
       }
 
-      // Create the admin user
-      const adminUser = database.users.create({
+      return database.users.create({
         username: username.trim(),
         email: email.trim().toLowerCase(),
         password_hash: passwordHash,
         role: 'admin'
       });
-
-      return adminUser;
     });
 
-    // Log successful setup for audit trail
     logger.info('First-time setup completed', {
       username: result.username,
       email: result.email
@@ -303,7 +190,6 @@ router.post('/api/setup/complete', setupLimiter, async (req, res) => {
     });
 
   } catch (err) {
-    // Handle known errors with appropriate status codes
     if (err.status === 403) {
       return res.status(403).json({
         error: 'Setup already completed',

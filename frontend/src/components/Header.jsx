@@ -1,35 +1,9 @@
-/**
- * =============================================================================
- * HEADER COMPONENT
- * =============================================================================
- *
- * The main header displayed at the top of the application.
- * Contains the application logo, title, style guide button, and user info.
- *
- * PROPS:
- * ------
- * @param {function} onShowStyleGuide - Callback to show the StyleGuideModal
- * @param {function} [onShowAdmin]    - Callback to show the AdminDashboard (admin only)
- * @param {Object} [user]             - Current authenticated user object
- * @param {'edit'|'view'} [styleGuideMode] - Style guide mode (default: 'view')
- *
- * =============================================================================
- */
+/** Header — App title, style guide access, and user controls. */
 
 import React, { useState } from 'react';
 import { FileText, BookOpen, LogOut, Loader, User, Settings, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { USER_ROLES } from '../constants';
-
-/**
- * Header component displaying app title, style guide access, and user controls.
- *
- * @param {Object} props - Component props
- * @param {function} props.onShowStyleGuide - Called when user clicks style guide button
- * @param {function} [props.onShowAdmin] - Called when admin clicks admin dashboard button
- * @param {Object} [props.user] - Current authenticated user
- * @param {'edit'|'view'} [props.styleGuideMode] - Style guide mode (default: 'view')
- */
 function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }) {
   const { logout, isGuest } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -43,11 +17,10 @@ function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }
     }
   };
 
-  // Handle sign in for guests (clears guest mode and redirects to login)
   const handleSignIn = async () => {
     setLoggingOut(true);
     try {
-      await logout(); // Clears guest mode, redirects to login via !isAuthenticated
+      await logout();
     } finally {
       setLoggingOut(false);
     }
@@ -55,7 +28,6 @@ function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }
 
   return (
     <div className="text-center mb-10 animate-fade-in">
-      {/* User bar - positioned at top right */}
       {user && (
         <div className="flex items-center justify-end gap-3 mb-4">
           <div className="flex items-center gap-2 text-sm text-surface-400">
@@ -67,7 +39,6 @@ function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }
               </span>
             )}
           </div>
-          {/* Admin dashboard button (admin only, not for guests) */}
           {!isGuest && user.role === 'admin' && onShowAdmin && (
             <button
               onClick={onShowAdmin}
@@ -78,7 +49,6 @@ function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }
               Admin
             </button>
           )}
-          {/* Sign in button for guests, Sign out for authenticated users */}
           {isGuest ? (
             <button
               onClick={handleSignIn}
@@ -111,29 +81,24 @@ function Header({ onShowStyleGuide, onShowAdmin, user, styleGuideMode = 'view' }
         </div>
       )}
 
-      {/* Logo mark */}
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl glass-icon mb-6">
         <FileText className="w-7 h-7 text-brand-400" />
       </div>
 
-      {/* Title - serif font for editorial identity */}
       <h1 className="font-display text-3xl font-bold mb-2 text-white tracking-tight">
         Reach House Book Editor
       </h1>
 
-      {/* Subtle decorative line */}
       <div className="flex items-center justify-center gap-3 mb-3">
         <div className="h-px w-16 bg-gradient-to-r from-transparent to-surface-700/40" />
         <div className="w-1.5 h-1.5 rounded-full bg-brand-500/40" />
         <div className="h-px w-16 bg-gradient-to-l from-transparent to-surface-700/40" />
       </div>
 
-      {/* Subtitle */}
       <p className="text-sm text-surface-400 tracking-wide">
         AI-powered manuscript editing with tracked changes
       </p>
 
-      {/* Style Guide Button */}
       <button
         onClick={onShowStyleGuide}
         className="btn-secondary inline-flex items-center gap-2 mt-6 py-2.5 px-5 text-sm focus-ring"

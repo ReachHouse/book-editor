@@ -1,31 +1,4 @@
-/**
- * =============================================================================
- * STYLE RULES MODULE
- * =============================================================================
- *
- * Defines detection functions for Reach House House Style Guide rules.
- * Used by documentService.js to categorize changes and provide educational
- * comments explaining WHY a change was made.
- *
- * Rules are organized into category modules for maintainability:
- * - spelling.js:    UK spelling and metric system
- * - grammar.js:     Apostrophes, pronouns, capitalization
- * - homophones.js:  Commonly confused words
- * - punctuation.js: Numbers, time, hyphens, dashes, commas
- * - dialogue.js:    Direct speech formatting
- * - formatting.js:  Italics for foreign words, titles, thoughts
- * - concord.js:     Subject-verb agreement
- *
- * Each rule has:
- * - id: Unique identifier
- * - name: Human-readable name
- * - category: Category for grouping (Spelling, Grammar, Punctuation, Style)
- * - detect(original, edited): Returns true if this rule was applied
- * - explanation: Educational text explaining the change
- * - rule: The actual style guide rule text
- *
- * =============================================================================
- */
+/** Style Rules — Aggregates all style rule modules for change detection and categorization. */
 
 // Import category modules
 const spellingRules = require('./spelling');

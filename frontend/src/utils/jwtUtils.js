@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * JWT UTILITIES
- * =============================================================================
- *
- * Shared JWT token utilities used by both AuthContext and api services.
- * These functions decode JWT tokens client-side without signature verification.
- *
- * =============================================================================
- */
+/** JWT Utilities -- Client-side JWT decoding and expiry checking (no signature verification). */
 
 /**
  * Decode a JWT payload without verifying the signature.

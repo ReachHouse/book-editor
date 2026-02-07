@@ -1,28 +1,9 @@
-/**
- * =============================================================================
- * SAVED PROJECTS COMPONENT
- * =============================================================================
- *
- * Displays a list of previously edited books stored on the server.
- *
- * PROPS:
- * ------
- * @param {Array} projects - Array of project metadata from useProjects hook
- * @param {function} onDownload - Callback to download a completed project (receives project)
- * @param {function} onResume - Callback to resume an incomplete project (receives project)
- * @param {function} onDelete - Callback to delete a project (receives projectId)
- * @param {boolean} isDownloading - True while a download is in progress
- *
- * =============================================================================
- */
+/** SavedProjects — List of previously edited books with download/resume/delete actions. */
 
 import React, { useState } from 'react';
 import { Clock, Download, Play, Trash2, Check, X, Loader, FileText, CheckCircle, Lock, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-/**
- * List of saved projects with actions.
- */
 function SavedProjects({
   projects,
   onDownload,

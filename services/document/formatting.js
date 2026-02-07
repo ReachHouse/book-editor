@@ -1,27 +1,4 @@
-/**
- * =============================================================================
- * TEXT FORMATTING
- * =============================================================================
- *
- * Functions for creating formatted text runs with markdown-style parsing
- * and track change markup.
- *
- * SUPPORTED MARKERS:
- * ------------------
- * - *italic*           → italics
- * - **bold**           → bold
- * - ***bold italic***  → bold + italics
- * - _underline_        → underline
- * - __underline__      → underline (alternative)
- * - ~~strikethrough~~  → strikethrough
- *
- * NOTE: Insertions rely purely on Word's native Track Changes rendering
- * (blue underline for insertions, red strikethrough for deletions).
- * The formatting applied here is the actual text formatting that remains
- * after accepting changes.
- *
- * =============================================================================
- */
+/** Text Formatting — Markdown-style parsing (*bold*, _underline_, etc.) into formatted text runs with track change markup. */
 
 const { InsertedTextRun } = require('docx');
 const { AUTHOR } = require('./constants');

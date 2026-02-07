@@ -1,42 +1,4 @@
-/**
- * =============================================================================
- * USE PROJECTS HOOK
- * =============================================================================
- *
- * Custom React hook for managing book editing projects via server-side storage.
- *
- * PURPOSE:
- * --------
- * - Persist editing progress on the server (tied to user account)
- * - Allow users to resume interrupted edits from any device
- * - Store completed projects for later download
- *
- * STORAGE:
- * --------
- * All project data is stored server-side in SQLite via the /api/projects
- * endpoints. This replaces the previous client-side IndexedDB/localStorage
- * approach with persistent, user-scoped server storage.
- *
- * The list endpoint returns lightweight metadata (no text content).
- * Full project data is fetched on demand for resume/download.
- *
- * USAGE:
- * ------
- * import { useProjects } from './hooks/useProjects';
- *
- * function MyComponent() {
- *   const {
- *     savedProjects,    // Array of project metadata (sorted by timestamp)
- *     loading,          // True while initial load is in progress
- *     loadProjects,     // Function to reload the list from server
- *     saveProject,      // Function to save/update a project
- *     deleteProject,    // Function to delete by ID
- *     getProject,       // Function to get full project data by ID
- *   } = useProjects();
- * }
- *
- * =============================================================================
- */
+/** useProjects -- Hook for managing book editing projects via server-side storage. */
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -46,11 +8,6 @@ import {
   deleteProjectApi
 } from '../services/api';
 
-/**
- * Custom hook for managing book editing projects via server API.
- *
- * @returns {Object} Project management functions and state
- */
 export function useProjects() {
   // State: array of saved project metadata
   const [savedProjects, setSavedProjects] = useState([]);

@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * DOCUMENT GENERATION
- * =============================================================================
- *
- * Main functions for creating Word documents with Track Changes.
- * Coordinates paragraph alignment, change tracking, and buffer packing.
- *
- * =============================================================================
- */
+/** Document Generation — Creates Word documents with Track Changes, comments, and buffer packing. */
 
 const {
   Document,

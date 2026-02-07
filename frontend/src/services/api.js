@@ -1,71 +1,10 @@
-/**
- * =============================================================================
- * API SERVICE
- * =============================================================================
- *
- * Handles all HTTP communication with the backend server.
- * Provides functions for editing text, generating style guides, and
- * downloading Word documents.
- *
- * API ENDPOINTS:
- * --------------
- * POST   /api/edit-chunk          - Send text to Claude for editing
- * POST   /api/generate-style-guide - Generate consistency guide from first chunk
- * POST   /api/generate-docx       - Create Word document with Track Changes
- * GET    /api/projects            - List user's projects (metadata)
- * GET    /api/projects/:id        - Get full project data
- * PUT    /api/projects/:id        - Save/update a project
- * DELETE /api/projects/:id        - Delete a project
- *
- * RETRY LOGIC:
- * ------------
- * The editChunk function includes automatic retry with exponential backoff.
- * This handles transient failures (network issues, server overload) without
- * immediately failing the entire editing session.
- *
- * Retry behavior:
- * - Attempt 1 fails: Wait 2 seconds, retry
- * - Attempt 2 fails: Wait 4 seconds, retry
- * - Attempt 3 fails: Wait 6 seconds, retry
- * - All retries fail: Throw error, let caller handle
- *
- * ERROR HANDLING:
- * ---------------
- * All functions throw errors on failure (after retries, where applicable).
- * Callers should wrap in try/catch and display appropriate error messages.
- *
- * Exception: generateStyleGuide fails silently and returns a default guide,
- * since it's not critical to the editing process.
- *
- * AUTHENTICATION:
- * ---------------
- * All API requests include a JWT access token in the Authorization header.
- * The getAuthHeaders() helper reads the token from localStorage and
- * auto-refreshes it when expired.
- *
- * USAGE:
- * ------
- * import { editChunk, generateStyleGuide, downloadDocument } from './services/api';
- *
- * // Edit a chunk of text
- * const editedText = await editChunk(text, styleGuide, isFirst, logFn);
- *
- * // Generate style guide from first chunk
- * const guide = await generateStyleGuide(editedText, logFn);
- *
- * // Download the final document
- * await downloadDocument({ original, edited, fileName });
- *
- * =============================================================================
- */
+/** API Service -- Handles all HTTP communication with the backend (editing, auth, projects, admin). */
 
 import { API_BASE_URL, API_CONFIG, API_TIMEOUTS, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS } from '../constants';
 import { decodeJwt } from '../utils/jwtUtils';
 import { fetchWithTimeout } from '../utils/fetchUtils';
 
-// =============================================================================
-// AUTHENTICATION HELPERS
-// =============================================================================
+// --- Authentication Helpers ---
 
 /**
  * Shared refresh promise to prevent concurrent refresh requests.
@@ -319,9 +258,7 @@ export async function downloadDocument(content) {
   }
 }
 
-// =============================================================================
-// USAGE API
-// =============================================================================
+// --- Usage API ---
 
 /**
  * Get the current user's usage summary (daily + monthly).
@@ -342,9 +279,7 @@ export async function getUsage() {
   return await response.json();
 }
 
-// =============================================================================
-// PROJECT API
-// =============================================================================
+// --- Project API ---
 
 /**
  * List all projects for the current user (metadata only).
@@ -434,9 +369,7 @@ export async function deleteProjectApi(projectId) {
   }
 }
 
-// =============================================================================
-// ADMIN API
-// =============================================================================
+// --- Admin API ---
 
 /**
  * List all users with usage data (admin only).
@@ -563,9 +496,7 @@ export async function adminDeleteInviteCode(codeId) {
   }
 }
 
-// =============================================================================
-// ROLE DEFAULTS MANAGEMENT (Admin only)
-// =============================================================================
+// --- Role Defaults (Admin only) ---
 
 /**
  * Get all role defaults.
@@ -615,9 +546,7 @@ export async function adminUpdateRoleDefaults(role, fields) {
   return data.roleDefault;
 }
 
-// =============================================================================
-// FIRST-TIME SETUP (No auth required - only works when no users exist)
-// =============================================================================
+// --- First-Time Setup (no auth required) ---
 
 /**
  * Check if first-time setup is required.

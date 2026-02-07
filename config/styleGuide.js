@@ -1,39 +1,4 @@
-/**
- * =============================================================================
- * REACH HOUSE STYLE GUIDE
- * =============================================================================
- *
- * This file contains the official Reach House Style Guide that
- * governs all manuscript editing. This is the SINGLE SOURCE OF TRUTH for
- * editing standards - both the backend AI prompts and frontend display
- * reference this file.
- *
- * USAGE:
- * ------
- * Backend (services/anthropicService.js):
- *   - Included in the system prompt sent to Claude AI
- *   - Ensures all AI edits follow these standards
- *
- * Frontend (constants/index.js):
- *   - A copy is maintained for the Style Guide modal display
- *   - If updating rules, update BOTH locations
- *
- * STYLE GUIDE AUTHORITY:
- * ----------------------
- * Based on the Oxford Style Manual by R.M. Ritter
- * Specific adaptations for South African context (race term capitalization)
- * Maintained by Sally Veenman, Head of Editing Department
- *
- * MODIFICATION:
- * -------------
- * When updating these rules:
- * 1. Update this file (config/styleGuide.js)
- * 2. Update frontend/src/constants/index.js (FULL_STYLE_GUIDE_DOCUMENT)
- * 3. Increment version in frontend/src/constants/version.js
- * 4. Use [Docs] tag for version if only documentation changed
- *
- * =============================================================================
- */
+/** Reach House Style Guide — Single source of truth for editing standards (synced to frontend constants). */
 
 const STYLE_GUIDE = `REACH HOUSE STYLE GUIDE
 

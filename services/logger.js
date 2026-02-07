@@ -1,35 +1,4 @@
-/**
- * =============================================================================
- * STRUCTURED LOGGING SERVICE
- * =============================================================================
- *
- * Provides consistent, structured logging with levels and JSON output
- * for production log aggregation.
- *
- * LOG LEVELS:
- * -----------
- * - error: Errors requiring attention
- * - warn:  Warning conditions
- * - info:  Informational messages
- * - debug: Debug information (development only)
- *
- * OUTPUT FORMAT:
- * -------------
- * Production (NODE_ENV=production): JSON lines for log aggregation
- *   {"level":"info","message":"Server started","port":3001,"timestamp":"..."}
- *
- * Development: Human-readable console output
- *   [12:34:56] INFO  Server started { port: 3001 }
- *
- * USAGE:
- * ------
- * const logger = require('./services/logger');
- * logger.info('Server started', { port: 3001 });
- * logger.error('Database error', { error: err.message });
- * logger.warn('Slow query', { query: sql, duration: 150 });
- *
- * =============================================================================
- */
+/** Logger — Structured logging with levels. JSON in production, readable in development. */
 
 'use strict';
 

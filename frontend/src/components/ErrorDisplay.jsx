@@ -1,25 +1,9 @@
-/**
- * =============================================================================
- * ERROR DISPLAY COMPONENT
- * =============================================================================
- *
- * Displays error messages with an optional debug log for troubleshooting.
- *
- * PROPS:
- * ------
- * @param {string} error - The error message to display
- * @param {Array} debugLog - Optional array of log entries for debugging
- *
- * =============================================================================
- */
+/** ErrorDisplay — Error message with optional debug log. */
 
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import DebugLog from './DebugLog';
 
-/**
- * Error message display with optional debug information.
- */
 function ErrorDisplay({ error, debugLog }) {
   if (!error) return null;
 

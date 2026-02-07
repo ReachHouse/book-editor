@@ -1,33 +1,9 @@
 /**
- * =============================================================================
- * AUTHENTICATION MIDDLEWARE
- * =============================================================================
+ * Authentication Middleware — JWT-based route protection.
  *
- * Express middleware for JWT-based route protection.
- *
- * MIDDLEWARE FUNCTIONS:
- * --------------------
- * - requireAuth:  Verifies JWT access token, attaches req.user
- * - requireAdmin: Verifies JWT + ensures user has 'admin' role
+ * - requireAuth:  Verifies JWT, attaches req.user
+ * - requireAdmin: Verifies JWT + admin role
  * - optionalAuth: Attaches req.user if token present, continues if not
- *
- * USAGE:
- * ------
- * const { requireAuth, requireAdmin } = require('../middleware/auth');
- *
- * // Protect a route (any authenticated user)
- * router.post('/api/edit-chunk', requireAuth, (req, res) => {
- *   console.log(req.user); // { userId, username, role }
- * });
- *
- * // Admin-only route
- * router.get('/api/admin/users', requireAdmin, handler);
- *
- * TOKEN FORMAT:
- * -------------
- * Authorization: Bearer <jwt-access-token>
- *
- * =============================================================================
  */
 
 'use strict';
@@ -163,10 +139,6 @@ function optionalAuth(req, res, next) {
 
   next();
 }
-
-// =============================================================================
-// EXPORTS
-// =============================================================================
 
 module.exports = {
   requireAuth,

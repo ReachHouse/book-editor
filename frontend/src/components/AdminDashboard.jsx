@@ -1,25 +1,6 @@
 /**
- * =============================================================================
- * ADMIN DASHBOARD COMPONENT
- * =============================================================================
- *
- * Admin panel with tabs for managing users, invite codes, and role defaults.
- * Only accessible to users with admin role.
- *
- * This is the slim shell that renders tab navigation and delegates to
- * individual tab components in ./admin/.
- *
- * TABS:
- * -----
- * - Users: View all users, update roles/limits, activate/deactivate, delete
- * - Invite Codes: View all codes, generate new codes
- * - Role Defaults: Configure default token limits per role
- *
- * PROPS:
- * ------
- * @param {function} onClose - Callback to close the admin dashboard
- *
- * =============================================================================
+ * AdminDashboard — Tab shell for managing users, invite codes, and role defaults.
+ * Delegates to sub-components in ./admin/.
  */
 
 import React, { useState } from 'react';
@@ -39,7 +20,6 @@ function AdminDashboard({ onClose }) {
 
   return (
     <div className="animate-fade-in">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <button
@@ -56,7 +36,6 @@ function AdminDashboard({ onClose }) {
         </div>
       </div>
 
-      {/* Tabs with proper ARIA roles */}
       <div role="tablist" aria-label="Admin sections" className="flex gap-1 mb-6 p-1 rounded-lg bg-surface-800/30">
         {tabs.map(tab => {
           const Icon = tab.icon;
@@ -83,7 +62,6 @@ function AdminDashboard({ onClose }) {
         })}
       </div>
 
-      {/* Tab content panels */}
       <div role="tabpanel" id="tabpanel-users" aria-labelledby="tab-users" hidden={activeTab !== 'users'}>
         {activeTab === 'users' && <UsersTab />}
       </div>

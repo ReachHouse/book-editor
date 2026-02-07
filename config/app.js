@@ -1,12 +1,5 @@
 /**
- * =============================================================================
- * APPLICATION CONFIGURATION
- * =============================================================================
- *
- * Centralized configuration constants for the backend.
- * All magic numbers and configurable values live here.
- *
- * =============================================================================
+ * Application Configuration — Centralized backend constants.
  */
 
 'use strict';

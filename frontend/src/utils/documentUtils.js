@@ -1,42 +1,4 @@
-/**
- * =============================================================================
- * DOCUMENT UTILITY FUNCTIONS
- * =============================================================================
- *
- * Helper functions for document processing and analysis.
- * Used throughout the frontend for text manipulation, analysis, and formatting.
- *
- * FUNCTIONS:
- * ----------
- * - detectLanguage: Detect document language from text sample
- * - createChunks: Split document into processable chunks
- * - formatFileName: Add _EDITED suffix to filenames
- * - countWords: Count words in text
- * - countParagraphs: Count paragraphs in text
- * - formatFileSize: Format bytes as human-readable MB
- * - estimateProcessingTime: Calculate time estimate from chunk count
- *
- * CHUNKING STRATEGY:
- * ------------------
- * Documents are split into chunks of approximately CHUNK_SIZES.NEW_DOCUMENTS
- * words (default: 2000). Chunks are split at paragraph boundaries to maintain
- * context and avoid breaking sentences.
- *
- * WHY CHUNKING:
- * - Claude API has token limits (~200k context, ~4k output)
- * - Smaller chunks = faster response times
- * - Allows progress tracking and resume capability
- * - Enables incremental saving after each chunk
- *
- * LANGUAGE DETECTION:
- * -------------------
- * Simple heuristic based on common words in the first 1000 characters.
- * Currently supports: English, Spanish, French (with English as default).
- * This is a basic implementation - could be improved with more languages
- * or a proper language detection library.
- *
- * =============================================================================
- */
+/** Document Utilities -- Helpers for text chunking, language detection, word counting, and file formatting. */
 
 import { CHUNK_SIZES } from '../constants';
 

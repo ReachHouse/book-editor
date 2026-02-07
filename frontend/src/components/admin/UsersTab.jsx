@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * USERS TAB COMPONENT
- * =============================================================================
- *
- * Admin tab for managing users: view all users, update roles/limits,
- * activate/deactivate, and delete users.
- *
- * =============================================================================
- */
+/** UsersTab — Admin tab for managing users, roles, and token limits. */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {

@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * COMMENT CREATION
- * =============================================================================
- *
- * Functions for creating Word comments - both summary comments
- * and inline comments for individual changes.
- *
- * =============================================================================
- */
+/** Comment Creation — Summary and inline Word comments for track changes. */
 
 const { Paragraph, TextRun } = require('docx');
 const { STYLE_RULES } = require('../styleRules');

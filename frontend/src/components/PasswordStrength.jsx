@@ -1,24 +1,8 @@
-/**
- * =============================================================================
- * PASSWORD STRENGTH INDICATOR COMPONENT
- * =============================================================================
- *
- * Visual indicator showing password strength requirements and their status.
- * Used in RegisterPage and SetupWizard for consistent password validation UX.
- *
- * PROPS:
- * ------
- * @param {string} password - Current password value to evaluate
- *
- * =============================================================================
- */
+/** PasswordStrength — Visual password requirements indicator. */
 
 import React from 'react';
 import { CheckCircle, X } from 'lucide-react';
 
-/**
- * Visual password strength indicator showing which requirements are met.
- */
 function PasswordStrength({ password }) {
   if (!password) {
     return (

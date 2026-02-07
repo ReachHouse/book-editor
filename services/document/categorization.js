@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * CHANGE CATEGORIZATION
- * =============================================================================
- *
- * Analyzes changes and categorizes them based on style guide rules
- * or generic patterns. Used for generating meaningful comment explanations.
- *
- * =============================================================================
- */
+/** Change Categorization — Classifies changes by style guide rules or generic patterns. */
 
 const { STYLE_RULES } = require('../styleRules');
 const { countWords } = require('./utils');

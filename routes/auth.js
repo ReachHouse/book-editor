@@ -1,28 +1,11 @@
 /**
- * =============================================================================
- * AUTHENTICATION ROUTES
- * =============================================================================
+ * Authentication Routes — Registration, login, token refresh, and logout.
  *
- * Handles user registration, login, token refresh, profile retrieval,
- * and logout.
- *
- * ENDPOINTS:
- * ----------
- * POST /api/auth/register  - Create account with invite code
- * POST /api/auth/login     - Authenticate with email/username + password
- * POST /api/auth/refresh   - Exchange refresh token for new token pair
- * GET  /api/auth/me        - Get current user profile
- * POST /api/auth/logout    - Invalidate refresh token
- *
- * RATE LIMITING:
- * --------------
- * Auth endpoints use the global API rate limiter (100 req / 15 min).
- * Additionally, each endpoint has its own stricter limiter:
- * - Login:    20 req / 15 min  (brute-force mitigation)
- * - Register: 10 req / 15 min  (invite code enumeration prevention)
- * - Refresh:  30 req / 15 min  (token-spinning prevention)
- *
- * =============================================================================
+ * POST /api/auth/register - Create account with invite code
+ * POST /api/auth/login    - Authenticate with email/username + password
+ * POST /api/auth/refresh  - Exchange refresh token for new token pair
+ * GET  /api/auth/me       - Get current user profile
+ * POST /api/auth/logout   - Invalidate refresh token
  */
 
 'use strict';
@@ -35,10 +18,7 @@ const { requireAuth } = require('../middleware/auth');
 const config = require('../config/app');
 const logger = require('../services/logger');
 
-// =============================================================================
-// AUTH-SPECIFIC RATE LIMITERS (values from centralized config)
-// =============================================================================
-
+// Auth-specific rate limiters
 const loginLimiter = rateLimit({
   windowMs: config.RATE_LIMIT.LOGIN.windowMs,
   max: config.RATE_LIMIT.LOGIN.max,
@@ -63,30 +43,9 @@ const refreshLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// =============================================================================
-// REGISTER
-// =============================================================================
+// --- Routes ---
 
-/**
- * POST /api/auth/register
- *
- * Create a new user account. Requires a valid, unused invite code.
- *
- * Request body:
- *   {
- *     username: string,    // 3-30 chars, alphanumeric + hyphens/underscores
- *     email: string,       // Valid email format
- *     password: string,    // Minimum 8 characters
- *     inviteCode: string   // Valid, unused invite code
- *   }
- *
- * Response (201):
- *   {
- *     user: { id, username, email, role, ... },
- *     accessToken: string,
- *     refreshToken: string
- *   }
- */
+/** POST /api/auth/register — Create a new user account with invite code. */
 router.post('/api/auth/register', registerLimiter, async (req, res) => {
   try {
     const { username, email, password, inviteCode } = req.body;
@@ -106,28 +65,7 @@ router.post('/api/auth/register', registerLimiter, async (req, res) => {
   }
 });
 
-// =============================================================================
-// LOGIN
-// =============================================================================
-
-/**
- * POST /api/auth/login
- *
- * Authenticate a user with email/username and password.
- *
- * Request body:
- *   {
- *     identifier: string,  // Email or username
- *     password: string
- *   }
- *
- * Response (200):
- *   {
- *     user: { id, username, email, role, ... },
- *     accessToken: string,
- *     refreshToken: string
- *   }
- */
+/** POST /api/auth/login — Authenticate with email/username and password. */
 router.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
     const { identifier, password } = req.body;
@@ -143,26 +81,7 @@ router.post('/api/auth/login', loginLimiter, async (req, res) => {
   }
 });
 
-// =============================================================================
-// REFRESH TOKEN
-// =============================================================================
-
-/**
- * POST /api/auth/refresh
- *
- * Exchange a valid refresh token for a new access + refresh token pair.
- * Implements token rotation — the old refresh token is invalidated.
- *
- * Request body:
- *   { refreshToken: string }
- *
- * Response (200):
- *   {
- *     user: { id, username, email, role, ... },
- *     accessToken: string,
- *     refreshToken: string
- *   }
- */
+/** POST /api/auth/refresh — Exchange refresh token for a new token pair (rotation). */
 router.post('/api/auth/refresh', refreshLimiter, (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -177,19 +96,7 @@ router.post('/api/auth/refresh', refreshLimiter, (req, res) => {
   }
 });
 
-// =============================================================================
-// GET PROFILE
-// =============================================================================
-
-/**
- * GET /api/auth/me
- *
- * Get the authenticated user's profile.
- * Requires a valid access token in the Authorization header.
- *
- * Response (200):
- *   { id, username, email, role, created_at, last_login_at, ... }
- */
+/** GET /api/auth/me — Get the authenticated user's profile. */
 router.get('/api/auth/me', requireAuth, (req, res) => {
   const user = authService.getProfile(req.user.userId);
 
@@ -200,34 +107,14 @@ router.get('/api/auth/me', requireAuth, (req, res) => {
   res.json({ user });
 });
 
-// =============================================================================
-// LOGOUT
-// =============================================================================
-
-/**
- * POST /api/auth/logout
- *
- * Invalidate the provided refresh token, ending the session.
- *
- * Request body:
- *   { refreshToken: string }
- *
- * Response (200):
- *   { message: 'Logged out successfully' }
- */
+/** POST /api/auth/logout — Invalidate the provided refresh token. */
 router.post('/api/auth/logout', (req, res) => {
   const { refreshToken } = req.body;
-  // Validate input - logout should have a token to invalidate
   if (!refreshToken || typeof refreshToken !== 'string') {
-    // Still return success - no need to reveal whether token existed
     return res.json({ message: 'Logged out successfully' });
   }
   authService.logout(refreshToken);
   res.json({ message: 'Logged out successfully' });
 });
-
-// =============================================================================
-// MODULE EXPORTS
-// =============================================================================
 
 module.exports = router;

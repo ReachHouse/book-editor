@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * ROLE DEFAULTS TAB COMPONENT
- * =============================================================================
- *
- * Admin tab for managing default token limits per role.
- * These defaults are applied when new users are created.
- *
- * =============================================================================
- */
+/** RoleDefaultsTab — Admin tab for managing default token limits per role. */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, AlertTriangle, Loader } from 'lucide-react';
