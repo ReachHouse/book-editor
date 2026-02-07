@@ -170,6 +170,36 @@ docker compose logs
 # Check for missing env vars or port conflicts
 ```
 
+### Migration fails (CHECK constraint / restart loop)
+
+If logs show `FATAL: Database initialization failed` with a CHECK constraint error and the container restarts in a loop:
+
+```bash
+# 1. Stop the restart loop
+docker compose down
+
+# 2. Inspect full logs (migration step logging shows exactly where it fails)
+docker compose logs
+
+# Look for lines like:
+#   [Migration 006] Step 8/8: Copying role_defaults with role conversion
+#   Migration 006_rename_restricted_to_guest.js FAILED: CHECK constraint failed: ...
+```
+
+**Root cause (Feb 2026 incident):** The VPS `role_defaults` table contained `viewer` instead of the expected `restricted` value. The migration's `CASE WHEN role='restricted' THEN 'guest' ELSE role END` passed `viewer` through unchanged, violating the new CHECK constraint. This was fixed by:
+- Reading role_defaults rows into JS memory before any DDL
+- Inserting programmatically with a whitelist filter (skipping unexpected values)
+- Using defensive CASE statements that explicitly map each valid role
+
+**If a migration partially corrupts the DB**, restore from backup:
+```bash
+docker compose down
+docker cp ./backup-YYYYMMDD.db book-editor-backend-book-editor-1:/app/data/book-editor.db
+docker compose up -d
+```
+
+**Prevention:** All migrations now use individual `db.exec()` calls with `console.log` between steps, so Docker logs always show the exact failing step. See `database/migrations/006_rename_restricted_to_guest.js` and `007_merge_roles_to_user.js` for the pattern.
+
 ### Database locked
 
 ```bash
