@@ -35,7 +35,7 @@ describe('LoginPage', () => {
   test('renders app title', () => {
     render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
 
-    expect(screen.getByText('Book Editor')).toBeInTheDocument();
+    expect(screen.getByText('Reach House Book Editor')).toBeInTheDocument();
   });
 
   test('renders register link', () => {

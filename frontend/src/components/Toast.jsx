@@ -52,4 +52,3 @@ function ToastContainer({ toasts, onDismiss }) {
 }
 
 export { Toast, ToastContainer };
-export default ToastContainer;

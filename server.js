@@ -47,6 +47,7 @@ const compression = require('compression');
 const helmet = require('helmet');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
 const logger = require('./services/logger');
 const config = require('./config/app');
 
@@ -126,7 +127,7 @@ app.use((req, res, next) => {
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
     ? (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3002'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3002', 'http://127.0.0.1:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400 // Cache preflight for 24 hours
@@ -188,7 +189,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // Serve index.html without caching (for SPA updates)
-app.use('/index.html', (req, res) => {
+app.get('/index.html', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -226,6 +227,16 @@ app.use(adminRoutes);
 app.use(apiRoutes);
 
 // =============================================================================
+// API 404 HANDLER
+// =============================================================================
+
+// Return JSON 404 for unmatched /api/* routes instead of falling through to the
+// SPA catch-all (which would return HTML for missing API endpoints).
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// =============================================================================
 // SPA (SINGLE PAGE APPLICATION) FALLBACK
 // =============================================================================
 
@@ -247,7 +258,7 @@ const { AppError } = require('./services/errors');
 
 app.use((err, req, res, next) => {
   // Generate a short error ID for tracking (8 hex chars)
-  const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  const errorId = crypto.randomBytes(4).toString('hex').toUpperCase();
 
   // Typed application errors (ValidationError, AuthError, etc.)
   if (err instanceof AppError) {
@@ -394,7 +405,7 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Handle uncaught exceptions (synchronous errors that weren't caught)
 process.on('uncaughtException', (err) => {
-  const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  const errorId = crypto.randomBytes(4).toString('hex').toUpperCase();
   logger.error(`Uncaught Exception ${errorId}`, { error: err.message, stack: err.stack });
   // Exit with failure code - the process manager should restart us
   process.exit(1);
@@ -402,7 +413,7 @@ process.on('uncaughtException', (err) => {
 
 // Handle unhandled promise rejections (async errors that weren't caught)
 process.on('unhandledRejection', (reason, promise) => {
-  const errorId = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  const errorId = crypto.randomBytes(4).toString('hex').toUpperCase();
   logger.error(`Unhandled Rejection ${errorId}`, { reason: String(reason) });
   // Exit with failure code - the process manager should restart us
   process.exit(1);

@@ -5,6 +5,14 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import SavedProjects from '../SavedProjects';
 
+// Mock the AuthContext
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    isGuest: false,
+    logout: jest.fn()
+  })
+}));
+
 describe('SavedProjects', () => {
   const mockOnDownload = jest.fn();
   const mockOnResume = jest.fn();
@@ -36,8 +44,8 @@ describe('SavedProjects', () => {
     mockOnDelete.mockClear();
   });
 
-  test('returns null when no projects exist', () => {
-    const { container } = render(
+  test('shows empty state when no projects exist', () => {
+    render(
       <SavedProjects
         projects={[]}
         onDownload={mockOnDownload}
@@ -47,7 +55,7 @@ describe('SavedProjects', () => {
       />
     );
 
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByText('No projects yet')).toBeInTheDocument();
   });
 
   test('renders header when projects exist', () => {

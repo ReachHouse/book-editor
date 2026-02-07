@@ -1,6 +1,6 @@
 {
   "name": "book-editor",
-  "version": "1.53.0",
+  "version": "1.54.0",
   "description": "Professional Book Editor with AI-powered editing",
   "main": "server.js",
   "scripts": {

@@ -50,6 +50,7 @@
  *
  * VERSION HISTORY:
  * ----------------
+ * v1.54.0 [Refactor] - 2026-02-07: Polish pass — fix missing 5-minute timeout on editChunk API call (was using 30s default), hoist crypto require to module level in server.js, add Vite dev port 5173 to CORS origins, return JSON 404 for unmatched /api/* routes instead of SPA HTML, restrict /index.html to GET, remove duplicate content in FULL_STYLE_GUIDE_DOCUMENT, remove dead default export from Toast.jsx, rename confusing grammar.js variables (522 tests)
  * v1.53.0 [Refactor] - 2026-02-06: Comprehensive code audit — fix X-Response-Time header bug (setHeader after finish), remove duplicate count() in database.js, wire centralized config/app.js into all backend files (server, services, routes), wire structured logger into all route handlers/middleware/services replacing console.error, sync package.json version with version.js, remove all hardcoded magic numbers in favor of config constants (522 tests)
  * v1.52.0 [Feature]  - 2026-02-06: Complete roadmap v1.38-v1.40 — structured logger (JSON prod/dev), custom error class hierarchy (AppError, ValidationError, AuthError, etc.), circuit breaker for Claude API, centralized backend config (config/app.js), database indexes migration 008 (sessions, usage_logs, projects, invite_codes), setup endpoint rate limiting, X-Response-Time header with slow response logging, project list pagination with ETag caching, ARIA live region for processing progress, API docs and deployment guide (522 tests)
  * v1.51.0 [Feature]  - 2026-02-06: Merge Management and Editor roles into single 'User' role — simplifies role system to 3 roles (Admin/User/Guest), migration 007 for database merge, update all role references throughout codebase (481 tests)
@@ -144,7 +145,7 @@
  * Current application version (Semantic Versioning)
  * Format: MAJOR.MINOR.PATCH
  */
-export const VERSION = '1.53.0';
+export const VERSION = '1.54.0';
 
 /**
  * Tag describing the type of changes in this version
@@ -155,7 +156,7 @@ export const VERSION_TAG = 'Refactor';
 /**
  * Date of this version release (YYYY-MM-DD format)
  */
-export const VERSION_DATE = '2026-02-06';
+export const VERSION_DATE = '2026-02-07';
 
 /**
  * Combined display string shown in the UI footer

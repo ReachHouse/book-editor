@@ -27,11 +27,11 @@ module.exports = [
       const itsCount = (str) => (str.match(/\bits\b/gi) || []).length;
       const itsApostropheCount = (str) => (str.match(/\bit's\b/gi) || []).length;
       const origIts = itsCount(original);
-      const origIts2 = itsApostropheCount(original);
+      const origItsApostrophe = itsApostropheCount(original);
       const editIts = itsCount(edited);
-      const editIts2 = itsApostropheCount(edited);
+      const editItsApostrophe = itsApostropheCount(edited);
       // If counts swapped, a correction was made
-      return (origIts !== editIts && origIts2 !== editIts2);
+      return (origIts !== editIts && origItsApostrophe !== editItsApostrophe);
     },
     explanation: 'Corrected its/it\'s. its = possessive (its tail), it\'s = it is/it has.',
     rule: 'its (possessive) vs it\'s (it is/it has)'
