@@ -25,7 +25,8 @@ This documentation provides a complete file system map for both local developmen
 
 ```bash
 # Local Development
-npm test                              # Run all tests (522 tests)
+npx jest --config jest.config.js                   # Backend tests (522 tests)
+cd frontend && npx jest --config jest.config.cjs   # Frontend tests (126 tests)
 npm start                             # Start backend on port 3001
 cd frontend && npm run dev            # Start Vite dev server on port 5173
 
@@ -213,12 +214,12 @@ curl http://localhost:3002/health     # Verify health
 │   ├── document/              # DOCX generation with Track Changes
 │   │   ├── categorization.js  # Classify changes (spelling, grammar, etc.)
 │   │   ├── comments.js        # Add review comments to changes
-│   │   ├── constants.js       # XML namespaces for OOXML
-│   │   ├── formatting.js      # Preserve original formatting
-│   │   ├── generation.js      # Main DOCX builder (JSZip + xml-js)
+│   │   ├── constants.js       # Config values (author name, thresholds, flags)
+│   │   ├── formatting.js      # Markdown-style format parsing (*bold*, _underline_, etc.)
+│   │   ├── generation.js      # Main DOCX builder (uses docx library)
 │   │   ├── index.js           # Module exports (generateDocxBuffer)
 │   │   ├── paragraphs.js      # Paragraph-level processing
-│   │   └── utils.js           # XML helper functions
+│   │   └── utils.js           # Stats tracking, word counting helpers
 │   │
 │   ├── styleRules.js          # Aggregates all style rule modules
 │   └── styleRules/            # Individual style rule definitions
@@ -260,12 +261,9 @@ When deployed, the Docker container runs with this structure:
 │   ├── bcryptjs/                  # Password hashing
 │   ├── compression/               # Response compression
 │   ├── cors/                      # CORS handling
+│   ├── docx/                      # DOCX generation with Track Changes
 │   ├── dotenv/                    # Environment variables
-│   ├── express-rate-limit/        # Rate limiting
-│   ├── jszip/                     # ZIP for DOCX creation
-│   ├── mammoth/                   # DOCX text extraction
-│   ├── nanoid/                    # Unique ID generation
-│   └── xml-js/                    # XML manipulation for DOCX
+│   └── express-rate-limit/        # Rate limiting
 ├── package.json                   # Dependencies manifest
 ├── package-lock.json              # Locked versions
 ├── public/                        # Built React frontend (Vite output)
@@ -344,8 +342,8 @@ SETUP_SECRET=dev-setup-secret
 | `/api/generate-style-guide` | POST | Yes | Generate style summary |
 | `/api/generate-docx` | POST | Yes | Create Track Changes DOCX |
 | `/api/projects` | GET | Yes | List user's projects |
-| `/api/projects` | POST | Yes | Save project |
 | `/api/projects/:id` | GET | Yes | Load project |
+| `/api/projects/:id` | PUT | Yes | Save/update project |
 | `/api/projects/:id` | DELETE | Yes | Delete project |
 | `/api/usage` | GET | Yes | Get usage statistics |
 | `/api/admin/users` | GET | Admin | List all users |
@@ -353,6 +351,7 @@ SETUP_SECRET=dev-setup-secret
 | `/api/admin/users/:id` | DELETE | Admin | Delete user |
 | `/api/admin/invite-codes` | GET | Admin | List invite codes |
 | `/api/admin/invite-codes` | POST | Admin | Create invite code |
+| `/api/admin/invite-codes/:id` | DELETE | Admin | Delete unused invite code |
 | `/api/admin/role-defaults` | GET | Admin | List role default limits |
 | `/api/admin/role-defaults/:role` | PUT | Admin | Update role defaults |
 
@@ -412,7 +411,7 @@ export const TOKEN_LIMITS = {
 | `config/app.js` | Centralized backend configuration |
 | `services/database.js` | SQLite wrapper with auto-migrations |
 | `services/diffService.js` | LCS diff for Track Changes |
-| `services/document/generation.js` | DOCX creation with JSZip |
+| `services/document/generation.js` | DOCX creation with `docx` library |
 | `routes/api.js` | Core editing endpoints |
 | `routes/auth.js` | Authentication endpoints |
 | `middleware/auth.js` | JWT verification middleware |
@@ -440,7 +439,7 @@ export const TOKEN_LIMITS = {
 ## Git Workflow
 
 1. Make changes locally in `/home/user/book-editor`
-2. Run `npm test` to verify (477 tests)
+2. Run tests to verify (522 backend + 126 frontend = 648 total)
 3. Commit and push to branch
 4. Merge to main via PR
 5. SSH to VPS: `cd /root/book-editor-backend && ./deploy.sh`
@@ -451,7 +450,8 @@ export const TOKEN_LIMITS = {
 
 ### Local Development
 ```bash
-npm test                          # Run all 522 tests
+npx jest --config jest.config.js                   # Backend tests (522)
+cd frontend && npx jest --config jest.config.cjs   # Frontend tests (126)
 npm start                         # Start backend on port 3001
 cd frontend && npm run dev        # Start Vite dev server
 cd frontend && npm run build      # Build for production
@@ -521,12 +521,13 @@ This documentation enables future Claude sessions to understand the project with
 
 | Version | Changes |
 |---------|---------|
+| v1.54.0 | Polish pass: fix editChunk timeout, API 404 handler, CORS 5173, broken frontend tests, dead code removal |
 | v1.53.0 | Code audit: fix X-Response-Time bug, wire centralized config & logger into all files, remove duplicates |
 | v1.52.0 | Complete roadmap: logger, error classes, circuit breaker, config, indexes, pagination, docs |
 | v1.51.0 | Merge Management/Editor roles into single 'User' role (3 roles: Admin/User/Guest) |
 | v1.50.0 | Rename 'Restricted' role to 'Guest', add limit status tags (Unlimited/Limited/Restricted) |
 | v1.49.0 | Continue as Guest mode for app preview |
-| v1.48.0 | Role system (Admin/Management/Editor/Guest) with configurable limits |
+| v1.48.0 | Role system with configurable limits (later simplified to Admin/User/Guest in v1.51.0) |
 | v1.47.0 | Comprehensive CLAUDE.md documentation |
 | v1.46.0 | Editable style guide feature |
 | v1.45.0 | Comprehensive formatting support |
@@ -545,6 +546,6 @@ This documentation enables future Claude sessions to understand the project with
 
 ---
 
-*Last updated: 2026-02-06*
+*Last updated: 2026-02-07*
 *VPS: srv1321944 (72.62.133.62)*
 *Total source files: 107*
