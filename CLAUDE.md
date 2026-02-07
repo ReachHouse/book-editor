@@ -82,6 +82,7 @@ curl http://localhost:3002/health     # Verify health
 ├── .env.example               # Template showing required environment variables
 ├── .git/                      # Git repository (contents not shown)
 ├── .gitignore                 # Files excluded from version control
+├── CHANGELOG.md               # Chronological changelog (single source of truth for history)
 ├── CLAUDE.md                  # THIS DOCUMENTATION FILE
 ├── Dockerfile                 # Multi-stage Docker build (Node 18-alpine)
 ├── README.md                  # Project overview and quick start guide
@@ -241,7 +242,7 @@ curl http://localhost:3002/health     # Verify health
 │       └── spelling.js        # UK vs US spelling (realise vs realize)
 ```
 
-**Total: 111 source files** (excluding node_modules, .git, dist)
+**Total: 112 source files** (excluding node_modules, .git, dist)
 
 ---
 
@@ -516,31 +517,24 @@ ps aux | grep defunct
 3. **Modified database schema** - Update migrations list and add notes
 4. **New constants or configuration** - Document in relevant sections
 5. **Role system changes** - Update Role System section
-6. **Version updates** - Add to Recent Versions table
+6. **Changelog** - Append a new entry to `CHANGELOG.md` (not this file)
 
 This documentation enables future Claude sessions to understand the project without searching. Keeping it current reduces onboarding time and prevents mistakes.
 
 ---
 
-## Recent Versions
+## Changelog
 
-| Version | Changes |
-|---------|---------|
-| v1.56.0 | Code quality: adopt error classes in authService, centralize default token limits, decompose AdminDashboard (1009→101 lines), deduplicate LimitEditor/RoleDefaultsEditor, fix circuit breaker network detection, Vite code splitting (699KB→73KB main bundle) |
-| v1.55.0 | Hardening pass: fix stale JWT role, token refresh race, Jaccard similarity >1.0, circuit breaker HALF_OPEN, null hash crash, add auth logging, session cleanup on user delete, timing-safe plain password |
-| v1.54.0 | Polish pass: fix editChunk timeout, API 404 handler, CORS 5173, broken frontend tests, dead code removal |
-| v1.53.0 | Code audit: fix X-Response-Time bug, wire centralized config & logger into all files, remove duplicates |
-| v1.52.0 | Complete roadmap: logger, error classes, circuit breaker, config, indexes, pagination, docs |
-| v1.51.0 | Merge Management/Editor roles into single 'User' role (3 roles: Admin/User/Guest) |
-| v1.50.0 | Rename 'Restricted' role to 'Guest', add limit status tags (Unlimited/Limited/Restricted) |
-| v1.49.0 | Continue as Guest mode for app preview |
-| v1.48.0 | Role system with configurable limits (later simplified to Admin/User/Guest in v1.51.0) |
-| v1.47.0 | Comprehensive CLAUDE.md documentation |
-| v1.46.0 | Editable style guide feature |
-| v1.45.0 | Comprehensive formatting support |
-| v1.44.x | Unlimited token limits, bug fixes |
-| v1.43.x | Design system standardization |
-| v1.42.0 | Rebrand to "Reach House Book Editor" |
+All version history and patch notes live in **[CHANGELOG.md](./CHANGELOG.md)** — the single source of truth for update history. Do NOT add version history, patch notes, or release logs to this file.
+
+**Maintenance rule:** After any meaningful code change merged to `main`, append a new entry to `CHANGELOG.md` with the merge date, short hash, version (if applicable), and a 1–2 line summary.
+
+**Verification command** (run before pushing):
+```bash
+# The latest CHANGELOG.md entry hash should match HEAD on main
+git rev-parse --short HEAD
+# Compare with the first **`xxxxxxx`** hash in CHANGELOG.md
+```
 
 ---
 
@@ -555,4 +549,4 @@ This documentation enables future Claude sessions to understand the project with
 
 *Last updated: 2026-02-07*
 *VPS: srv1321944 (72.62.133.62)*
-*Total source files: 111*
+*Total source files: 112*
