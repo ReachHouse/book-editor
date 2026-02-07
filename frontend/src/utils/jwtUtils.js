@@ -10,7 +10,9 @@
 export function decodeJwt(token) {
   try {
     const payload = token.split('.')[1];
-    return JSON.parse(atob(payload));
+    // Convert base64url to standard base64 before decoding
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64));
   } catch {
     return null;
   }

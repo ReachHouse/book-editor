@@ -42,13 +42,6 @@ export function isUserRestricted(user) {
 }
 
 /**
- * Check if a user has limited access (specific limits, not unlimited or restricted)
- */
-export function isUserLimited(user) {
-  return !isUserUnlimited(user) && !isUserRestricted(user);
-}
-
-/**
  * Get the limit status tag for a user.
  * Returns { label, className } for the appropriate limit status.
  */

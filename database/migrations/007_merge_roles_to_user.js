@@ -86,7 +86,7 @@ function up(db) {
         WHEN role = 'management' THEN 'user'
         WHEN role = 'editor' THEN 'user'
         WHEN role = 'guest' THEN 'user'
-        ELSE role
+        ELSE 'user'
       END,
       is_active, daily_token_limit, monthly_token_limit,
       created_at, updated_at, last_login_at,
@@ -102,13 +102,20 @@ function up(db) {
   db.exec(`DROP TABLE users_old`);
 
   // =========================================================================
-  // ROLE_DEFAULTS TABLE: Same pattern
+  // ROLE_DEFAULTS TABLE: Read into JS → Drop → Create → Insert programmatically
+  //
+  // Using programmatic inserts instead of INSERT INTO...SELECT FROM to avoid
+  // SQLite schema cache issues when multiple DDL ops happen in one transaction.
   // =========================================================================
 
-  console.log('[Migration 007] Step 6/9: Renaming role_defaults → role_defaults_old');
-  db.exec(`ALTER TABLE role_defaults RENAME TO role_defaults_old`);
+  console.log('[Migration 007] Step 6/9: Reading role_defaults into memory');
+  const roleDefaultRows = db.prepare(`SELECT * FROM role_defaults`).all();
+  console.log(`  - Read ${roleDefaultRows.length} rows: ${roleDefaultRows.map(r => r.role).join(', ')}`);
 
-  console.log('[Migration 007] Step 7/9: Creating new role_defaults table');
+  console.log('[Migration 007] Step 7/9: Dropping role_defaults table');
+  db.exec(`DROP TABLE role_defaults`);
+
+  console.log('[Migration 007] Step 8/9: Creating new role_defaults table');
   db.exec(`
     CREATE TABLE role_defaults (
       role                TEXT    PRIMARY KEY
@@ -121,27 +128,31 @@ function up(db) {
     )
   `);
 
-  console.log('[Migration 007] Step 8/9: Copying role_defaults (admin + user only)');
-  // Copy admin row as-is
-  db.exec(`
+  console.log('[Migration 007] Step 9/9: Inserting role_defaults (admin + user only)');
+  const insertDefault = db.prepare(`
     INSERT INTO role_defaults (role, daily_token_limit, monthly_token_limit, color, display_order, updated_at)
-    SELECT role, daily_token_limit, monthly_token_limit, color, display_order, updated_at
-    FROM role_defaults_old
-    WHERE role = 'admin'
-  `);
-  // Insert 'user' role with editor's limits (or defaults if editor row not found)
-  db.exec(`
-    INSERT INTO role_defaults (role, daily_token_limit, monthly_token_limit, color, display_order, updated_at)
-    SELECT 'user',
-           COALESCE((SELECT daily_token_limit FROM role_defaults_old WHERE role = 'editor'), 500000),
-           COALESCE((SELECT monthly_token_limit FROM role_defaults_old WHERE role = 'editor'), 10000000),
-           'amber',
-           2,
-           datetime('now')
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  console.log('[Migration 007] Step 9/9: Dropping role_defaults_old');
-  db.exec(`DROP TABLE role_defaults_old`);
+  // Insert admin row from memory (if found)
+  const adminRow = roleDefaultRows.find(r => r.role === 'admin');
+  if (adminRow) {
+    insertDefault.run('admin', adminRow.daily_token_limit, adminRow.monthly_token_limit, adminRow.color, adminRow.display_order, adminRow.updated_at);
+    console.log(`  - Inserted: admin`);
+  }
+
+  // Insert 'user' role with editor's limits (or defaults if editor row not found)
+  const editorRow = roleDefaultRows.find(r => r.role === 'editor');
+  const now = db.prepare(`SELECT datetime('now') as now`).get().now;
+  insertDefault.run(
+    'user',
+    editorRow ? editorRow.daily_token_limit : 500000,
+    editorRow ? editorRow.monthly_token_limit : 10000000,
+    'amber',
+    2,
+    now
+  );
+  console.log(`  - Inserted: user (from editor defaults)`);
 
   // Log migration summary
   const roleCounts = db.prepare(`SELECT role, COUNT(*) as count FROM users GROUP BY role`).all();

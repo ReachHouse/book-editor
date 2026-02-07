@@ -37,6 +37,7 @@ function StyleGuideModal({
   }, []);
 
   const handleClose = useCallback(() => {
+    clearTimeout(closeTimeoutRef.current);
     setIsClosing(true);
     closeTimeoutRef.current = setTimeout(() => {
       setIsClosing(false);

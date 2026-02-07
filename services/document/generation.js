@@ -54,8 +54,7 @@ function createDocumentWithTrackChanges(original, edited) {
       comments
     );
     paragraphData.push({
-      paragraph: result.paragraph,
-      children: result.children
+      paragraph: result.paragraph
     });
     revisionId = result.nextRevisionId;
     commentId = result.nextCommentId;

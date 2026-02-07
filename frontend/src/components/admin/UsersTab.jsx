@@ -55,7 +55,7 @@ function UsersTab() {
   const handleRoleChange = async (userId, newRole) => {
     if (pendingUserId) return; // Prevent concurrent operations
     // Prevent changing own role
-    if (currentUser && userId === currentUser.userId) {
+    if (currentUser && userId === currentUser.id) {
       setError('Cannot change your own role');
       return;
     }
@@ -207,13 +207,13 @@ function UsersTab() {
                 <select
                   value={user.role}
                   onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                  disabled={pendingUserId === user.id || (currentUser && user.id === currentUser.userId)}
+                  disabled={pendingUserId === user.id || (currentUser && user.id === currentUser.id)}
                   className={`text-xs px-2 py-1 rounded bg-surface-800 border border-surface-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
-                    currentUser && user.id === currentUser.userId
+                    currentUser && user.id === currentUser.id
                       ? 'text-surface-500 cursor-not-allowed'
                       : 'text-surface-300 cursor-pointer hover:border-surface-600'
                   }`}
-                  title={currentUser && user.id === currentUser.userId ? 'Cannot change your own role' : 'Change user role'}
+                  title={currentUser && user.id === currentUser.id ? 'Cannot change your own role' : 'Change user role'}
                 >
                   {Object.entries(USER_ROLES).map(([value, { label }]) => (
                     <option key={value} value={value}>{label}</option>

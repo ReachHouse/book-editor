@@ -45,9 +45,9 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", 'data:', 'blob:'],
-      fontSrc: ["'self'"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       connectSrc: ["'self'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'none'"],
@@ -151,6 +151,7 @@ app.all('/api/*', (req, res) => {
 
 // SPA fallback — serve React app for all other routes
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -249,18 +250,23 @@ function gracefulShutdown(signal) {
 
   clearInterval(cleanupIntervalId);
 
+  // Hard-kill timeout in case connections don't drain
+  const forceExitTimeout = setTimeout(() => {
+    logger.warn('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+  forceExitTimeout.unref();
+
   server.close(() => {
     logger.info('HTTP server closed');
+    try {
+      database.close();
+      logger.info('Database connection closed');
+    } catch (err) {
+      logger.error('Error closing database', { error: err.message });
+    }
+    process.exit(0);
   });
-
-  try {
-    database.close();
-    logger.info('Database connection closed');
-  } catch (err) {
-    logger.error('Error closing database', { error: err.message });
-  }
-
-  process.exit(0);
 }
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

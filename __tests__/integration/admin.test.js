@@ -202,12 +202,12 @@ describe('PUT /api/admin/users/:id', () => {
     expect(res.status).toBe(200);
     expect(res.body.user.role).toBe('admin');
 
-    // Restore to editor
+    // Restore to user
     await adminPut(`/api/admin/users/${regularUser.id}`)
       .send({ role: 'user' });
   });
 
-  test('updates user role to editor', async () => {
+  test('updates user role back to user', async () => {
     // First make them admin
     await adminPut(`/api/admin/users/${regularUser.id}`)
       .send({ role: 'admin' });
