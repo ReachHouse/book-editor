@@ -29,13 +29,22 @@
  * @param {import('better-sqlite3').Database} db
  */
 function up(db) {
-  // Count affected users
+  // Guard: if no 'management' or 'editor' roles exist but 'user' does,
+  // this migration was already applied to the data. Skip to avoid errors.
   const managementUsers = db.prepare(`
     SELECT COUNT(*) as count FROM users WHERE role = 'management'
   `).get();
   const editorUsers = db.prepare(`
     SELECT COUNT(*) as count FROM users WHERE role = 'editor'
   `).get();
+  const userRoleCount = db.prepare(
+    `SELECT COUNT(*) as count FROM users WHERE role = 'user'`
+  ).get();
+
+  if (managementUsers.count === 0 && editorUsers.count === 0 && userRoleCount.count > 0) {
+    console.log('[Migration 007] Skipping — "user" role already exists, no management/editor roles to merge');
+    return;
+  }
 
   console.log(`[Migration 007] Merging roles into 'user':`);
   console.log(`  - ${managementUsers.count} user(s) with 'management' role`);

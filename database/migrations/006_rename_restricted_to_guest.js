@@ -26,6 +26,17 @@
  * @param {import('better-sqlite3').Database} db
  */
 function up(db) {
+  // Guard: if 'user' role exists, migration 007 already ran against this data.
+  // This happens when schema_version is out of sync (e.g. DB restored from backup).
+  // Skip this migration to avoid CHECK constraint failure on role='user' values.
+  const userRoleCount = db.prepare(
+    `SELECT COUNT(*) as count FROM users WHERE role = 'user'`
+  ).get();
+  if (userRoleCount.count > 0) {
+    console.log('[Migration 006] Skipping — "user" role detected (migration 007 already applied to data)');
+    return;
+  }
+
   // Count affected users
   const restrictedUsers = db.prepare(`
     SELECT COUNT(*) as count FROM users WHERE role = 'restricted'
