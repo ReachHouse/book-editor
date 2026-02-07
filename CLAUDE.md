@@ -1,8 +1,6 @@
-# Claude Code Reference - Book Editor
+# Book Editor
 
-**CRITICAL: Read this file in full before making any changes to the codebase.**
-
-This documentation provides a complete file system map for both local development and VPS production environments, enabling future Claude sessions to understand the full project context without searching.
+AI-powered manuscript editor for Reach House publishing. Uploads DOCX, edits via Claude API (UK English style guide), generates DOCX with native Word Track Changes.
 
 ---
 
@@ -11,542 +9,181 @@ This documentation provides a complete file system map for both local developmen
 - After completing a task that involves tool use, provide a quick summary of the work you've done.
 - Use parallel tool calls: When calling multiple tools with no dependencies between them, make all calls in parallel (e.g., read 3 files simultaneously instead of sequentially). If a call depends on a previous call's result, run them sequentially instead. Never use placeholders or guess missing parameters.
 - Reduce hallucinations: Never speculate about code you have not opened. If the user references a specific file, you MUST read it before answering. Always investigate and read relevant files BEFORE making claims about the codebase.
-- Keep CLAUDE.md accurate: Before pushing any change set to GitHub, review CLAUDE.md and update it to reflect your changes—add new files, update API endpoints, correct outdated information, and remove anything that is no longer true. This file is the single source of truth for future sessions; stale documentation causes mistakes.
+- Keep CLAUDE.md accurate: Before pushing any change set to GitHub, review CLAUDE.md and update it to reflect your changes—add new files, update outdated information, and remove anything that is no longer true. This file is the single source of truth for future sessions; stale documentation causes mistakes.
 - Compress working context: Once you've read and understood CLAUDE.md and the codebase, proactively compress and compact your working context as you go so you maintain continuity and avoid forgetting details, making repeat mistakes, or complaining about prompt/token length/limits. Summarize what you've learned, discard redundant detail, and keep a tight mental model of the project.
 
 ---
 
-## Quick Reference
-
-| Environment | Path | Port |
-|-------------|------|------|
-| **Local Dev** | `/home/user/book-editor` | 3001 (backend), 5173 (Vite) |
-| **VPS Production** | `/root/book-editor-backend` | 3002 (external) → 3001 (internal) |
-
-### Essential Commands
+## Commands
 
 ```bash
+# Backend Tests (16 test files, node environment)
+npx jest --config jest.config.js                   # Run all backend tests
+npx jest --config jest.config.js --watch           # Watch mode
+npx jest --config jest.config.js --coverage        # With coverage report
+
+# Frontend Tests (11 test files, jsdom environment)
+cd frontend && npx jest --config jest.config.cjs   # Run all frontend tests
+cd frontend && npx jest --config jest.config.cjs --watch    # Watch mode
+cd frontend && npx jest --config jest.config.cjs --coverage # With coverage report
+
 # Local Development
-npx jest --config jest.config.js                   # Backend tests (522 tests)
-cd frontend && npx jest --config jest.config.cjs   # Frontend tests (126 tests)
 npm start                             # Start backend on port 3001
 cd frontend && npm run dev            # Start Vite dev server on port 5173
-
-# VPS Deployment
-ssh root@72.62.133.62                 # Connect to VPS (srv1321944)
-cd /root/book-editor-backend && ./deploy.sh   # Full deployment
-curl http://localhost:3002/health     # Verify health
+cd frontend && npm run build          # Build frontend for production (outputs to frontend/dist/)
 ```
 
 ---
 
-## VPS System Overview
-
-| Property | Value |
-|----------|-------|
-| **Hostname** | srv1321944 |
-| **IP Address** | 72.62.133.62 |
-| **OS** | Ubuntu 25.10 (GNU/Linux 6.17.0-12-generic x86_64) |
-| **Provider** | Hostinger VPS |
-| **User** | root |
-| **HTTPS** | Handled by Hostinger infrastructure |
-
----
-
-## Complete VPS File System Map
-
-### /root/ (User Home) - Cleaned 2026-02-06
+## Project Structure
 
 ```
-/root/
-├── .bash_history              # Command history
-├── .bashrc                    # Shell config - CONTAINS ANTHROPIC_API_KEY export
-├── .cache/                    # User cache directory
-├── .docker/                   # Docker CLI configuration
-├── .gitconfig                 # Git user configuration
-├── .lesshst                   # Less command history
-├── .local/                    # Local user data
-├── .npm/                      # NPM cache
-├── .profile                   # Login shell configuration
-├── .ssh/                      # SSH keys for authentication
-└── book-editor-backend/       # *** MAIN APPLICATION - see below ***
-```
-
-### /root/book-editor-backend/ (Application Root) - 105 Files
-
-```
-/root/book-editor-backend/
-│
-├── .dockerignore              # Files excluded from Docker build context
-├── .env                       # *** SECRETS - auto-generated by deploy.sh ***
-├── .env.example               # Template showing required environment variables
-├── .git/                      # Git repository (contents not shown)
-├── .gitignore                 # Files excluded from version control
-├── CHANGELOG.md               # Chronological changelog (single source of truth for history)
-├── CLAUDE.md                  # THIS DOCUMENTATION FILE
-├── Dockerfile                 # Multi-stage Docker build (Node 18-alpine)
-├── README.md                  # Project overview and quick start guide
-│
-├── __tests__/                 # Jest test suites
-│   ├── integration/           # API integration tests
-│   │   ├── admin.test.js      # Admin user management API tests
-│   │   ├── api.test.js        # Core editing API tests
-│   │   ├── projects.test.js   # Projects CRUD API tests
-│   │   ├── setup.test.js      # First-time setup wizard tests
-│   │   └── usage.test.js      # Token usage tracking tests
-│   └── unit/                  # Unit tests for services
-│       ├── appConfig.test.js        # Centralized config tests
-│       ├── authMiddleware.test.js   # JWT verification tests
-│       ├── authService.test.js      # Login/register logic tests
-│       ├── circuitBreaker.test.js   # Circuit breaker state tests
-│       ├── database.test.js         # SQLite operations tests
-│       ├── errors.test.js           # Custom error class tests
-│       ├── logger.test.js           # Structured logging tests
-│       ├── diffService.test.js      # LCS diff algorithm tests
-│       ├── documentService.test.js  # DOCX generation tests
-│       ├── projects.test.js         # Project service tests
-│       └── styleRules.test.js       # Style rule validation tests
-│
+book-editor/
+├── server.js                  # Express entry point
 ├── config/
-│   ├── app.js                 # Centralized backend configuration constants
-│   └── styleGuide.js          # Reach House Style Guide - used in AI prompts
-│
-├── database/
-│   └── migrations/            # SQLite schema migrations (run on startup)
-│       ├── 001_initial_schema.js    # users, sessions, invite_codes, usage_logs
-│       ├── 002_projects.js          # projects table for save/resume
-│       ├── 003_custom_style_guide.js # custom_style_guide column on projects table
-│       ├── 004_roles_and_limits.js  # role system (legacy: admin/management/editor/guest)
-│       ├── 005_role_defaults.js     # role_defaults table for configurable limits
-│       ├── 006_rename_restricted_to_guest.js  # rename 'restricted' role to 'guest'
-│       ├── 007_merge_roles_to_user.js  # merge management/editor into 'user' role
-│       └── 008_indexes.js             # performance indexes for common queries
-│
-├── deploy.sh                  # *** DEPLOYMENT SCRIPT - generates .env, builds, deploys ***
-├── docs/
-│   ├── API.md                 # Complete API reference with examples
-│   └── DEPLOYMENT.md          # Deployment guide and troubleshooting
-├── docker-compose.yml         # Docker orchestration - ports, volumes, env
-├── jest.config.js             # Backend Jest configuration
-│
-├── frontend/                  # React frontend (Vite + Tailwind)
-│   ├── __mocks__/
-│   │   └── fileMock.js        # Jest mock for static file imports
-│   ├── babel.config.cjs       # Babel config for Jest (ESM support)
-│   ├── index.html             # SPA entry point
-│   ├── jest.config.cjs        # Frontend Jest configuration
-│   ├── jest.setup.js          # Jest setup (jsdom, mocks)
-│   ├── package.json           # Frontend dependencies (React, Vite, etc.)
-│   ├── postcss.config.js      # PostCSS config for Tailwind CSS
-│   ├── public/
-│   │   └── favicon.svg        # Application icon
-│   ├── src/
-│   │   ├── App.jsx            # Main React component - routing, layout
-│   │   ├── index.css          # Global styles (Tailwind utilities)
-│   │   ├── main.jsx           # React entry point - renders App
-│   │   │
-│   │   ├── components/        # React UI components
-│   │   │   ├── AdminDashboard.jsx   # Admin dashboard shell (imports admin/ tabs)
-│   │   │   ├── admin/              # Admin sub-components (decomposed from AdminDashboard)
-│   │   │   │   ├── helpers.js           # Shared helpers (formatTokenCount, getLimitStatusTag, etc.)
-│   │   │   │   ├── TokenLimitEditor.jsx # Unified token limit editor (was LimitEditor + RoleDefaultsEditor)
-│   │   │   │   ├── UsersTab.jsx         # User management tab
-│   │   │   │   ├── InviteCodesTab.jsx   # Invite codes tab
-│   │   │   │   ├── RoleDefaultsTab.jsx  # Role defaults config tab
-│   │   │   │   └── index.js             # Barrel exports
-│   │   │   ├── CompletionView.jsx   # Editing complete, download prompt
-│   │   │   ├── DebugLog.jsx         # Development debug panel
-│   │   │   ├── DocumentAnalysis.jsx # Document stats before editing
-│   │   │   ├── ErrorDisplay.jsx     # Error message display
-│   │   │   ├── FileUpload.jsx       # DOCX upload component
-│   │   │   ├── Header.jsx           # App header with branding
-│   │   │   ├── LoginPage.jsx        # User login form
-│   │   │   ├── PasswordStrength.jsx # Password requirements indicator
-│   │   │   ├── ProcessingView.jsx   # Editing progress display
-│   │   │   ├── RegisterPage.jsx     # User registration form
-│   │   │   ├── SavedProjects.jsx    # Resume saved projects list
-│   │   │   ├── SetupWizard.jsx      # First-time admin setup
-│   │   │   ├── StyleGuideModal.jsx  # View/edit style guide
-│   │   │   ├── Toast.jsx            # Notification toasts
-│   │   │   ├── UsageDisplay.jsx     # Token usage stats
-│   │   │   ├── index.js             # Component barrel exports
-│   │   │   └── __tests__/           # Component tests (11 files)
-│   │   │
-│   │   ├── constants/
-│   │   │   ├── index.js       # API config, chunk sizes, style guide copy
-│   │   │   └── version.js     # VERSION, VERSION_TAG, VERSION_DATE
-│   │   │
-│   │   ├── contexts/
-│   │   │   └── AuthContext.jsx # Auth state management (login, logout, tokens)
-│   │   │
-│   │   ├── hooks/
-│   │   │   ├── useProjects.js  # Project list fetching hook
-│   │   │   └── useToast.js     # Toast notification hook
-│   │   │
-│   │   ├── services/
-│   │   │   └── api.js          # All API calls (edit, auth, projects, admin)
-│   │   │
-│   │   └── utils/
-│   │       ├── documentUtils.js # Document processing helpers
-│   │       ├── fetchUtils.js    # fetchWithTimeout with AbortController
-│   │       └── jwtUtils.js      # JWT decode/expiry checking
-│   │
-│   ├── tailwind.config.js     # Tailwind CSS configuration
-│   └── vite.config.js         # Vite build configuration
-│
-├── middleware/
-│   └── auth.js                # JWT verification middleware (requireAuth, requireAdmin, optionalAuth)
-│
-├── package.json               # Backend dependencies (Express, better-sqlite3, etc.)
-├── public/
-│   └── favicon.svg            # Backend static favicon
-│
-├── routes/                    # Express API route handlers
-│   ├── admin.js               # /api/admin/* - user management (admin only)
-│   ├── api.js                 # /api/edit-chunk, /api/generate-docx, /api/generate-style-guide
-│   ├── auth.js                # /api/auth/* - login, register, refresh, logout
-│   ├── health.js              # /health - Docker health check endpoint
-│   ├── projects.js            # /api/projects/* - save, list, load, delete
-│   ├── setup.js               # /api/setup/* - first-time admin creation
-│   └── usage.js               # /api/usage - token usage statistics
-│
-├── server.js                  # *** EXPRESS ENTRY POINT - middleware, routes, startup ***
-│
-├── services/                  # Business logic layer
-│   ├── anthropicService.js    # Claude API communication with circuit breaker
-│   ├── authService.js         # Login/register/JWT logic (bcrypt, tokens)
+│   ├── app.js                 # Centralized backend configuration
+│   └── styleGuide.js          # Reach House Style Guide (used in AI prompts)
+├── routes/                    # Express route handlers (admin, api, auth, health, projects, setup, usage)
+├── middleware/auth.js         # JWT verification (requireAuth, requireAdmin, optionalAuth)
+├── services/
+│   ├── anthropicService.js    # Claude API with circuit breaker
+│   ├── authService.js         # Login/register/JWT logic
 │   ├── database.js            # SQLite wrapper + auto-migration runner
-│   ├── diffService.js         # LCS diff algorithm for Track Changes
-│   ├── errors.js              # Custom error class hierarchy (AppError, etc.)
+│   ├── diffService.js         # LCS diff for Track Changes
+│   ├── errors.js              # Custom error hierarchy (AppError, ValidationError, AuthError, etc.)
 │   ├── logger.js              # Structured logging (JSON prod, readable dev)
-│   │
-│   ├── document/              # DOCX generation with Track Changes
-│   │   ├── categorization.js  # Classify changes (spelling, grammar, etc.)
-│   │   ├── comments.js        # Add review comments to changes
-│   │   ├── constants.js       # Config values (author name, thresholds, flags)
-│   │   ├── formatting.js      # Markdown-style format parsing (*bold*, _underline_, etc.)
-│   │   ├── generation.js      # Main DOCX builder (uses docx library)
-│   │   ├── index.js           # Module exports (generateDocxBuffer)
-│   │   ├── paragraphs.js      # Paragraph-level processing
-│   │   └── utils.js           # Stats tracking, word counting helpers
-│   │
-│   ├── styleRules.js          # Aggregates all style rule modules
-│   └── styleRules/            # Individual style rule definitions
-│       ├── concord.js         # Subject-verb agreement rules
-│       ├── dialogue.js        # Quotation mark formatting
-│       ├── formatting.js      # Italics, em-dashes, etc.
-│       ├── grammar.js         # Grammar correction rules
-│       ├── homophones.js      # their/there/they're, its/it's
-│       ├── index.js           # Rule module exports
-│       ├── punctuation.js     # Oxford comma, spacing
-│       └── spelling.js        # UK vs US spelling (realise vs realize)
-```
-
-**Total: 112 source files** (excluding node_modules, .git, dist)
-
----
-
-## Docker Container Structure (/app/)
-
-When deployed, the Docker container runs with this structure:
-
-```
-/app/                              # Container working directory
-├── config/
-│   └── styleGuide.js              # Reach House Style Guide
-├── data/
-│   └── book-editor.db             # SQLite database (mounted volume)
-├── database/
-│   └── migrations/                # Schema migrations (run on startup)
-├── middleware/
-│   └── auth.js                    # JWT verification
-├── node_modules/                  # ~150 production dependencies
-│   ├── express/                   # Web framework
-│   ├── helmet/                    # Security headers
-│   ├── jsonwebtoken/              # JWT auth
-│   ├── better-sqlite3/            # SQLite driver (native)
-│   ├── bcryptjs/                  # Password hashing
-│   ├── compression/               # Response compression
-│   ├── cors/                      # CORS handling
-│   ├── docx/                      # DOCX generation with Track Changes
-│   ├── dotenv/                    # Environment variables
-│   └── express-rate-limit/        # Rate limiting
-├── package.json                   # Dependencies manifest
-├── package-lock.json              # Locked versions
-├── public/                        # Built React frontend (Vite output)
-│   ├── index.html                 # SPA entry
-│   ├── favicon.svg                # App icon
-│   └── assets/                    # Hashed JS/CSS chunks
-├── routes/                        # API route handlers
-├── server.js                      # Express entry point
-└── services/                      # Business logic
-```
-
-### Docker Volumes
-
-```
-/var/lib/docker/volumes/
-└── book-editor-backend_book-editor-data/
-    └── _data/
-        └── book-editor.db         # *** SQLite DATABASE - persistent ***
+│   ├── document/              # DOCX generation module (8 files) — see Gotchas
+│   ├── styleRules.js          # Aggregates style rule modules
+│   └── styleRules/            # Individual rule definitions (spelling, grammar, punctuation, etc.)
+├── database/migrations/       # 8 migrations (001–008), auto-run on startup
+├── __tests__/                 # integration/ and unit/ test suites
+├── frontend/                  # React (Vite + Tailwind)
+│   └── src/
+│       ├── App.jsx            # Main component — routing, layout
+│       ├── components/        # UI components + admin/ sub-components
+│       ├── constants/         # index.js (API config, style guide copy) + version.js
+│       ├── contexts/          # AuthContext.jsx (login, logout, token refresh)
+│       ├── hooks/             # useProjects.js, useToast.js
+│       ├── services/api.js    # All frontend API calls
+│       └── utils/             # documentUtils.js, fetchUtils.js, jwtUtils.js
+├── docs/
+│   ├── API.md                 # Complete API endpoint reference
+│   └── DEPLOYMENT.md          # VPS deployment guide and troubleshooting
+├── Dockerfile                 # Multi-stage build (Node 18-alpine)
+├── docker-compose.yml         # Docker orchestration
+└── deploy.sh                  # Deployment script (generates .env, builds, deploys)
 ```
 
 ---
 
-## Docker Configuration
+## Architecture
 
-| Setting | Value |
-|---------|-------|
-| Base Image | node:18-alpine |
-| External Port | 3002 |
-| Internal Port | 3001 |
-| Data Volume | `book-editor-data:/app/data` |
-| Memory Limit | 2GB |
-| Restart Policy | unless-stopped |
+- **Backend**: Express.js (CommonJS) + better-sqlite3 + bcryptjs + jsonwebtoken + docx library
+- **Frontend**: React/Vite (ESM) + Tailwind CSS + mammoth.js for DOCX parsing
+- **Auth**: JWT access tokens (15min) + refresh tokens (7 days) with rotation. Middleware reads role from DB (not JWT) for immediate effect.
+- **AI**: Claude Sonnet via Anthropic API with circuit breaker (5 failures -> OPEN -> 60s -> HALF_OPEN)
+- **Database**: SQLite in WAL mode, foreign keys enabled. Singleton DatabaseService with getter-based namespaces.
+- **Key patterns**: Custom error hierarchy, shared refresh promise in api.js and AuthContext.jsx, ETag caching on project list, rate limiting per endpoint type
 
-### Health Check
-```bash
-curl http://localhost:3002/health
-# Expected: {"status":"ok","message":"Book Editor Backend is running","apiKeyConfigured":true,"databaseHealthy":true}
-```
+---
+
+## Sync Requirements
+
+These files must stay in sync — changing one requires updating the others:
+
+| Source | Must match | What |
+|--------|-----------|------|
+| `config/styleGuide.js` | `frontend/src/constants/index.js` STYLE_GUIDE | Reach House Style Guide text (constant content must be identical) |
+| `package.json` version | `frontend/package.json` version | App version number (both must match) |
+| `package.json` version | `frontend/src/constants/version.js` | App version number (all three files must match) |
+
+### Shared Utilities (do NOT duplicate)
+
+`frontend/src/utils/jwtUtils.js` and `frontend/src/utils/fetchUtils.js` are imported by **both** `api.js` and `AuthContext.jsx`. Do not recreate these functions elsewhere.
 
 ---
 
 ## Environment Variables
 
-### Production (.env - auto-generated by deploy.sh)
+Create `.env` in project root for local development (see `.env.example` for full reference):
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Claude API key (set in ~/.bashrc) |
-| `SETUP_SECRET` | Yes | First-time setup secret (auto-generated) |
-| `JWT_SECRET` | Yes | JWT signing secret (auto-generated) |
-| `NODE_ENV` | Yes | Set to "production" in docker-compose |
-
-### Local Development
-
-Create `.env` file with:
 ```bash
+# REQUIRED
 ANTHROPIC_API_KEY=sk-ant-...
-JWT_SECRET=dev-secret-change-in-prod
-SETUP_SECRET=dev-setup-secret
+
+# REQUIRED (Production) — generates random if unset in dev
+# Generate with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+JWT_SECRET=
+
+# REQUIRED — prevents unauthorized admin account creation
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+SETUP_SECRET=
+
+# OPTIONAL
+PORT=3001                        # Default: 3001
+NODE_ENV=development             # Default: development
+DB_PATH=./data/book-editor.db   # Default: ./data/book-editor.db
 ```
+
+Production `.env` is auto-generated by `deploy.sh` (see `docs/DEPLOYMENT.md`).
 
 ---
 
-## API Endpoints Reference
+## Database
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/health` | GET | No | Health check |
-| `/api/setup/status` | GET | No | Check if setup needed |
-| `/api/setup/complete` | POST | No | Create first admin |
-| `/api/auth/login` | POST | No | User login |
-| `/api/auth/register` | POST | No | User registration (with invite) |
-| `/api/auth/refresh` | POST | Yes | Refresh access token |
-| `/api/auth/logout` | POST | Yes | Logout (revoke refresh) |
-| `/api/edit-chunk` | POST | Yes | Edit text with Claude |
-| `/api/generate-style-guide` | POST | Yes | Generate style summary |
-| `/api/generate-docx` | POST | Yes | Create Track Changes DOCX |
-| `/api/projects` | GET | Yes | List user's projects |
-| `/api/projects/:id` | GET | Yes | Load project |
-| `/api/projects/:id` | PUT | Yes | Save/update project |
-| `/api/projects/:id` | DELETE | Yes | Delete project |
-| `/api/usage` | GET | Yes | Get usage statistics |
-| `/api/admin/users` | GET | Admin | List all users |
-| `/api/admin/users/:id` | PUT | Admin | Update user |
-| `/api/admin/users/:id` | DELETE | Admin | Delete user |
-| `/api/admin/invite-codes` | GET | Admin | List invite codes |
-| `/api/admin/invite-codes` | POST | Admin | Create invite code |
-| `/api/admin/invite-codes/:id` | DELETE | Admin | Delete unused invite code |
-| `/api/admin/role-defaults` | GET | Admin | List role default limits |
-| `/api/admin/role-defaults/:role` | PUT | Admin | Update role defaults |
+SQLite with 8 migrations in `database/migrations/` (001-008). Migrations run automatically on server startup via `services/database.js`. Tables: users, sessions, invite_codes, usage_logs, projects, role_defaults, schema_version. No manual migration steps needed.
 
 ---
 
 ## Role System
 
-### Roles
-
-| Role | Badge Color | Default Daily | Default Monthly |
-|------|-------------|---------------|-----------------|
-| **Admin** | Green | Unlimited (-1) | Unlimited (-1) |
-| **User** | Amber | 500K | 10M |
-| **Guest** | Gray | Restricted (0) | Restricted (0) |
-
-### Token Limit Values (Displayed as Second Badge)
-
-| Value | Meaning | Display |
-|-------|---------|---------|
-| `-1` | Unlimited | Amber "Unlimited" badge |
-| `0` | Restricted | Red "Restricted" badge |
-| `> 0` | Specific limit | Blue "Limited" badge |
-
-### Role Constraints
-
-- Users can only have ONE role at a time
-- Admins CANNOT change their own role (prevents self-lockout)
-- New users default to 'user' role with role defaults applied
-- Role defaults are configurable in Admin Dashboard → Role Defaults tab
-- All users display a second badge showing their limit status (Unlimited/Limited/Restricted)
-
-### Frontend Role Constants (`frontend/src/constants/index.js`)
-
-```javascript
-export const USER_ROLES = {
-  admin: { label: 'Admin', badgeClass: 'bg-green-500/20 text-green-400' },
-  user: { label: 'User', badgeClass: 'bg-amber-500/20 text-amber-400' },
-  guest: { label: 'Guest', badgeClass: 'bg-gray-500/20 text-gray-400' }
-};
-
-export const TOKEN_LIMITS = {
-  UNLIMITED: -1,
-  RESTRICTED: 0
-};
-```
+Three roles: **admin** (green badge, unlimited tokens), **user** (amber badge, 500K daily / 10M monthly default), **guest** (gray badge, restricted). Token limit values: `-1` = unlimited, `0` = restricted, `> 0` = specific limit. Role defaults are configurable in Admin Dashboard. Admins cannot change their own role. Middleware reads role from DB (not JWT) for immediate effect. Frontend constants: `USER_ROLES` and `TOKEN_LIMITS` in `frontend/src/constants/index.js`.
 
 ---
 
-## Key Files Reference
+## Gotchas
 
-| File | Purpose |
-|------|---------|
-| `server.js` | Express server setup, middleware, route mounting |
-| `services/anthropicService.js` | Claude API integration with circuit breaker |
-| `services/logger.js` | Structured logging (JSON prod, readable dev) |
-| `services/errors.js` | Custom error class hierarchy |
-| `config/app.js` | Centralized backend configuration |
-| `services/database.js` | SQLite wrapper with auto-migrations |
-| `services/diffService.js` | LCS diff for Track Changes |
-| `services/document/generation.js` | DOCX creation with `docx` library |
-| `routes/api.js` | Core editing endpoints |
-| `routes/auth.js` | Authentication endpoints |
-| `middleware/auth.js` | JWT verification middleware |
-| `frontend/src/services/api.js` | All frontend API calls |
-| `frontend/src/contexts/AuthContext.jsx` | Auth state management |
-| `frontend/src/utils/jwtUtils.js` | JWT utilities (shared) |
-| `frontend/src/utils/fetchUtils.js` | Fetch with timeout (shared) |
-| `config/styleGuide.js` | Reach House Style Guide |
+| Mistake | Correction |
+|---------|------------|
+| Referencing `docxService.js` | Does NOT exist. DOCX generation is the `services/document/` module (8 files: categorization, comments, constants, formatting, generation, index, paragraphs, utils) |
+| Duplicating shared utilities | `jwtUtils.js` and `fetchUtils.js` are shared by `api.js` and `AuthContext.jsx` — use them, don't recreate |
+| Style guide out of sync | `config/styleGuide.js` (backend) must match STYLE_GUIDE in `frontend/src/constants/index.js` |
+| Version out of sync | Three files must match: `package.json`, `frontend/package.json`, `frontend/src/constants/version.js` |
+| Wrong module system | Backend is CommonJS (`require`), frontend is ESM (`import`) |
+| Wrong Jest config | Backend: `jest.config.js` (root, Node env). Frontend: `frontend/jest.config.cjs` (jsdom env). These are separate configs. |
+| Duplicating API docs | Full API reference is in `docs/API.md`. Do not duplicate endpoint tables in CLAUDE.md. |
+| Duplicating deployment docs | VPS details, Docker config, and maintenance commands live in `docs/DEPLOYMENT.md`. Do not duplicate here. |
+| Vite build output path | `npm run build` outputs to `frontend/dist/`. Dockerfile copies this to `public/`. Express serves static files from `public/`. |
+| Mixing environments | Local dev: `/home/user/book-editor` (ports 3001/5173). VPS production: `/root/book-editor-backend` (port 3002 -> 3001). |
 
 ---
 
-## Shared Utilities (Don't Duplicate!)
+## Deployment
 
-### JWT Utilities (`frontend/src/utils/jwtUtils.js`)
-- `decodeJwt(token)` - Decode JWT payload without verification
-- `isTokenExpired(token, bufferMs)` - Check if token is expired
-
-### Fetch Utilities (`frontend/src/utils/fetchUtils.js`)
-- `fetchWithTimeout(url, options, timeoutMs)` - Fetch with AbortController
-
-**These are imported by both `api.js` and `AuthContext.jsx`.**
+Production runs on a Hostinger VPS via Docker. Deploy by SSHing to the VPS and running `./deploy.sh` in the application directory. The script pulls latest code, generates `.env`, builds the Docker image, and restarts the container with health checks. For full deployment instructions, rollback procedures, and VPS maintenance commands, see **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)**.
 
 ---
 
-## Git Workflow
+## Documentation Maintenance
 
-1. Make changes locally in `/home/user/book-editor`
-2. Run tests to verify (522 backend + 126 frontend = 648 total)
-3. Commit and push to branch
-4. Merge to main via PR
-5. SSH to VPS: `cd /root/book-editor-backend && ./deploy.sh`
+Before pushing changes, review this file and update:
 
----
-
-## Common Commands
-
-### Local Development
-```bash
-npx jest --config jest.config.js                   # Backend tests (522)
-cd frontend && npx jest --config jest.config.cjs   # Frontend tests (126)
-npm start                         # Start backend on port 3001
-cd frontend && npm run dev        # Start Vite dev server
-cd frontend && npm run build      # Build for production
-```
-
-### VPS Production
-```bash
-cd /root/book-editor-backend
-./deploy.sh                       # Full deployment with health check
-docker compose logs -f            # View live logs
-docker compose down               # Stop containers
-docker compose up -d              # Start containers
-```
-
-### VPS Maintenance
-```bash
-# Security updates
-apt update && apt upgrade -y
-
-# Rollback failed deployment
-docker tag book-editor-backend-book-editor:previous book-editor-backend-book-editor:latest
-docker compose up -d
-
-# Docker cleanup
-docker system prune -f
-docker image prune -a -f          # WARNING: removes all unused images
-
-# View container resources
-docker stats --no-stream
-
-# Database backup
-docker cp book-editor-backend-book-editor-1:/app/data/book-editor.db ./backup-$(date +%Y%m%d).db
-
-# Check for zombie processes
-ps aux | grep defunct
-```
+1. **New files** — add to Project Structure tree
+2. **Database schema changes** — note new migrations
+3. **Role system changes** — update Role System section
+4. **New sync requirements** — add to Sync Requirements table
+5. **New gotchas discovered** — add to Gotchas table
+6. **Version changes** — update version in all three sync locations (package.json, frontend/package.json, frontend/src/constants/version.js)
+7. **Changelog** — append a new entry to **[CHANGELOG.md](./CHANGELOG.md)** (the single source of truth for version history)
 
 ---
 
-## Common Mistakes to Avoid
+## Related Docs
 
-1. **Wrong VPS path**: Production is ONLY at `/root/book-editor-backend`
-2. **Mixing up environments**: Local = `/home/user/book-editor`, VPS = `/root/book-editor-backend`
-3. **Hallucinated file**: `docxService.js` does NOT exist — DOCX generation lives in `services/document/` module
-4. **Duplicate utilities**: Use shared `jwtUtils.js` and `fetchUtils.js`, don't recreate
-5. **Style guide sync**: Frontend `constants/index.js` STYLE_GUIDE must match backend `config/styleGuide.js`
-
----
-
-## Keep This Documentation Updated
-
-**IMPORTANT: Before pushing changes, review this file and update:**
-
-1. **New files added** - Add to the file system map
-2. **Changed API endpoints** - Update API Endpoints Reference table
-3. **Modified database schema** - Update migrations list and add notes
-4. **New constants or configuration** - Document in relevant sections
-5. **Role system changes** - Update Role System section
-6. **Changelog** - Append a new entry to `CHANGELOG.md` (not this file)
-
-This documentation enables future Claude sessions to understand the project without searching. Keeping it current reduces onboarding time and prevents mistakes.
-
----
-
-## Changelog
-
-All version history and patch notes live in **[CHANGELOG.md](./CHANGELOG.md)** — the single source of truth for update history. Do NOT add version history, patch notes, or release logs to this file.
-
-**Maintenance rule:** After any meaningful code change merged to `main`, append a new entry to `CHANGELOG.md` with the merge date, short hash, version (if applicable), and a 1–2 line summary.
-
-**Verification command** (run before pushing):
-```bash
-# The latest CHANGELOG.md entry hash should match HEAD on main
-git rev-parse --short HEAD
-# Compare with the first **`xxxxxxx`** hash in CHANGELOG.md
-```
-
----
-
-## Networking
-
-- **No nginx reverse proxy** - Direct Docker port access
-- **HTTPS** - Handled by Hostinger infrastructure externally
-- **Port 3002** - External access to Docker container
-- **Port 3001** - Internal Express server port
+- **[docs/API.md](./docs/API.md)** — Complete API endpoint reference with examples
+- **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)** — VPS deployment, Docker config, maintenance, rollback
+- **[CHANGELOG.md](./CHANGELOG.md)** — Version history and patch notes
 
 ---
 
 *Last updated: 2026-02-07*
-*VPS: srv1321944 (72.62.133.62)*
-*Total source files: 112*
