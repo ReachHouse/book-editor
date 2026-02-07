@@ -14,13 +14,16 @@
  *
  * NOTE: SQLite doesn't support ALTER TABLE for CHECK constraints, so we must
  * recreate the tables with the new constraint. Uses the RENAME-old + CREATE-new
- * pattern (instead of CREATE-new + DROP-old + RENAME-new) to avoid schema
- * validation issues with some SQLite versions.
+ * pattern for the users table and a DROP + CREATE + re-insert pattern for the
+ * role_defaults table (using programmatic JS inserts to avoid schema cache issues
+ * with INSERT INTO ... SELECT FROM across multiple DDL ops in one transaction).
  *
  * =============================================================================
  */
 
 'use strict';
+
+const VALID_ROLES_NEW = ['admin', 'management', 'editor', 'guest'];
 
 /**
  * Run the migration.
@@ -40,17 +43,21 @@ function up(db) {
   console.log(`  - ${restrictedCount} restricted user(s) out of ${totalCount} total`);
 
   // Log all current roles for diagnostics
-  const currentRoles = db.prepare(`SELECT role, COUNT(*) as count FROM users GROUP BY role`).all();
-  console.log(`  - Current roles: ${currentRoles.map(r => `${r.role}=${r.count}`).join(', ')}`);
+  const currentUserRoles = db.prepare(`SELECT role, COUNT(*) as count FROM users GROUP BY role`).all();
+  console.log(`  - Current user roles: ${currentUserRoles.map(r => `${r.role}=${r.count}`).join(', ')}`);
+
+  // Log role_defaults contents for diagnostics
+  const currentDefaults = db.prepare(`SELECT role, daily_token_limit, monthly_token_limit FROM role_defaults`).all();
+  console.log(`  - Current role_defaults (${currentDefaults.length} rows): ${currentDefaults.map(r => r.role).join(', ')}`);
 
   // =========================================================================
   // USERS TABLE: Rename old → Create new → Copy → Drop old
   // =========================================================================
 
-  console.log('[Migration 006] Step 1/9: Renaming users → users_old');
+  console.log('[Migration 006] Step 1/8: Renaming users → users_old');
   db.exec(`ALTER TABLE users RENAME TO users_old`);
 
-  console.log('[Migration 006] Step 2/9: Creating new users table');
+  console.log('[Migration 006] Step 2/8: Creating new users table');
   db.exec(`
     CREATE TABLE users (
       id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,7 +77,7 @@ function up(db) {
     )
   `);
 
-  console.log('[Migration 006] Step 3/9: Copying users with role conversion');
+  console.log('[Migration 006] Step 3/8: Copying users with role conversion');
   db.exec(`
     INSERT INTO users (
       id, username, email, password_hash, role, is_active,
@@ -93,21 +100,26 @@ function up(db) {
     FROM users_old
   `);
 
-  console.log('[Migration 006] Step 4/9: Recreating user indexes');
+  console.log('[Migration 006] Step 4/8: Recreating user indexes');
   db.exec(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
 
-  console.log('[Migration 006] Step 5/9: Dropping users_old');
+  console.log('[Migration 006] Step 5/8: Dropping users_old');
   db.exec(`DROP TABLE users_old`);
 
   // =========================================================================
-  // ROLE_DEFAULTS TABLE: Same pattern
+  // ROLE_DEFAULTS TABLE: Read into JS → Drop → Create → Insert programmatically
+  //
+  // Using programmatic inserts instead of INSERT INTO...SELECT FROM to avoid
+  // SQLite schema cache issues when multiple DDL ops happen in one transaction.
   // =========================================================================
 
-  console.log('[Migration 006] Step 6/9: Renaming role_defaults → role_defaults_old');
-  db.exec(`ALTER TABLE role_defaults RENAME TO role_defaults_old`);
+  console.log('[Migration 006] Step 6/8: Reading role_defaults into memory');
+  const roleDefaultRows = db.prepare(`SELECT * FROM role_defaults`).all();
+  console.log(`  - Read ${roleDefaultRows.length} rows: ${roleDefaultRows.map(r => r.role).join(', ')}`);
 
-  console.log('[Migration 006] Step 7/9: Creating new role_defaults table');
+  console.log('[Migration 006] Step 7/8: Dropping and recreating role_defaults table');
+  db.exec(`DROP TABLE role_defaults`);
   db.exec(`
     CREATE TABLE role_defaults (
       role                TEXT    PRIMARY KEY
@@ -120,27 +132,26 @@ function up(db) {
     )
   `);
 
-  console.log('[Migration 006] Step 8/9: Copying role_defaults with role conversion');
-  db.exec(`
+  console.log('[Migration 006] Step 8/8: Inserting role_defaults with role conversion');
+  const insertDefault = db.prepare(`
     INSERT INTO role_defaults (role, daily_token_limit, monthly_token_limit, color, display_order, updated_at)
-    SELECT
-      CASE
-        WHEN role = 'restricted' THEN 'guest'
-        WHEN role = 'admin' THEN 'admin'
-        WHEN role = 'management' THEN 'management'
-        WHEN role = 'editor' THEN 'editor'
-        ELSE role
-      END,
-      daily_token_limit,
-      monthly_token_limit,
-      color,
-      display_order,
-      updated_at
-    FROM role_defaults_old
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  console.log('[Migration 006] Step 9/9: Dropping role_defaults_old');
-  db.exec(`DROP TABLE role_defaults_old`);
+  for (const row of roleDefaultRows) {
+    // Convert restricted → guest, keep valid roles, skip unexpected ones
+    let newRole = row.role;
+    if (newRole === 'restricted') {
+      newRole = 'guest';
+    }
+
+    if (VALID_ROLES_NEW.includes(newRole)) {
+      insertDefault.run(newRole, row.daily_token_limit, row.monthly_token_limit, row.color, row.display_order, row.updated_at);
+      console.log(`  - Inserted: ${row.role} → ${newRole}`);
+    } else {
+      console.log(`  - Skipped unexpected role: '${row.role}'`);
+    }
+  }
 
   // Log migration summary
   const roleCounts = db.prepare(`SELECT role, COUNT(*) as count FROM users GROUP BY role`).all();
