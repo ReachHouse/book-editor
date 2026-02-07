@@ -263,6 +263,7 @@ router.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    database.sessions.deleteAllForUser(targetId);
     database.users.delete(targetId);
     res.json({ success: true });
   } catch (err) {

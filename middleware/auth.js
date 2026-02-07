@@ -83,11 +83,13 @@ function requireAuth(req, res, next) {
       return res.status(401).json({ error: 'Account not found or deactivated' });
     }
 
-    // Attach decoded token data to request
+    // Attach user data to request — use DB role (not JWT role) so that
+    // role changes (e.g., admin demotes a user) take effect immediately
+    // instead of waiting for the 15-minute access token to expire.
     req.user = {
       userId: decoded.userId,
-      username: decoded.username,
-      role: decoded.role
+      username: user.username,
+      role: user.role
     };
 
     next();
@@ -147,8 +149,8 @@ function optionalAuth(req, res, next) {
     if (user && user.is_active) {
       req.user = {
         userId: decoded.userId,
-        username: decoded.username,
-        role: decoded.role
+        username: user.username,
+        role: user.role
       };
     } else {
       req.user = null;

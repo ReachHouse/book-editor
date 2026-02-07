@@ -281,18 +281,18 @@ function calculateSimilarity(str1, str2) {
   const lengthRatio = Math.min(len1, len2) / Math.max(len1, len2);
   if (lengthRatio < 0.3) return lengthRatio * 0.3;
 
-  // Tokenize and normalize words
-  const words1 = str1.split(/\s+/).map(normalizeWord).filter(w => w.length > 0);
+  // Tokenize and normalize words into sets (deduplicated for correct Jaccard)
+  const words1Set = new Set(str1.split(/\s+/).map(normalizeWord).filter(w => w.length > 0));
   const words2Set = new Set(str2.split(/\s+/).map(normalizeWord).filter(w => w.length > 0));
 
-  // Count words in common
+  // Count words in common (intersection of two sets)
   let commonWords = 0;
-  for (const word of words1) {
+  for (const word of words1Set) {
     if (words2Set.has(word)) commonWords++;
   }
 
-  // Jaccard similarity: intersection / union
-  const totalUniqueWords = new Set([...words1, ...words2Set]).size;
+  // Jaccard similarity: |intersection| / |union|
+  const totalUniqueWords = new Set([...words1Set, ...words2Set]).size;
   if (totalUniqueWords === 0) return 0;
 
   return commonWords / totalUniqueWords;

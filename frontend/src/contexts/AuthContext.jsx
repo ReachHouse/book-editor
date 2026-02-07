@@ -143,6 +143,15 @@ export function AuthProvider({ children }) {
         }, AUTH_TIMEOUT_MS);
 
         if (!response.ok) {
+          // Check if another refresh (e.g., api.js) already succeeded
+          // by comparing the current refresh token against what we sent.
+          const currentRefresh = localStorage.getItem(AUTH_KEYS.REFRESH);
+          if (currentRefresh && currentRefresh !== refreshToken) {
+            const currentToken = localStorage.getItem(AUTH_KEYS.TOKEN);
+            const storedUser = localStorage.getItem(AUTH_KEYS.USER);
+            if (storedUser) setUser(JSON.parse(storedUser));
+            return currentToken;
+          }
           clearAuth();
           return null;
         }

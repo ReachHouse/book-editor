@@ -53,6 +53,7 @@ const circuitBreaker = {
   state: 'CLOSED', // CLOSED | OPEN | HALF_OPEN
   failures: 0,
   lastFailureTime: null,
+  halfOpenInFlight: false, // Ensures only one probe request in HALF_OPEN
   FAILURE_THRESHOLD: config.ANTHROPIC.CIRCUIT_BREAKER.FAILURE_THRESHOLD,
   RESET_TIMEOUT_MS: config.ANTHROPIC.CIRCUIT_BREAKER.RESET_TIMEOUT_MS,
 
@@ -67,13 +68,16 @@ const circuitBreaker = {
       // Check if enough time has passed to try again
       if (Date.now() - this.lastFailureTime >= this.RESET_TIMEOUT_MS) {
         this.state = 'HALF_OPEN';
+        this.halfOpenInFlight = true;
         logger.info('Circuit breaker transitioning to HALF_OPEN');
         return true;
       }
       return false;
     }
 
-    // HALF_OPEN: allow one request through
+    // HALF_OPEN: allow only one probe request through
+    if (this.halfOpenInFlight) return false;
+    this.halfOpenInFlight = true;
     return true;
   },
 
@@ -86,6 +90,7 @@ const circuitBreaker = {
     }
     this.failures = 0;
     this.state = 'CLOSED';
+    this.halfOpenInFlight = false;
   },
 
   /**
@@ -94,6 +99,7 @@ const circuitBreaker = {
   onFailure() {
     this.failures++;
     this.lastFailureTime = Date.now();
+    this.halfOpenInFlight = false;
 
     if (this.state === 'HALF_OPEN' || this.failures >= this.FAILURE_THRESHOLD) {
       this.state = 'OPEN';

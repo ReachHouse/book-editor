@@ -519,6 +519,7 @@ This documentation enables future Claude sessions to understand the project with
 
 | Version | Changes |
 |---------|---------|
+| v1.55.0 | Hardening pass: fix stale JWT role, token refresh race, Jaccard similarity >1.0, circuit breaker HALF_OPEN, null hash crash, add auth logging, session cleanup on user delete, timing-safe plain password |
 | v1.54.0 | Polish pass: fix editChunk timeout, API 404 handler, CORS 5173, broken frontend tests, dead code removal |
 | v1.53.0 | Code audit: fix X-Response-Time bug, wire centralized config & logger into all files, remove duplicates |
 | v1.52.0 | Complete roadmap: logger, error classes, circuit breaker, config, indexes, pagination, docs |

@@ -95,9 +95,14 @@ async function hashPassword(password) {
  * @returns {Promise<boolean>} True if password matches
  */
 async function verifyPassword(password, hash) {
+  if (!hash) return false;
   // Handle v1.25.0 seed format: "plain:actualPassword"
   if (hash.startsWith('plain:')) {
-    return password === hash.substring(6);
+    const stored = hash.substring(6);
+    const passwordBuf = Buffer.from(password);
+    const storedBuf = Buffer.from(stored);
+    if (passwordBuf.length !== storedBuf.length) return false;
+    return crypto.timingSafeEqual(passwordBuf, storedBuf);
   }
   return bcrypt.compare(password, hash);
 }

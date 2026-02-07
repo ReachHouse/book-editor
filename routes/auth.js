@@ -33,6 +33,7 @@ const router = express.Router();
 const { authService } = require('../services/authService');
 const { requireAuth } = require('../middleware/auth');
 const config = require('../config/app');
+const logger = require('../services/logger');
 
 // =============================================================================
 // AUTH-SPECIFIC RATE LIMITERS (values from centralized config)
@@ -100,6 +101,7 @@ router.post('/api/auth/register', registerLimiter, async (req, res) => {
     res.status(201).json(result);
   } catch (err) {
     const status = err.status || 500;
+    if (status >= 500) logger.error('Registration error', { error: err.message });
     res.status(status).json({ error: err.message });
   }
 });
@@ -135,6 +137,8 @@ router.post('/api/auth/login', loginLimiter, async (req, res) => {
     res.json(result);
   } catch (err) {
     const status = err.status || 500;
+    if (status >= 500) logger.error('Login error', { error: err.message });
+    else if (status === 401) logger.warn('Failed login attempt', { identifier: req.body?.identifier });
     res.status(status).json({ error: err.message });
   }
 });
@@ -168,6 +172,7 @@ router.post('/api/auth/refresh', refreshLimiter, (req, res) => {
     res.json(result);
   } catch (err) {
     const status = err.status || 500;
+    if (status >= 500) logger.error('Token refresh error', { error: err.message });
     res.status(status).json({ error: err.message });
   }
 });

@@ -94,10 +94,18 @@ async function refreshAccessToken() {
         body: JSON.stringify({ refreshToken })
       });
       if (!res.ok) {
-        // Refresh failed — clear auth (will cause redirect to login)
+        // Check if another refresh (e.g., AuthContext) already succeeded
+        // by comparing the current refresh token against the one we sent.
+        // If they differ, the other mechanism rotated the token — use it.
+        const currentRefresh = localStorage.getItem(AUTH_KEYS.REFRESH);
+        if (currentRefresh && currentRefresh !== refreshToken) {
+          return localStorage.getItem(AUTH_KEYS.TOKEN);
+        }
+        // Truly failed — clear all auth state
         localStorage.removeItem(AUTH_KEYS.TOKEN);
         localStorage.removeItem(AUTH_KEYS.REFRESH);
         localStorage.removeItem(AUTH_KEYS.USER);
+        localStorage.removeItem(AUTH_KEYS.GUEST);
         return null;
       }
       const data = await res.json();
