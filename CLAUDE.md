@@ -1,16 +1,16 @@
 # Book Editor
 
-AI-powered manuscript editor for Reach House publishing. Uploads DOCX, edits via Claude API (UK English style guide), generates DOCX with native Word Track Changes.
+AI-powered manuscript editor for Reach House publishing. Uploads DOCX, edits via Claude API, generates DOCX with native Word Track Changes.
 
 ---
 
 ## Rules
 
-- After completing a task that involves tool use, provide a quick summary of the work you've done.
 - Use parallel tool calls: When calling multiple tools with no dependencies between them, make all calls in parallel (e.g., read 3 files simultaneously instead of sequentially). If a call depends on a previous call's result, run them sequentially instead. Never use placeholders or guess missing parameters.
-- Reduce hallucinations: Never speculate about code you have not opened. If the user references a specific file, you MUST read it before answering. Always investigate and read relevant files BEFORE making claims about the codebase.
-- Keep CLAUDE.md accurate: Before pushing any change set to GitHub, review CLAUDE.md and update it to reflect your changes—add new files, update outdated information, and remove anything that is no longer true. This file is the single source of truth for future sessions; stale documentation causes mistakes.
-- Compress working context: Once you've read and understood CLAUDE.md and the codebase, proactively compress and compact your working context as you go so you maintain continuity and avoid forgetting details, making repeat mistakes, or complaining about prompt/token length/limits. Summarize what you've learned, discard redundant detail, and keep a tight mental model of the project.
+- Reduce hallucinations: Never speculate about code you have not opened. If the user references a specific file, you or a dedicated sub-agent MUST read it before answering. Always investigate and read relevant files BEFORE making claims about the codebase.
+- Keep CLAUDE.md accurate: Before pushing any change set to GitHub, review CLAUDE.md and update it to reflect your changes—add new files, update outdated/redundant information, and remove anything that is incorrect and/or no longer true. This file is the single source of truth for future sessions; stale documentation causes mistakes.
+- Compress working context: Once you've read and understood CLAUDE.md and understand the codebase, proactively compress and compact your working context as you go so you maintain continuity and avoid forgetting details, making repeat mistakes, or complaining about prompt/token length/limits. 
+- Protect main context window via subagents: Default to offloading tasks to Claude Code subagents—anything involving >2 files, long logs, or external research—so the main thread's context window is open for decisions and final integration. Subagents must report back briefly (no raw dumps) in this format: Findings / Evidence (file:line or command + key output) / Risks / Next step (≤12 bullets total). Plans and ToDos must label items as [DELEGATE] -offloaded tasks- (include deliverable) OR [MAIN] -performed by main agent OR team lead-.
 
 ---
 
