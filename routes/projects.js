@@ -1,22 +1,11 @@
 /**
- * =============================================================================
- * PROJECT ROUTES - Server-Side Project Storage
- * =============================================================================
+ * Project Routes — Server-side project storage (CRUD).
+ * All endpoints require authentication; users can only access their own projects.
  *
- * CRUD endpoints for managing editing projects. Replaces client-side
- * IndexedDB/localStorage with persistent server-backed storage.
- *
- * All endpoints require authentication (requireAuth middleware).
- * Users can only access their own projects (enforced by user_id checks).
- *
- * ENDPOINTS:
- * ----------
- * GET    /api/projects      - List user's projects (metadata only)
- * GET    /api/projects/:id  - Get full project data (includes text content)
- * PUT    /api/projects/:id  - Save/update a project (upsert)
- * DELETE /api/projects/:id  - Delete a project
- *
- * =============================================================================
+ * GET    /api/projects     - List user's projects (metadata only)
+ * GET    /api/projects/:id - Get full project data
+ * PUT    /api/projects/:id - Save/update a project (upsert)
+ * DELETE /api/projects/:id - Delete a project
  */
 
 'use strict';
@@ -31,16 +20,9 @@ const logger = require('../services/logger');
 const MAX_PROJECT_TEXT_LENGTH = config.PROJECTS.MAX_TEXT_LENGTH;
 const MAX_PROJECTS_PER_USER = config.PROJECTS.MAX_PER_USER;
 
-// =============================================================================
-// HELPERS
-// =============================================================================
+// --- Helpers ---
 
-/**
- * Format a database row into a project metadata object for list responses.
- *
- * @param {Object} row - Database row
- * @returns {Object} Formatted project metadata
- */
+/** Format a database row into project metadata for list responses. */
 function formatProjectMeta(row) {
   return {
     id: row.id,
@@ -55,13 +37,7 @@ function formatProjectMeta(row) {
   };
 }
 
-/**
- * Safely parse JSON with fallback for corrupted data.
- *
- * @param {string|null} json - JSON string to parse
- * @param {*} fallback - Fallback value if parsing fails
- * @returns {*} Parsed value or fallback
- */
+/** Safely parse JSON with fallback for corrupted data. */
 function safeJsonParse(json, fallback) {
   if (!json) return fallback;
   try {
@@ -72,12 +48,7 @@ function safeJsonParse(json, fallback) {
   }
 }
 
-/**
- * Format a database row into a full project object (including text content).
- *
- * @param {Object} row - Database row with all columns
- * @returns {Object} Full project data
- */
+/** Format a database row into a full project object (including text content). */
 function formatProjectFull(row) {
   const meta = formatProjectMeta(row);
   return {
@@ -91,21 +62,11 @@ function formatProjectFull(row) {
   };
 }
 
-// =============================================================================
-// LIST PROJECTS
-// =============================================================================
+// --- Routes ---
 
 /**
  * GET /api/projects
- *
- * List projects for the authenticated user with pagination.
- * Returns metadata only (no large text fields) for efficient listing.
- *
- * Query params:
- *   limit  (optional, default 20, max 50)
- *   offset (optional, default 0)
- *
- * Response: { projects: [...], total: number, limit: number, offset: number }
+ * List projects with pagination. Returns metadata only (no large text fields).
  */
 router.get('/api/projects', requireAuth, (req, res) => {
   try {
@@ -118,7 +79,6 @@ router.get('/api/projects', requireAuth, (req, res) => {
     const rows = database.projects.listByUser(req.user.userId, limit, offset);
     const projects = rows.map(formatProjectMeta);
 
-    // ETag based on latest updated_at for cache validation
     if (rows.length > 0) {
       const latestUpdate = rows[0].updated_at;
       const etag = `"projects-${req.user.userId}-${latestUpdate}"`;
@@ -136,18 +96,7 @@ router.get('/api/projects', requireAuth, (req, res) => {
   }
 });
 
-// =============================================================================
-// GET SINGLE PROJECT
-// =============================================================================
-
-/**
- * GET /api/projects/:id
- *
- * Get a single project with full data (including text content).
- * Used when resuming editing or downloading a completed project.
- *
- * Response: Full project object
- */
+/** GET /api/projects/:id — Get a single project with full data. */
 router.get('/api/projects/:id', requireAuth, (req, res) => {
   try {
     const row = database.projects.findById(req.params.id, req.user.userId);
@@ -161,18 +110,9 @@ router.get('/api/projects/:id', requireAuth, (req, res) => {
   }
 });
 
-// =============================================================================
-// SAVE/UPDATE PROJECT
-// =============================================================================
-
 /**
  * PUT /api/projects/:id
- *
  * Save or update a project (upsert). Creates if new, updates if existing.
- * Called after each chunk is edited and on completion.
- *
- * Request body: Project data (fileName, originalText, editedChunks, etc.)
- * Response: { project: metadata }
  */
 router.put('/api/projects/:id', requireAuth, (req, res) => {
   try {
@@ -184,7 +124,6 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
       customStyleGuide
     } = req.body;
 
-    // Validate required fields
     if (!fileName || typeof fileName !== 'string' || !fileName.trim()) {
       return res.status(400).json({ error: 'fileName is required and cannot be empty' });
     }
@@ -193,7 +132,6 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
 
-    // Validate text sizes (both original and edited must be within limits)
     if (originalText && originalText.length > MAX_PROJECT_TEXT_LENGTH) {
       return res.status(400).json({ error: 'Original text exceeds maximum size' });
     }
@@ -210,10 +148,8 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
       return res.status(400).json({ error: `File name exceeds maximum length (${config.PROJECTS.MAX_FILE_NAME_LENGTH} chars)` });
     }
 
-    // Use transaction for atomic check-and-save to prevent race conditions
-    // where two concurrent requests could both pass the limit check
+    // Atomic check-and-save to prevent concurrent requests bypassing the limit
     const saved = database.transaction(() => {
-      // Check project limit (only for new projects)
       const existing = database.projects.findById(projectId, userId);
       if (!existing) {
         const count = database.projects.count(userId);
@@ -242,7 +178,6 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
 
     res.json({ project: formatProjectMeta(saved) });
   } catch (err) {
-    // Handle known errors with custom status codes
     if (err.status) {
       return res.status(err.status).json({ error: err.message });
     }
@@ -251,17 +186,7 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
   }
 });
 
-// =============================================================================
-// DELETE PROJECT
-// =============================================================================
-
-/**
- * DELETE /api/projects/:id
- *
- * Delete a project owned by the authenticated user.
- *
- * Response: { success: true }
- */
+/** DELETE /api/projects/:id — Delete a project owned by the authenticated user. */
 router.delete('/api/projects/:id', requireAuth, (req, res) => {
   try {
     const deleted = database.projects.delete(req.params.id, req.user.userId);

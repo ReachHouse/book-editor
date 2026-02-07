@@ -1,27 +1,10 @@
-/**
- * =============================================================================
- * PROCESSING VIEW COMPONENT
- * =============================================================================
- *
- * Displays the editing progress while the document is being processed.
- * Shows a step indicator, progress bar, status messages, and a debug log.
- *
- * PROPS:
- * ------
- * @param {Object} progress - Progress state object (current, total, stage)
- * @param {Array} debugLog - Array of log entries
- *
- * =============================================================================
- */
+/** ProcessingView — Editing progress display with step indicator and debug log. */
 
 import React from 'react';
 import { FileText, PenTool, CheckCircle, Loader } from 'lucide-react';
 import DebugLog from './DebugLog';
 
-/**
- * Derive the current processing phase from the stage string.
- * Returns 0 (preparing), 1 (editing), or 2 (finalizing).
- */
+/** Returns 0 (preparing), 1 (editing), or 2 (finalizing). */
 function getPhase(stage) {
   if (!stage) return 0;
   const s = stage.toLowerCase();
@@ -36,9 +19,6 @@ const STEPS = [
   { label: 'Complete', Icon: CheckCircle },
 ];
 
-/**
- * Processing progress display with step indicator and debug log.
- */
 function ProcessingView({ progress, debugLog }) {
   const percentage = progress.total > 0
     ? Math.round((progress.current / progress.total) * 100)

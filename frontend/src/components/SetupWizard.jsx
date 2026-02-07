@@ -1,26 +1,4 @@
-/**
- * =============================================================================
- * SETUP WIZARD COMPONENT
- * =============================================================================
- *
- * First-time setup wizard shown when the application has no users.
- * Allows creating the initial admin account through a browser-based form.
- *
- * SECURITY:
- * ---------
- * - Only displayed when /api/setup/status returns { needsSetup: true }
- * - Requires SETUP_SECRET environment variable to be configured on server
- * - User must provide matching setup secret to complete setup
- * - Backend enforces that setup endpoints only work with zero users
- * - Uses same validation as regular registration (password complexity, etc.)
- *
- * PROPS:
- * ------
- * @param {function} onSetupComplete - Callback when setup finishes successfully
- * @param {boolean} setupEnabled - Whether SETUP_SECRET is configured on server
- *
- * =============================================================================
- */
+/** SetupWizard — First-time admin account creation wizard. */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Shield, AlertCircle, Loader, CheckCircle, ArrowRight, Key, Lock } from 'lucide-react';

@@ -1,18 +1,4 @@
-/**
- * =============================================================================
- * DOCUMENT ANALYSIS COMPONENT
- * =============================================================================
- *
- * Displays document metadata after a file is uploaded, before editing begins.
- *
- * PROPS:
- * ------
- * @param {Object} analysis - Document metadata object
- * @param {function} onStartEditing - Callback when user clicks "Start Editing"
- * @param {function} onCancel - Callback when user clicks "Cancel"
- *
- * =============================================================================
- */
+/** DocumentAnalysis — Document metadata display shown before editing begins. */
 
 import React, { useState } from 'react';
 import { CheckCircle, FileText, Hash, AlignLeft, Globe, Clock, Layers, Lock, X } from 'lucide-react';
@@ -27,9 +13,6 @@ const ANALYSIS_FIELDS = [
   { key: 'estimatedTime', label: 'Est. Time', icon: Clock },
 ];
 
-/**
- * Document analysis display with start/cancel actions.
- */
 function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
   const { isGuest, logout } = useAuth();
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(false);

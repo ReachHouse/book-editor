@@ -1,53 +1,18 @@
-/**
- * =============================================================================
- * FILE UPLOAD COMPONENT
- * =============================================================================
- *
- * Provides a drag-and-drop style upload area for Word documents.
- * This is the first step in the editing workflow.
- *
- * PROPS:
- * ------
- * @param {function} onFileSelect - Callback when a file is selected
- *                                  Receives the File object as parameter
- *
- * SUPPORTED FORMATS:
- * ------------------
- * - .doc  (Microsoft Word 97-2003)
- * - .docx (Microsoft Word 2007+)
- *
- * =============================================================================
- */
+/** FileUpload — Drag-and-drop upload area for Word documents. */
 
 import React, { useState } from 'react';
 import { Upload, FileText } from 'lucide-react';
 
-/**
- * File upload component for Word document selection.
- *
- * @param {Object} props - Component props
- * @param {function} props.onFileSelect - Callback receiving the selected File object
- */
-// Maximum file size: 50MB (matches backend limit)
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
-/**
- * Validate file before passing to callback.
- * Checks file extension and size limits.
- *
- * @param {File} file - The file to validate
- * @returns {string|null} Error message or null if valid
- */
 function validateFile(file) {
   if (!file) return 'No file selected';
 
-  // Check file extension
   const ext = file.name.toLowerCase().split('.').pop();
   if (ext !== 'doc' && ext !== 'docx') {
     return 'Please select a Word document (.doc or .docx)';
   }
 
-  // Check file size
   if (file.size > MAX_FILE_SIZE) {
     const sizeMB = Math.round(file.size / 1024 / 1024);
     return `File too large (${sizeMB}MB). Maximum size is 50MB.`;

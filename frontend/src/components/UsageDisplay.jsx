@@ -1,35 +1,11 @@
-/**
- * =============================================================================
- * USAGE DISPLAY COMPONENT
- * =============================================================================
- *
- * Shows the user's daily and monthly token usage with progress bars.
- * Compact display designed to fit in the header area.
- *
- * PROPS:
- * ------
- * (none - fetches its own data)
- *
- * =============================================================================
- */
+/** UsageDisplay — Daily and monthly token usage display with progress bars. */
 
 import React, { useState, useEffect } from 'react';
 import { BarChart3, Lock } from 'lucide-react';
 import { getUsage } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
-/**
- * Format a token count for display (e.g., 500000 -> "500K").
- *
- * Token limit semantics:
- *   -1 (or < -1) = Unlimited (no restrictions)
- *    0 = Restricted (cannot use API)
- *   >0 = Specific limit
- *
- * @param {number} count - Token count
- * @param {boolean} isLimit - Whether this is a limit value
- * @returns {string} Formatted string
- */
+/** Format a token count for display (e.g., 500000 -> "500K"). Limit: -1=unlimited, 0=restricted. */
 function formatTokenCount(count, isLimit = false) {
   if (isLimit) {
     // Any negative value is treated as unlimited (handles edge cases/corruption)
@@ -45,45 +21,20 @@ function formatTokenCount(count, isLimit = false) {
   return count.toString();
 }
 
-/**
- * Check if a limit value represents unlimited.
- * Any negative value is treated as unlimited (handles edge cases/corruption).
- *
- * @param {number} limit - The limit value
- * @returns {boolean} True if unlimited
- */
 function isUnlimited(limit) {
   return limit < 0;
 }
 
-/**
- * Check if a limit value represents restricted (0).
- *
- * @param {number} limit - The limit value
- * @returns {boolean} True if restricted
- */
 function isRestricted(limit) {
   return limit === 0;
 }
 
-/**
- * Get the color class for a limit value.
- *
- * @param {number} limit - The limit value
- * @returns {string} Tailwind color class
- */
 function getLimitColorClass(limit) {
   if (isUnlimited(limit)) return 'text-amber-400 font-medium';
   if (isRestricted(limit)) return 'text-red-400 font-medium';
   return '';
 }
 
-/**
- * Get the color class based on usage percentage.
- *
- * @param {number} percentage - Usage percentage (0-100)
- * @returns {string} Tailwind color class
- */
 function getBarColor(percentage) {
   if (percentage >= 90) return 'bg-red-500';
   if (percentage >= 75) return 'bg-amber-500';

@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * PARAGRAPH CREATION
- * =============================================================================
- *
- * Functions for creating Word paragraphs with Track Changes.
- * Handles paragraph-level and word-level change tracking.
- *
- * =============================================================================
- */
+/** Paragraph Creation — Word paragraphs with paragraph-level and word-level Track Changes. */
 
 const {
   Paragraph,

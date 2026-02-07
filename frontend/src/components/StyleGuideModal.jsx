@@ -1,35 +1,9 @@
-/**
- * =============================================================================
- * STYLE GUIDE MODAL COMPONENT
- * =============================================================================
- *
- * Full-screen modal displaying/editing the Reach House Style Guide.
- *
- * Supports two modes:
- * - 'view': Read-only display of the style guide (default)
- * - 'edit': Editable textarea with Save/Reset buttons
- *
- * PROPS:
- * ------
- * @param {boolean} isOpen - Whether the modal is visible
- * @param {function} onClose - Callback to close the modal
- * @param {'edit'|'view'} mode - Edit mode or view-only mode (default: 'view')
- * @param {string} value - Current style guide text (used in edit mode)
- * @param {function} onChange - Callback when text changes (edit mode only)
- * @param {function} onSave - Callback when Save is clicked (edit mode only)
- * @param {function} onReset - Callback when Reset to Default is clicked (edit mode only)
- *
- * =============================================================================
- */
+/** StyleGuideModal — Modal for viewing or editing the Reach House Style Guide. */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { BookOpen, X, RotateCcw } from 'lucide-react';
 import { FULL_STYLE_GUIDE_DOCUMENT, MAX_CUSTOM_STYLE_GUIDE_LENGTH } from '../constants';
 
-/**
- * Modal displaying/editing the Reach House style guide.
- * Supports entry and exit animations via isClosing state.
- */
 function StyleGuideModal({
   isOpen,
   onClose,

@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * INVITE CODES TAB COMPONENT
- * =============================================================================
- *
- * Admin tab for managing invite codes: view all codes, generate new codes,
- * copy to clipboard, and delete unused codes.
- *
- * =============================================================================
- */
+/** InviteCodesTab — Admin tab for generating, copying, and deleting invite codes. */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {

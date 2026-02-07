@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * DOCUMENT SERVICE CONSTANTS
- * =============================================================================
- *
- * Configuration values for document generation with Track Changes.
- * Centralizes all magic numbers and settings for easy modification.
- *
- * =============================================================================
- */
+/** Document Constants — Configuration values for Track Changes generation. */
 
 // Minimum word count for a change to get an inline comment
 const SIGNIFICANT_CHANGE_THRESHOLD = 3;

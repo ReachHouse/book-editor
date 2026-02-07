@@ -13,6 +13,7 @@ Canonical, reverse-chronological record of all meaningful changes merged into `m
 
 ## 2026-02-07
 
+- v1.57.0: Codebase cleanup — replace verbose `=====` dividers with concise JSDoc headers across all files, consolidate duplicate comment blocks in frontend components, replace console.log startup banner with structured logger, condense over-documented middleware comments, align version numbers across package.json files (1.54/1.49→1.57), trim 144-line version history from version.js into CHANGELOG.md, remove redundant inline comments.
 - **`562539a`** — v1.56.0: Decompose AdminDashboard into focused sub-components (1009→101 lines), adopt error classes in authService, centralize default token limits, deduplicate LimitEditor/RoleDefaultsEditor, Vite code splitting (699KB→73KB main bundle). Also includes v1.55.0 hardening: fix stale JWT role, token refresh race, Jaccard similarity >1.0, circuit breaker HALF_OPEN, null hash crash, session cleanup on user delete.
 - **`4f33e5d`** — Remove deprecated `update.sh` and `ROADMAP.md`, fix stale references in deploy docs and config files.
 - **`1fd04a7`** — Update CLAUDE.md: clarify guidelines and fix technical inaccuracies.

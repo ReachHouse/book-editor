@@ -1,32 +1,4 @@
-/**
- * =============================================================================
- * CUSTOM ERROR CLASSES
- * =============================================================================
- *
- * Provides a hierarchy of typed errors for consistent error handling
- * across the application.
- *
- * USAGE:
- * ------
- * const { ValidationError, AuthError, NotFoundError } = require('./services/errors');
- *
- * throw new ValidationError('Email is required');
- * throw new AuthError('Invalid credentials');
- * throw new NotFoundError('User');
- * throw new RateLimitError('Daily token limit reached');
- * throw new ServiceUnavailableError('Claude API is temporarily unavailable');
- *
- * ERROR HANDLING IN ROUTES:
- * -------------------------
- * catch (err) {
- *   if (err instanceof AppError) {
- *     return res.status(err.status).json({ error: err.message });
- *   }
- *   // Unknown error — log and return 500
- * }
- *
- * =============================================================================
- */
+/** Custom Error Classes — Typed error hierarchy for consistent HTTP error handling. */
 
 'use strict';
 

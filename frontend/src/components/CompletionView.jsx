@@ -1,26 +1,8 @@
-/**
- * =============================================================================
- * COMPLETION VIEW COMPONENT
- * =============================================================================
- *
- * Displayed when document editing is complete. Shows a success message
- * and provides options to download the edited document or start a new edit.
- *
- * PROPS:
- * ------
- * @param {function} onDownload - Callback to download the edited document
- * @param {function} onEditAnother - Callback to reset and upload a new document
- * @param {boolean} isDownloading - True while document generation is in progress
- *
- * =============================================================================
- */
+/** CompletionView — Success screen with download and reset options. */
 
 import React from 'react';
 import { CheckCircle, Download, Loader } from 'lucide-react';
 
-/**
- * Completion screen with download and reset options.
- */
 function CompletionView({ onDownload, onEditAnother, isDownloading }) {
   return (
     <div className="glass-card p-6 sm:p-8 animate-scale-in">

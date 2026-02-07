@@ -1,7 +1,7 @@
 {
   "name": "book-editor-frontend",
   "private": true,
-  "version": "1.49.0",
+  "version": "1.57.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

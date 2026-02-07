@@ -1,13 +1,4 @@
-/**
- * =============================================================================
- * DOCUMENT SERVICE UTILITIES
- * =============================================================================
- *
- * Helper functions for document generation.
- * Statistics tracking, word counting, and text analysis.
- *
- * =============================================================================
- */
+/** Document Utilities — Stats tracking, word counting, and text analysis helpers. */
 
 /**
  * Create a new statistics tracking context.

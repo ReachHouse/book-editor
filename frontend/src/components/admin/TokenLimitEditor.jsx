@@ -1,24 +1,4 @@
-/**
- * =============================================================================
- * TOKEN LIMIT EDITOR COMPONENT
- * =============================================================================
- *
- * Unified editor for daily/monthly token limits.
- * Used by both UsersTab (per-user limits) and RoleDefaultsTab (role defaults).
- *
- * Previously existed as two nearly identical components: LimitEditor and
- * RoleDefaultsEditor. Merged into one with a configurable idPrefix prop.
- *
- * PROPS:
- * ------
- * @param {number} dailyLimit - Current daily token limit value
- * @param {number} monthlyLimit - Current monthly token limit value
- * @param {function} onSave - Callback with (daily, monthly) string values
- * @param {function} onCancel - Callback to close the editor
- * @param {string} [idPrefix='limit'] - Prefix for input element IDs
- *
- * =============================================================================
- */
+/** TokenLimitEditor — Inline editor for daily/monthly token limits. */
 
 import React, { useState } from 'react';
 

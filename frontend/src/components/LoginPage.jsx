@@ -1,17 +1,4 @@
-/**
- * =============================================================================
- * LOGIN PAGE COMPONENT
- * =============================================================================
- *
- * Full-page login form displayed when the user is not authenticated.
- * Provides email/username + password login and a link to switch to registration.
- *
- * PROPS:
- * ------
- * @param {function} onSwitchToRegister - Callback to show RegisterPage instead
- *
- * =============================================================================
- */
+/** LoginPage — Login form with email/username and password. */
 
 import React, { useState } from 'react';
 import { FileText, LogIn, AlertCircle, Loader, Eye } from 'lucide-react';

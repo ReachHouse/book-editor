@@ -1,41 +1,6 @@
 /**
- * =============================================================================
- * DATABASE SERVICE
- * =============================================================================
- *
- * Provides a SQLite database layer using better-sqlite3 for persistent
- * server-side storage of users, sessions, invite codes, and usage logs.
- *
- * WHY SQLITE:
- * -----------
- * - File-based: no external database server needed
- * - Single-file persistence with Docker volume
- * - Synchronous API (better-sqlite3) — simpler code, no callback hell
- * - More than sufficient for expected load (< 50 concurrent users)
- * - ACID transactions out of the box
- *
- * USAGE:
- * ------
- * const { database } = require('./services/database');
- *
- * // Initialize (call once at server startup)
- * database.init();
- *
- * // Use query helpers
- * const user = database.users.findByEmail('admin@example.com');
- * database.usageLogs.create({ userId: 1, endpoint: '/api/edit-chunk', ... });
- *
- * // Graceful shutdown
- * database.close();
- *
- * MIGRATIONS:
- * -----------
- * Schema changes are versioned in database/migrations/.
- * Each migration file exports an up(db) function.
- * The schema_version table tracks which migrations have been applied.
- * New migrations run automatically on init().
- *
- * =============================================================================
+ * Database Service — SQLite layer (better-sqlite3) for users, sessions,
+ * invite codes, usage logs, and projects. Auto-runs versioned migrations on init.
  */
 
 'use strict';
@@ -63,9 +28,7 @@ class DatabaseService {
     this.initialized = false;
   }
 
-  // ===========================================================================
-  // INITIALIZATION
-  // ===========================================================================
+  // --- Initialization ---
 
   /**
    * Initialize the database connection, run migrations, and seed defaults.
@@ -109,9 +72,7 @@ class DatabaseService {
     }
   }
 
-  // ===========================================================================
-  // MIGRATION SYSTEM
-  // ===========================================================================
+  // --- Migration System ---
 
   /**
    * Run all pending migrations in order.
@@ -161,9 +122,7 @@ class DatabaseService {
     }
   }
 
-  // ===========================================================================
-  // USERS
-  // ===========================================================================
+  // --- Users ---
 
   /**
    * User query helpers.
@@ -290,9 +249,7 @@ class DatabaseService {
     };
   }
 
-  // ===========================================================================
-  // INVITE CODES
-  // ===========================================================================
+  // --- Invite Codes ---
 
   /**
    * Invite code query helpers.
@@ -373,9 +330,7 @@ class DatabaseService {
     };
   }
 
-  // ===========================================================================
-  // SESSIONS
-  // ===========================================================================
+  // --- Sessions ---
 
   /**
    * Session (refresh token) query helpers.
@@ -445,9 +400,7 @@ class DatabaseService {
     };
   }
 
-  // ===========================================================================
-  // USAGE LOGS
-  // ===========================================================================
+  // --- Usage Logs ---
 
   /**
    * Usage log query helpers.
@@ -584,9 +537,7 @@ class DatabaseService {
     };
   }
 
-  // ===========================================================================
-  // PROJECTS
-  // ===========================================================================
+  // --- Projects ---
 
   /**
    * Project query helpers.
@@ -747,9 +698,7 @@ class DatabaseService {
     };
   }
 
-  // ===========================================================================
-  // ROLE DEFAULTS
-  // ===========================================================================
+  // --- Role Defaults ---
 
   /**
    * Role defaults query helpers.
@@ -810,9 +759,7 @@ class DatabaseService {
     };
   }
 
-  // ===========================================================================
-  // RAW ACCESS (for advanced queries and transactions)
-  // ===========================================================================
+  // --- Raw Access ---
 
   /**
    * Get the raw better-sqlite3 database instance.

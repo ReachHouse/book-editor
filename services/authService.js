@@ -1,37 +1,6 @@
 /**
- * =============================================================================
- * AUTHENTICATION SERVICE
- * =============================================================================
- *
- * Handles password hashing, JWT token generation/verification, and user
- * authentication logic (register, login, token refresh).
- *
- * SECURITY DESIGN:
- * ----------------
- * - Passwords hashed with bcrypt (10 salt rounds)
- * - Access tokens: Short-lived JWTs (15 minutes)
- * - Refresh tokens: Longer-lived, stored in sessions table (7 days)
- * - Account lockout after 5 failed login attempts (15-minute cooldown)
- * - Registration requires a valid, unused invite code
- * - Admin seeds with plain-text marker are re-hashed on first login
- *
- * USAGE:
- * ------
- * const { authService } = require('./services/authService');
- *
- * // Register a new user
- * const result = await authService.register({ username, email, password, inviteCode });
- *
- * // Login
- * const result = await authService.login({ identifier, password });
- *
- * // Refresh tokens
- * const result = await authService.refreshToken(refreshToken);
- *
- * // Logout
- * authService.logout(refreshToken);
- *
- * =============================================================================
+ * Auth Service — Password hashing (bcrypt), JWT token management, and
+ * user authentication (register, login, refresh, logout).
  */
 
 'use strict';
@@ -44,9 +13,7 @@ const config = require('../config/app');
 const logger = require('./logger');
 const { AppError, ValidationError, AuthError, ConflictError, RateLimitError } = require('./errors');
 
-// =============================================================================
-// CONFIGURATION (from centralized config)
-// =============================================================================
+// --- Configuration ---
 
 const BCRYPT_SALT_ROUNDS = config.AUTH.BCRYPT_SALT_ROUNDS;
 const ACCESS_TOKEN_EXPIRY = config.AUTH.ACCESS_TOKEN_EXPIRY;
@@ -73,9 +40,7 @@ function getJwtSecret() {
   return getJwtSecret._fallback;
 }
 
-// =============================================================================
-// PASSWORD UTILITIES
-// =============================================================================
+// --- Password Utilities ---
 
 /**
  * Hash a plaintext password with bcrypt.
@@ -108,9 +73,7 @@ async function verifyPassword(password, hash) {
   return bcrypt.compare(password, hash);
 }
 
-// =============================================================================
-// TOKEN UTILITIES
-// =============================================================================
+// --- Token Utilities ---
 
 /**
  * Generate a JWT access token for the given user.
@@ -162,9 +125,7 @@ function verifyAccessToken(token) {
   return jwt.verify(token, getJwtSecret());
 }
 
-// =============================================================================
-// AUTH SERVICE
-// =============================================================================
+// --- Auth Service ---
 
 const authService = {
   /**
@@ -428,9 +389,7 @@ const authService = {
   }
 };
 
-// =============================================================================
-// HELPERS
-// =============================================================================
+// --- Helpers ---
 
 /**
  * Remove sensitive fields from a user object before sending to the client.
@@ -448,9 +407,7 @@ function sanitizeUser(user) {
   return safe;
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
+// --- Exports ---
 
 module.exports = {
   authService,

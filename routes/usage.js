@@ -1,21 +1,9 @@
 /**
- * =============================================================================
- * USAGE ROUTES - Token Usage Tracking & Reporting
- * =============================================================================
+ * Usage Routes — Token usage tracking and reporting.
  *
- * Endpoints for users to view their own token usage and for admins to view
- * system-wide usage statistics.
- *
- * All endpoints require authentication (requireAuth middleware).
- * Admin endpoints additionally require admin role (requireAdmin middleware).
- *
- * ENDPOINTS:
- * ----------
- * GET /api/usage          - Get authenticated user's usage summary
- * GET /api/usage/history  - Get authenticated user's recent usage history
- * GET /api/admin/usage    - Get system-wide usage stats (admin only)
- *
- * =============================================================================
+ * GET /api/usage         - Authenticated user's usage summary
+ * GET /api/usage/history - Authenticated user's recent usage history
+ * GET /api/admin/usage   - System-wide usage stats (admin only)
  */
 
 'use strict';
@@ -26,20 +14,9 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { database } = require('../services/database');
 const logger = require('../services/logger');
 
-// =============================================================================
-// USER USAGE ENDPOINTS
-// =============================================================================
+// --- User Endpoints ---
 
-/**
- * GET /api/usage
- *
- * Get the authenticated user's usage summary including:
- * - Daily token usage and limit
- * - Monthly token usage and limit
- * - Percentage of limits used
- *
- * Response: { daily: {...}, monthly: {...}, limits: {...} }
- */
+/** GET /api/usage — Get the authenticated user's daily/monthly usage summary. */
 router.get('/api/usage', requireAuth, (req, res) => {
   try {
     const userId = req.user.userId;
@@ -52,7 +29,6 @@ router.get('/api/usage', requireAuth, (req, res) => {
     const daily = database.usageLogs.getDailyUsage(userId);
     const monthly = database.usageLogs.getMonthlyUsage(userId);
 
-    // Calculate percentage: -1 = unlimited, 0 = restricted, >0 = actual percentage
     const dailyPercentage = user.daily_token_limit > 0
       ? Math.min(100, Math.round((daily.total / user.daily_token_limit) * 100))
       : null;
@@ -88,17 +64,11 @@ router.get('/api/usage', requireAuth, (req, res) => {
 
 /**
  * GET /api/usage/history
- *
- * Get the authenticated user's recent API call history.
- *
- * Query params:
- *   limit (optional, default 50, max 200)
- *
- * Response: { history: [...] }
+ * Get authenticated user's recent API call history.
+ * Query: ?limit=50 (default 50, max 200)
  */
 router.get('/api/usage/history', requireAuth, (req, res) => {
   try {
-    // Clamp limit to 1-200 range, defaulting to 50
     const parsed = parseInt(req.query.limit, 10);
     const limit = Math.max(1, Math.min(isNaN(parsed) ? 50 : parsed, 200));
     const history = database.usageLogs.getHistory(req.user.userId, limit);
@@ -121,20 +91,11 @@ router.get('/api/usage/history', requireAuth, (req, res) => {
   }
 });
 
-// =============================================================================
-// ADMIN USAGE ENDPOINTS
-// =============================================================================
+// --- Admin Endpoint ---
 
-/**
- * GET /api/admin/usage
- *
- * Get system-wide usage statistics (admin only).
- *
- * Response: { system: {...}, users: [...] }
- */
+/** GET /api/admin/usage — System-wide usage statistics (admin only). */
 router.get('/api/admin/usage', requireAdmin, (req, res) => {
   try {
-    // Fetch all data in batch queries (4 queries total instead of 1 + 2N)
     const systemStats = database.usageLogs.getSystemStats();
     const allUsers = database.users.listAll();
     const dailyUsageMap = database.usageLogs.getAllDailyUsage();
@@ -146,7 +107,6 @@ router.get('/api/admin/usage', requireAdmin, (req, res) => {
       const daily = dailyUsageMap.get(user.id) || defaultUsage;
       const monthly = monthlyUsageMap.get(user.id) || defaultUsage;
 
-      // Calculate percentage: -1 = unlimited, 0 = restricted, >0 = actual percentage
       const dailyPercentage = user.daily_token_limit > 0
         ? Math.min(100, Math.round((daily.total / user.daily_token_limit) * 100))
         : null;

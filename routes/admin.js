@@ -1,35 +1,15 @@
 /**
- * =============================================================================
- * ADMIN ROUTES - User, Role & Invite Code Management
- * =============================================================================
+ * Admin Routes — User, role & invite code management.
+ * All endpoints require admin role.
  *
- * Admin-only endpoints for managing users, roles, and invite codes.
- * All endpoints require admin role (requireAdmin middleware).
- *
- * ENDPOINTS:
- * ----------
- * GET    /api/admin/users            - List all users with usage
- * PUT    /api/admin/users/:id        - Update user (role, limits, active)
- * DELETE /api/admin/users/:id        - Delete a user
- * GET    /api/admin/invite-codes     - List all invite codes
- * POST   /api/admin/invite-codes     - Generate a new invite code
- * DELETE /api/admin/invite-codes/:id - Delete an unused invite code
- * GET    /api/admin/role-defaults    - List default limits for all roles
+ * GET    /api/admin/users               - List all users with usage
+ * PUT    /api/admin/users/:id           - Update user (role, limits, active)
+ * DELETE /api/admin/users/:id           - Delete a user
+ * GET    /api/admin/invite-codes        - List all invite codes
+ * POST   /api/admin/invite-codes        - Generate a new invite code
+ * DELETE /api/admin/invite-codes/:id    - Delete an unused invite code
+ * GET    /api/admin/role-defaults       - List default limits for all roles
  * PUT    /api/admin/role-defaults/:role - Update default limits for a role
- *
- * ROLES:
- * ------
- * - admin: Full access, unlimited tokens (-1)
- * - user:  Standard access, 500K daily / 10M monthly default
- * - guest: Guest access, 0 tokens (cannot use API)
- *
- * TOKEN LIMIT SEMANTICS:
- * ----------------------
- * -  -1 = Unlimited (no restrictions)
- * -   0 = Restricted (cannot use API)
- * -  >0 = Specific limit (enforced)
- *
- * =============================================================================
  */
 
 'use strict';
@@ -42,25 +22,17 @@ const { database } = require('../services/database');
 const config = require('../config/app');
 const logger = require('../services/logger');
 
-// Valid roles and limits from centralized config
 const VALID_ROLES = config.VALID_ROLES;
 const MAX_TOKEN_LIMIT = config.TOKEN_LIMITS.MAX;
 
-// =============================================================================
-// USER MANAGEMENT
-// =============================================================================
+// --- User Management ---
 
 /**
  * GET /api/admin/users
- *
- * List all users with their current usage data.
- * Returns sanitized user objects (no password hashes).
- *
- * Response: { users: [...] }
+ * List all users with current usage data. No password hashes returned.
  */
 router.get('/api/admin/users', requireAdmin, (req, res) => {
   try {
-    // Fetch all data in batch queries (3 queries total instead of 1 + 3N)
     const allUsers = database.users.listAll();
     const dailyUsageMap = database.usageLogs.getAllDailyUsage();
     const monthlyUsageMap = database.usageLogs.getAllMonthlyUsage();
@@ -73,7 +45,6 @@ router.get('/api/admin/users', requireAdmin, (req, res) => {
       const monthly = monthlyUsageMap.get(user.id) || defaultUsage;
       const projectCount = projectCountMap.get(user.id) || 0;
 
-      // Calculate percentage: -1 = unlimited (null%), 0 = restricted (null%), >0 = actual percentage
       const dailyPercentage = user.daily_token_limit > 0
         ? Math.min(100, Math.round((daily.total / user.daily_token_limit) * 100))
         : null;
@@ -118,19 +89,8 @@ router.get('/api/admin/users', requireAdmin, (req, res) => {
 
 /**
  * PUT /api/admin/users/:id
- *
  * Update a user's role, active status, or token limits.
- * Admins cannot deactivate, change their own role, or set their own limits to 0 (restricted).
- *
- * Request body (all optional):
- *   {
- *     role?: 'admin' | 'user' | 'guest',
- *     isActive?: boolean,
- *     dailyTokenLimit?: number,   // -1 = unlimited, 0 = restricted, >0 = limit
- *     monthlyTokenLimit?: number  // -1 = unlimited, 0 = restricted, >0 = limit
- *   }
- *
- * Response: { user: {...} }
+ * Admins cannot change their own role or restrict themselves.
  */
 router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
   try {
@@ -155,7 +115,6 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
       if (isActive !== undefined && !isActive) {
         return res.status(400).json({ error: 'Cannot deactivate your own account' });
       }
-      // Prevent setting own limits to 0 (restricted) - would lock out of API
       if (dailyTokenLimit !== undefined && parseInt(dailyTokenLimit, 10) === 0) {
         return res.status(400).json({ error: 'Cannot set your own daily limit to restricted (0)' });
       }
@@ -164,7 +123,6 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
       }
     }
 
-    // Build update fields
     const fields = {};
 
     if (role !== undefined) {
@@ -180,7 +138,6 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
       fields.is_active = isActive ? 1 : 0;
     }
 
-    // Token limit validation: -1 = unlimited, 0 = restricted, >0 = specific limit
     if (dailyTokenLimit !== undefined) {
       const limit = parseInt(dailyTokenLimit, 10);
       if (isNaN(limit) || limit < -1) {
@@ -241,11 +198,7 @@ router.put('/api/admin/users/:id', requireAdmin, (req, res) => {
 
 /**
  * DELETE /api/admin/users/:id
- *
- * Delete a user and all their data (projects, sessions, usage logs).
- * Admins cannot delete themselves.
- *
- * Response: { success: true }
+ * Delete a user and all their data. Admins cannot delete themselves.
  */
 router.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
   try {
@@ -272,22 +225,16 @@ router.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
   }
 });
 
-// =============================================================================
-// INVITE CODE MANAGEMENT
-// =============================================================================
+// --- Invite Code Management ---
 
 /**
  * GET /api/admin/invite-codes
- *
  * List all invite codes with usage info.
- *
- * Response: { codes: [...] }
  */
 router.get('/api/admin/invite-codes', requireAdmin, (req, res) => {
   try {
     const allCodes = database.inviteCodes.listAll();
 
-    // Pre-fetch all users once and build a lookup map (2 queries instead of 1 + 2N)
     const allUsers = database.users.listAll();
     const userMap = new Map(allUsers.map(u => [u.id, u.username]));
 
@@ -308,13 +255,7 @@ router.get('/api/admin/invite-codes', requireAdmin, (req, res) => {
   }
 });
 
-/**
- * POST /api/admin/invite-codes
- *
- * Generate a new invite code.
- *
- * Response: { code: {...} }
- */
+/** POST /api/admin/invite-codes — Generate a new invite code. */
 router.post('/api/admin/invite-codes', requireAdmin, (req, res) => {
   try {
     const code = crypto.randomBytes(8).toString('hex').toUpperCase();
@@ -335,14 +276,7 @@ router.post('/api/admin/invite-codes', requireAdmin, (req, res) => {
   }
 });
 
-/**
- * DELETE /api/admin/invite-codes/:id
- *
- * Delete an unused invite code.
- * Cannot delete codes that have already been used.
- *
- * Response: { success: true }
- */
+/** DELETE /api/admin/invite-codes/:id — Delete an unused invite code. */
 router.delete('/api/admin/invite-codes/:id', requireAdmin, (req, res) => {
   try {
     const codeId = parseInt(req.params.id, 10);
@@ -362,18 +296,11 @@ router.delete('/api/admin/invite-codes/:id', requireAdmin, (req, res) => {
   }
 });
 
-// =============================================================================
-// ROLE DEFAULTS MANAGEMENT
-// =============================================================================
+// --- Role Defaults ---
 
 /**
  * GET /api/admin/role-defaults
- *
  * List default token limits for all roles.
- * These defaults are applied when creating new users or can be used
- * as reference when changing a user's role.
- *
- * Response: { roleDefaults: [...] }
  */
 router.get('/api/admin/role-defaults', requireAdmin, (req, res) => {
   try {
@@ -397,17 +324,7 @@ router.get('/api/admin/role-defaults', requireAdmin, (req, res) => {
 
 /**
  * PUT /api/admin/role-defaults/:role
- *
  * Update default token limits for a specific role.
- * These defaults are applied to new users with this role.
- *
- * Request body (all optional):
- *   {
- *     dailyTokenLimit?: number,   // -1 = unlimited, 0 = restricted, >0 = limit
- *     monthlyTokenLimit?: number  // -1 = unlimited, 0 = restricted, >0 = limit
- *   }
- *
- * Response: { roleDefault: {...} }
  */
 router.put('/api/admin/role-defaults/:role', requireAdmin, (req, res) => {
   try {
@@ -427,7 +344,6 @@ router.put('/api/admin/role-defaults/:role', requireAdmin, (req, res) => {
     const { dailyTokenLimit, monthlyTokenLimit } = req.body;
     const fields = {};
 
-    // Token limit validation: -1 = unlimited, 0 = restricted, >0 = specific limit
     if (dailyTokenLimit !== undefined) {
       const limit = parseInt(dailyTokenLimit, 10);
       if (isNaN(limit) || limit < -1) {

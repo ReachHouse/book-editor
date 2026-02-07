@@ -1,17 +1,4 @@
-/**
- * =============================================================================
- * REGISTER PAGE COMPONENT
- * =============================================================================
- *
- * Full-page registration form. New users must provide a valid invite code
- * (issued by an admin) to create an account.
- *
- * PROPS:
- * ------
- * @param {function} onSwitchToLogin - Callback to show LoginPage instead
- *
- * =============================================================================
- */
+/** RegisterPage — Registration form requiring an invite code. */
 
 import React, { useState } from 'react';
 import { FileText, UserPlus, AlertCircle, Loader, CheckCircle } from 'lucide-react';

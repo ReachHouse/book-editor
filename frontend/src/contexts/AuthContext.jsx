@@ -1,58 +1,18 @@
-/**
- * =============================================================================
- * AUTH CONTEXT
- * =============================================================================
- *
- * Provides authentication state and actions to the entire React app.
- *
- * STATE:
- * ------
- * - user:          Current user object (null if not logged in)
- * - loading:       True during initial auth check on mount
- * - isAuthenticated: Convenience boolean
- *
- * ACTIONS:
- * --------
- * - login(identifier, password)  - Authenticate and store tokens
- * - register(username, email, password, inviteCode) - Create account
- * - logout()                      - Clear tokens and redirect to login
- *
- * TOKEN STORAGE:
- * --------------
- * Access and refresh tokens are stored in localStorage using keys from
- * constants/index.js (AUTH_KEYS). The same keys are used by services/api.js
- * to attach Authorization headers to API requests.
- *
- * USAGE:
- * ------
- * // In App.jsx
- * import { AuthProvider } from './contexts/AuthContext';
- * <AuthProvider><App /></AuthProvider>
- *
- * // In any component
- * import { useAuth } from './contexts/AuthContext';
- * const { user, login, logout } = useAuth();
- *
- * =============================================================================
- */
+/** AuthContext -- Provides authentication state and actions (login, register, logout) to the React app. */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE_URL, AUTH_KEYS, TOKEN_REFRESH_BUFFER_MS, GUEST_USER } from '../constants';
 import { decodeJwt, isTokenExpired } from '../utils/jwtUtils';
 import { fetchWithTimeout } from '../utils/fetchUtils';
 
-// =============================================================================
-// CONTEXT
-// =============================================================================
+// --- Context ---
 
 const AuthContext = createContext(null);
 
 /** Default timeout for auth requests (15 seconds) */
 const AUTH_TIMEOUT_MS = 15000;
 
-// =============================================================================
-// PROVIDER COMPONENT
-// =============================================================================
+// --- Provider Component ---
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -68,9 +28,7 @@ export function AuthProvider({ children }) {
   // Ref to prevent concurrent refresh calls
   const refreshingRef = useRef(null);
 
-  // =========================================================================
-  // TOKEN MANAGEMENT
-  // =========================================================================
+  // --- Token Management ---
 
   /**
    * Store tokens and user in localStorage.
@@ -170,9 +128,7 @@ export function AuthProvider({ children }) {
     return refreshingRef.current;
   }, [clearAuth, storeAuth]);
 
-  // =========================================================================
-  // AUTH ACTIONS
-  // =========================================================================
+  // --- Auth Actions ---
 
   /**
    * Login with email/username and password.
@@ -260,9 +216,7 @@ export function AuthProvider({ children }) {
     clearAuth();
   }, [clearAuth]);
 
-  // =========================================================================
-  // INITIAL AUTH CHECK
-  // =========================================================================
+  // --- Initial Auth Check ---
 
   useEffect(() => {
     async function checkAuth() {
@@ -313,9 +267,7 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // =========================================================================
-  // CONTEXT VALUE
-  // =========================================================================
+  // --- Context Value ---
 
   const value = {
     user,

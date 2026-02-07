@@ -1,39 +1,18 @@
-/**
- * =============================================================================
- * ANTHROPIC SERVICE - Claude AI Communication
- * =============================================================================
- *
- * This service handles all communication with the Anthropic Claude API.
- * It sends manuscript text to Claude for editing according to the
- * Reach House House Style Guide.
- *
- * FEATURES:
- * ---------
- * - Circuit breaker pattern to prevent cascading failures
- * - Structured logging for production monitoring
- * - Timeout handling with AbortController
- * - Response validation
- *
- * =============================================================================
- */
+/** Anthropic Service — Claude AI communication with circuit breaker, timeout handling, and response validation. */
 
 const { STYLE_GUIDE } = require('../config/styleGuide');
 const config = require('../config/app');
 const logger = require('./logger');
 const { ServiceUnavailableError } = require('./errors');
 
-// =============================================================================
-// API CONFIGURATION (from centralized config)
-// =============================================================================
+// --- API Configuration ---
 
 const ANTHROPIC_API_URL = config.ANTHROPIC.API_URL;
 const ANTHROPIC_VERSION = config.ANTHROPIC.API_VERSION;
 const MODEL = config.ANTHROPIC.MODEL;
 const API_TIMEOUT_MS = config.ANTHROPIC.TIMEOUT_MS;
 
-// =============================================================================
-// CIRCUIT BREAKER
-// =============================================================================
+// --- Circuit Breaker ---
 
 /**
  * Simple circuit breaker to prevent repeated calls to a failing service.
@@ -108,9 +87,7 @@ const circuitBreaker = {
   }
 };
 
-// =============================================================================
-// LOW-LEVEL API COMMUNICATION
-// =============================================================================
+// --- Low-Level API Communication ---
 
 /**
  * Make a request to the Anthropic API with timeout and circuit breaker.
@@ -201,9 +178,7 @@ async function makeAnthropicRequest(body) {
   }
 }
 
-// =============================================================================
-// EDITING FUNCTIONS
-// =============================================================================
+// --- Editing Functions ---
 
 /**
  * Edit a chunk of manuscript text using Claude.
@@ -291,9 +266,7 @@ async function generateStyleGuide(editedText) {
   }
 }
 
-// =============================================================================
-// MODULE EXPORTS
-// =============================================================================
+// --- Module Exports ---
 
 module.exports = {
   editChunk,

@@ -1,31 +1,8 @@
 /**
- * =============================================================================
- * HEALTH CHECK ROUTES
- * =============================================================================
+ * Health Check Routes — Monitoring and configuration status.
  *
- * Provides endpoints for monitoring application status and configuration.
- * Used for:
- * - Deployment verification (check if app is running)
- * - Configuration validation (check if API key is set)
- * - Debugging (identify configuration issues)
- *
- * ENDPOINTS:
- * ----------
- * GET /health      - Basic health check, returns status and warnings
- * GET /api/status  - API configuration status for frontend
- *
- * USAGE:
- * ------
- * After deployment, verify with:
- *   curl https://your-domain:3002/health
- *
- * Response when healthy:
- *   { "status": "ok", "message": "...", "apiKeyConfigured": true }
- *
- * Response with issues:
- *   { "status": "warning", "issues": ["ANTHROPIC_API_KEY is not set"] }
- *
- * =============================================================================
+ * GET /health     - Health check with warnings (deployment verification)
+ * GET /api/status - API readiness check for frontend
  */
 
 'use strict';
@@ -34,47 +11,29 @@ const express = require('express');
 const router = express.Router();
 const { database } = require('../services/database');
 
-// =============================================================================
-// ENVIRONMENT VALIDATION
-// =============================================================================
-
 /**
  * Validate required environment variables.
- *
- * Checks for:
- * - ANTHROPIC_API_KEY existence and format
- * - JWT_SECRET (tokens won't persist across restarts without it)
- * - SETUP_SECRET (required for first-time admin setup)
- * - NODE_ENV (warn if not production)
- *
- * Called at server startup and on health check requests.
- *
  * @returns {string[]} Array of issue descriptions (empty if all valid)
  */
 function validateEnvironment() {
   const issues = [];
 
-  // Check API key exists
   if (!process.env.ANTHROPIC_API_KEY) {
     issues.push('ANTHROPIC_API_KEY is not set');
   } else if (!process.env.ANTHROPIC_API_KEY.startsWith('sk-ant-')) {
-    // Check API key format (Anthropic keys start with sk-ant-)
     issues.push('ANTHROPIC_API_KEY appears to be invalid (should start with sk-ant-)');
   }
 
-  // Check JWT_SECRET for token persistence
   if (!process.env.JWT_SECRET) {
     issues.push('JWT_SECRET is not set (tokens will not persist across restarts)');
   } else if (process.env.JWT_SECRET.length < 32) {
     issues.push('JWT_SECRET is too short (should be at least 32 characters)');
   }
 
-  // Check SETUP_SECRET for first-time setup
   if (!process.env.SETUP_SECRET) {
     issues.push('SETUP_SECRET is not set (first-time setup wizard will be disabled)');
   }
 
-  // Warn if not in production mode
   if (process.env.NODE_ENV !== 'production') {
     issues.push(`NODE_ENV is "${process.env.NODE_ENV || 'undefined'}" (should be "production" for deployment)`);
   }
@@ -82,29 +41,13 @@ function validateEnvironment() {
   return issues;
 }
 
-// =============================================================================
-// ROUTE HANDLERS
-// =============================================================================
-
-/**
- * GET /health
- *
- * Basic health check endpoint for monitoring and deployment verification.
- * Returns current status, API key configuration, and any warnings.
- *
- * Use this endpoint to:
- * - Verify the server is running after deployment
- * - Check for configuration issues
- * - Monitor uptime with external tools
- */
+/** GET /health — Basic health check for monitoring and deployment verification. */
 router.get('/health', (req, res) => {
   const envIssues = validateEnvironment();
 
-  // Check database connectivity
   let dbHealthy = false;
   try {
     if (database.initialized && database.db) {
-      // Run a simple query to verify DB is responsive
       database.db.prepare('SELECT 1').get();
       dbHealthy = true;
     }
@@ -125,14 +68,7 @@ router.get('/health', (req, res) => {
   });
 });
 
-/**
- * GET /api/status
- *
- * Configuration status check for the frontend.
- * Returns whether the API is ready to process requests.
- *
- * The frontend calls this to determine if it can proceed with editing.
- */
+/** GET /api/status — Configuration status for the frontend. */
 router.get('/api/status', (req, res) => {
   const envIssues = validateEnvironment();
 
@@ -142,11 +78,5 @@ router.get('/api/status', (req, res) => {
   });
 });
 
-// =============================================================================
-// MODULE EXPORTS
-// =============================================================================
-
 module.exports = router;
-
-// Also export validateEnvironment for use in server.js startup
 module.exports.validateEnvironment = validateEnvironment;

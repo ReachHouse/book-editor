@@ -1,24 +1,6 @@
-/**
- * =============================================================================
- * DEBUG LOG COMPONENT
- * =============================================================================
- *
- * Displays a scrollable list of timestamped log entries.
- *
- * PROPS:
- * ------
- * @param {Array} logs - Array of log entry objects
- * @param {string} title - Header text (default: "Debug Log")
- * @param {boolean} showPulse - Show animated green dot indicator (default: false)
- *
- * =============================================================================
- */
+/** DebugLog — Scrollable list of timestamped log entries. */
 
 import React from 'react';
-
-/**
- * Timestamped debug log display.
- */
 function DebugLog({ logs, title = 'Debug Log', showPulse = false }) {
   if (!logs || logs.length === 0) return null;
 

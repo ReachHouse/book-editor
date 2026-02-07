@@ -1,12 +1,4 @@
-/**
- * =============================================================================
- * FETCH UTILITIES
- * =============================================================================
- *
- * Shared fetch utilities used throughout the frontend.
- *
- * =============================================================================
- */
+/** Fetch Utilities -- Shared fetch helpers with timeout support. */
 
 /**
  * Default timeout for fetch requests (30 seconds).

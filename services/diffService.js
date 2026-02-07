@@ -1,73 +1,9 @@
 /**
- * =============================================================================
- * DIFF SERVICE - LCS-Based Change Tracking
- * =============================================================================
- *
- * This service implements the core diffing algorithms used to generate
- * Microsoft Word Track Changes. It compares original and edited text to
- * identify insertions, deletions, and unchanged content.
- *
- * ALGORITHM OVERVIEW:
- * -------------------
- * The diff process uses a two-phase approach:
- *
- *   Phase 1: PARAGRAPH ALIGNMENT (alignParagraphs)
- *   - Aligns paragraphs between original and edited text using LCS
- *   - Uses similarity scoring to match paragraphs even when edited
- *   - Handles cases where Claude AI merges, splits, or reorders paragraphs
- *   - Critical fix: Without this, word-level diff would misalign completely
- *
- *   Phase 2: WORD-LEVEL DIFF (computeWordDiff)
- *   - Within each aligned paragraph pair, computes word-level changes
- *   - Preserves whitespace for accurate reconstruction
- *   - Produces changes array: { type: 'equal'|'delete'|'insert', text }
- *
- * LCS (LONGEST COMMON SUBSEQUENCE):
- * ---------------------------------
- * The LCS algorithm finds the longest sequence of elements that appear in
- * the same order in both arrays. This is the foundation for diff algorithms.
- *
- *   Example: Original = "The quick brown fox"
- *            Edited   = "The fast brown dog"
- *            LCS      = "The brown" (common subsequence)
- *            Result   = "The" [delete "quick"][insert "fast"] "brown" [delete "fox"][insert "dog"]
- *
- * MEMORY OPTIMIZATION:
- * --------------------
- * For very large documents (>5M token pairs), we use a greedy approximation
- * instead of the O(n²) space dynamic programming approach. This trades
- * perfect accuracy for memory efficiency.
- *
- * SIMILARITY SCORING:
- * -------------------
- * Paragraphs are matched using Jaccard similarity with word normalization.
- * Threshold of 0.5 means paragraphs must share at least 50% of their words
- * to be considered the "same" paragraph (just edited, not replaced).
- *
- * EXPORTS:
- * --------
- * - computeWordDiff: Word-level diff within a paragraph
- * - alignParagraphs: Paragraph-level alignment
- *
- * Internal functions (not exported):
- * - tokenize: Split text into words and whitespace
- * - computeLCS: Standard LCS with DP
- * - computeLCSOptimized: Memory-efficient LCS approximation
- * - calculateSimilarity: Jaccard similarity for paragraph matching
- * - mergeConsecutiveChanges: Clean up adjacent same-type changes
- *
- * USAGE IN DOCUMENT GENERATION:
- * -----------------------------
- * This service is called by documentService.js when generating Word documents.
- * The changes array is converted to Word Track Changes (InsertedTextRun,
- * DeletedTextRun) for native change tracking support.
- *
- * =============================================================================
+ * Diff Service — LCS-based paragraph alignment and word-level change tracking
+ * for generating Microsoft Word Track Changes.
  */
 
-// =============================================================================
-// TOKENIZATION
-// =============================================================================
+// --- Tokenization ---
 
 /**
  * Split text into word and whitespace tokens.
@@ -111,9 +47,7 @@ function normalizeWord(word) {
   return word.toLowerCase().replace(/[^\w]/g, '');
 }
 
-// =============================================================================
-// LCS (LONGEST COMMON SUBSEQUENCE) ALGORITHMS
-// =============================================================================
+// --- LCS (Longest Common Subsequence) Algorithms ---
 
 /**
  * Compute Longest Common Subsequence with position tracking.
@@ -247,9 +181,7 @@ function computeLCSOptimized(arr1, arr2, compareFn = (a, b) => a === b) {
   return lcs;
 }
 
-// =============================================================================
-// PARAGRAPH-LEVEL ALIGNMENT
-// =============================================================================
+// --- Paragraph-Level Alignment ---
 // This is the KEY FIX for accurate Track Changes generation.
 // Without paragraph alignment, word-level diff would produce nonsensical
 // results when paragraphs are added, removed, or reordered.
@@ -414,9 +346,7 @@ function alignParagraphs(originalParas, editedParas) {
   return aligned;
 }
 
-// =============================================================================
-// WORD-LEVEL DIFF
-// =============================================================================
+// --- Word-Level Diff ---
 
 /**
  * Compute word-level diff between two strings.
@@ -593,9 +523,7 @@ function mergeConsecutiveChanges(changes) {
   return secondPass;
 }
 
-// =============================================================================
-// MODULE EXPORTS
-// =============================================================================
+// --- Module Exports ---
 
 // Only export functions needed by documentService.js
 // Internal functions (tokenize, computeLCS, etc.) are kept private
