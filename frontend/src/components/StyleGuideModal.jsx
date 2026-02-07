@@ -170,7 +170,7 @@ function StyleGuideModal({
                 aria-label="Style guide content"
               />
 
-              <div className={`text-xs mt-2 ${isOverLimit ? 'text-red-400' : 'text-surface-500'}`}>
+              <div className={`text-xs mt-2 ${isOverLimit ? 'text-rose-200' : 'text-surface-500'}`}>
                 {charCount.toLocaleString()} / {MAX_CUSTOM_STYLE_GUIDE_LENGTH.toLocaleString()} characters
                 {isOverLimit && ' (exceeds limit)'}
               </div>

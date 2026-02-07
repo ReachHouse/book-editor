@@ -3,8 +3,8 @@ import { CheckCircle, AlertCircle, Info, X } from 'lucide-react';
 
 const CONFIG = {
   success: { Icon: CheckCircle, color: 'text-brand-400', border: 'border-brand-500/15' },
-  error: { Icon: AlertCircle, color: 'text-red-400', border: 'border-red-500/15' },
-  info: { Icon: Info, color: 'text-blue-400', border: 'border-blue-500/15' },
+  error: { Icon: AlertCircle, color: 'text-rose-200', border: 'border-rose-500/15' },
+  info: { Icon: Info, color: 'text-teal-200', border: 'border-teal-500/15' },
 };
 
 /**

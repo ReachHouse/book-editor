@@ -30,13 +30,13 @@ function isRestricted(limit) {
 }
 
 function getLimitColorClass(limit) {
-  if (isUnlimited(limit)) return 'text-amber-400 font-medium';
-  if (isRestricted(limit)) return 'text-red-400 font-medium';
+  if (isUnlimited(limit)) return 'text-amber-200 font-medium';
+  if (isRestricted(limit)) return 'text-rose-200 font-medium';
   return '';
 }
 
 function getBarColor(percentage) {
-  if (percentage >= 90) return 'bg-red-500';
+  if (percentage >= 90) return 'bg-rose-500';
   if (percentage >= 75) return 'bg-amber-500';
   return 'bg-brand-500';
 }
@@ -88,8 +88,8 @@ function UsageDisplay() {
     return (
       <div className="mt-4 mb-2 animate-fade-in">
         <div className="flex items-center justify-center gap-2 text-xs text-surface-500 py-1 px-3">
-          <Lock className="w-3.5 h-3.5 text-red-400" />
-          <span className="text-red-400 font-medium">Restricted Access</span>
+          <Lock className="w-3.5 h-3.5 text-rose-200" />
+          <span className="text-rose-200 font-medium">Restricted Access</span>
           <span className="text-surface-600">—</span>
           <button
             onClick={logout}
@@ -143,7 +143,7 @@ function UsageDisplay() {
             {isUnlimited(usage.daily.limit) ? (
               <div className="h-2 rounded-full bg-gradient-to-r from-amber-600/30 via-amber-500/40 to-amber-600/30" />
             ) : isRestricted(usage.daily.limit) ? (
-              <div className="h-2 rounded-full bg-gradient-to-r from-red-600/30 via-red-500/40 to-red-600/30" />
+              <div className="h-2 rounded-full bg-gradient-to-r from-rose-600/30 via-rose-500/40 to-rose-600/30" />
             ) : (
               <>
                 <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
@@ -153,7 +153,7 @@ function UsageDisplay() {
                   />
                 </div>
                 {usage.daily.percentage >= 90 && (
-                  <p className="text-xs text-amber-400 mt-1">
+                  <p className="text-xs text-amber-200 mt-1">
                     Approaching daily limit. Resets at midnight UTC.
                   </p>
                 )}
@@ -172,7 +172,7 @@ function UsageDisplay() {
             {isUnlimited(usage.monthly.limit) ? (
               <div className="h-2 rounded-full bg-gradient-to-r from-amber-600/30 via-amber-500/40 to-amber-600/30" />
             ) : isRestricted(usage.monthly.limit) ? (
-              <div className="h-2 rounded-full bg-gradient-to-r from-red-600/30 via-red-500/40 to-red-600/30" />
+              <div className="h-2 rounded-full bg-gradient-to-r from-rose-600/30 via-rose-500/40 to-rose-600/30" />
             ) : (
               <>
                 <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
@@ -182,7 +182,7 @@ function UsageDisplay() {
                   />
                 </div>
                 {usage.monthly.percentage >= 90 && (
-                  <p className="text-xs text-amber-400 mt-1">
+                  <p className="text-xs text-amber-200 mt-1">
                     Approaching monthly limit. Resets on the 1st.
                   </p>
                 )}

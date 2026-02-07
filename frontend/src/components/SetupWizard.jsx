@@ -142,8 +142,8 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
         </div>
 
         <div className="relative w-full max-w-md px-4 py-8 text-center animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 mb-6">
-            <CheckCircle className="w-8 h-8 text-green-400" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-500/15 border border-brand-500/20 mb-6">
+            <CheckCircle className="w-8 h-8 text-brand-400" />
           </div>
           <h1 className="font-display text-2xl font-bold mb-3 text-white">
             Setup Complete!
@@ -163,7 +163,7 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-surface-950 via-surface-900/50 to-surface-950" />
         <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full opacity-[0.035] ambient-glow-green" />
-        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02] ambient-glow-blue" />
+        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02] ambient-glow-teal" />
         <div className="absolute inset-0 opacity-[0.015] noise-texture" />
       </div>
 
@@ -195,10 +195,10 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
 
         {/* Warning if setup is not enabled */}
         {!setupEnabled && (
-          <div className="flex items-start gap-3 mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 animate-fade-in" role="alert">
-            <Lock className="w-5 h-5 text-red-400 mt-0.5 shrink-0" />
+          <div className="flex items-start gap-3 mb-6 p-4 rounded-lg bg-rose-500/15 border border-rose-500/20 animate-fade-in" role="alert">
+            <Lock className="w-5 h-5 text-rose-200 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm text-red-300 font-medium mb-1">Setup Not Configured</p>
+              <p className="text-sm text-rose-200 font-medium mb-1">Setup Not Configured</p>
               <p className="text-xs text-surface-400">
                 The <code className="bg-surface-800 px-1 rounded">SETUP_SECRET</code> environment variable is not set.
                 Setup cannot proceed until this is configured in your deployment.
@@ -211,9 +211,9 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
         <form onSubmit={handleSubmit} noValidate className="glass-card p-6 sm:p-8 animate-fade-in">
           {/* Error message */}
           {error && (
-            <div className="flex items-start gap-2 mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20" role="alert">
-              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-red-300">{error}</p>
+            <div className="flex items-start gap-2 mb-4 p-3 rounded-lg bg-rose-500/15 border border-rose-500/20" role="alert">
+              <AlertCircle className="w-4 h-4 text-rose-200 mt-0.5 shrink-0" />
+              <p className="text-sm text-rose-200">{error}</p>
             </div>
           )}
 
@@ -221,7 +221,7 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
           <div className="mb-4">
             <label htmlFor="setup-secret" className="block text-sm font-medium text-surface-300 mb-1.5">
               <span className="flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <Key className="w-3.5 h-3.5 text-amber-200" />
                 Setup Secret
               </span>
             </label>
@@ -322,8 +322,8 @@ function SetupWizard({ onSetupComplete, setupEnabled = true }) {
             />
             {password && confirmPassword && password === confirmPassword && (
               <div id="setup-confirm-password-status" className="flex items-center gap-1 mt-1">
-                <CheckCircle className="w-3 h-3 text-green-400" aria-hidden="true" />
-                <p className="text-xs text-green-400">Passwords match</p>
+                <CheckCircle className="w-3 h-3 text-brand-400" aria-hidden="true" />
+                <p className="text-xs text-brand-400">Passwords match</p>
               </div>
             )}
           </div>

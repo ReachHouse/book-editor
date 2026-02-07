@@ -97,7 +97,7 @@ function InviteCodesTab() {
   return (
     <div>
       {error && (
-        <div role="alert" className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+        <div role="alert" className="mb-4 p-3 rounded-lg bg-rose-500/15 border border-rose-500/20 text-rose-200 text-sm flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           {error}
         </div>
@@ -168,14 +168,14 @@ function InviteCodesTab() {
                       aria-label={copiedId === code.id ? 'Copied!' : `Copy invite code ${code.code}`}
                     >
                       {copiedId === code.id ? (
-                        <Check className="w-4 h-4 text-green-400" aria-hidden="true" />
+                        <Check className="w-4 h-4 text-brand-400" aria-hidden="true" />
                       ) : (
                         <Copy className="w-4 h-4" aria-hidden="true" />
                       )}
                     </button>
                     <button
                       onClick={() => setConfirmDeleteCode(code.id)}
-                      className="p-1.5 rounded text-surface-500 hover:text-red-400 hover:bg-surface-800/50 transition-colors"
+                      className="p-1.5 rounded text-surface-500 hover:text-rose-200 hover:bg-surface-800/50 transition-colors"
                       title="Delete invite code"
                       aria-label={`Delete invite code ${code.code}`}
                     >
@@ -186,14 +186,14 @@ function InviteCodesTab() {
 
                 {/* Delete Confirmation */}
                 {confirmDeleteCode === code.id && (
-                  <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                    <p className="text-sm text-red-400 mb-2">
+                  <div className="mt-3 p-3 rounded-lg bg-rose-500/15 border border-rose-500/20">
+                    <p className="text-sm text-rose-200 mb-2">
                       Delete this invite code? This cannot be undone.
                     </p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleDeleteCode(code.id)}
-                        className="text-xs px-3 py-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                        className="text-xs px-3 py-1.5 rounded bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 transition-colors"
                       >
                         Delete
                       </button>

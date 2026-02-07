@@ -18,7 +18,7 @@ function DebugLog({ logs, title = 'Debug Log', showPulse = false }) {
           <div
             key={log.id || `${log.timestamp}-${index}`}
             className={`text-xs font-mono leading-relaxed ${
-              log.type === 'error' ? 'text-red-400/90' : 'text-surface-400'
+              log.type === 'error' ? 'text-rose-200' : 'text-surface-400'
             }`}
           >
             <span className="text-surface-600 select-none">[{log.timestamp}]</span>{' '}

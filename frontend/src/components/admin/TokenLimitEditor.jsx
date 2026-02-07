@@ -31,7 +31,7 @@ function TokenLimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel, idPrefix
             value={daily}
             onChange={(e) => setDaily(e.target.value)}
             className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
-              isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+              isDailyValid ? 'border-surface-700 focus:border-brand-500' : 'border-rose-500/50'
             }`}
             min="-1"
             aria-invalid={!isDailyValid}
@@ -45,7 +45,7 @@ function TokenLimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel, idPrefix
             value={monthly}
             onChange={(e) => setMonthly(e.target.value)}
             className={`w-full px-2 py-1.5 text-sm bg-surface-900 border rounded text-surface-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
-              isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-red-500/50'
+              isMonthlyValid ? 'border-surface-700 focus:border-brand-500' : 'border-rose-500/50'
             }`}
             min="-1"
             aria-invalid={!isMonthlyValid}
@@ -53,7 +53,7 @@ function TokenLimitEditor({ dailyLimit, monthlyLimit, onSave, onCancel, idPrefix
         </div>
       </div>
       <p className="text-xs text-surface-500 mb-3">
-        Use <span className="text-amber-400 font-medium">-1</span> for unlimited, <span className="text-red-400 font-medium">0</span> for restricted, or enter a specific limit.
+        Use <span className="text-amber-200 font-medium">-1</span> for unlimited, <span className="text-rose-200 font-medium">0</span> for restricted, or enter a specific limit.
       </p>
       <div className="flex gap-2">
         <button

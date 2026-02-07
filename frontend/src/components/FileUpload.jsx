@@ -70,7 +70,7 @@ function FileUpload({ onFileSelect }) {
         transition-all duration-500 ease-out mb-8 animate-fade-in-up group cursor-pointer
         backdrop-blur-sm
         ${isDragging
-          ? 'border-brand-400/60 bg-brand-600/[0.08] shadow-[0_0_40px_-8px_rgba(74,222,128,0.15)]'
+          ? 'border-brand-400/60 bg-brand-600/[0.08] shadow-[0_0_40px_-8px_rgba(81,161,117,0.15)]'
           : 'border-surface-600/30 bg-surface-800/30 hover:border-brand-500/30 hover:bg-surface-800/40'
         }
       `}
@@ -127,7 +127,7 @@ function FileUpload({ onFileSelect }) {
 
       {/* Error message */}
       {error && (
-        <div id="file-upload-error" className="mt-4 text-sm text-red-400" role="alert">
+        <div id="file-upload-error" className="mt-4 text-sm text-rose-200" role="alert">
           {error}
         </div>
       )}

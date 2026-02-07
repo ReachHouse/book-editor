@@ -58,7 +58,7 @@ function RoleDefaultsTab() {
   return (
     <div>
       {error && (
-        <div role="alert" className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+        <div role="alert" className="mb-4 p-3 rounded-lg bg-rose-500/15 border border-rose-500/20 text-rose-200 text-sm flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           {error}
         </div>
@@ -90,15 +90,15 @@ function RoleDefaultsTab() {
                   )}
                   {/* Limit status badge (Unlimited/Limited/Restricted) */}
                   {rd.dailyTokenLimit < 0 ? (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 font-medium">
                       Unlimited
                     </span>
                   ) : rd.dailyTokenLimit === 0 ? (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-200 font-medium">
                       Restricted
                     </span>
                   ) : (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-teal-500/15 text-teal-200 font-medium">
                       Limited
                     </span>
                   )}

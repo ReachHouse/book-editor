@@ -38,8 +38,8 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
           <div className="glass-card p-6 max-w-md mx-4 animate-scale-in">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                  <Lock className="w-5 h-5 text-red-400" />
+                <div className="w-10 h-10 rounded-xl bg-rose-500/15 flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-rose-200" />
                 </div>
                 <h3 className="text-lg font-semibold text-white">Account Required</h3>
               </div>
@@ -113,9 +113,9 @@ function DocumentAnalysis({ analysis, onStartEditing, onCancel }) {
       {/* Guest info box */}
       {isGuest && (
         <div className="info-box-amber p-4 mb-6 flex items-center gap-3">
-          <Lock className="w-4 h-4 text-amber-400 shrink-0" />
-          <p className="text-sm text-amber-300/90">
-            You&apos;re viewing as a guest. <strong className="text-amber-300">Register to start editing.</strong>
+          <Lock className="w-4 h-4 text-amber-200 shrink-0" />
+          <p className="text-sm text-amber-200">
+            You&apos;re viewing as a guest. <strong className="text-amber-200">Register to start editing.</strong>
           </p>
         </div>
       )}

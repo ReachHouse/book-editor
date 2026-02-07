@@ -128,11 +128,11 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
           project.isComplete
             ? 'bg-brand-600/15 border border-brand-500/15'
-            : 'bg-blue-600/15 border border-blue-500/15'
+            : 'bg-teal-500/15 border border-teal-500/15'
         }`}>
           {project.isComplete
             ? <CheckCircle className="w-3.5 h-3.5 text-brand-400" />
-            : <FileText className="w-3.5 h-3.5 text-blue-400" />
+            : <FileText className="w-3.5 h-3.5 text-teal-200" />
           }
         </div>
 
@@ -145,7 +145,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium flex-shrink-0 ${
               project.isComplete
                 ? 'bg-brand-600/15 text-brand-400 border border-brand-500/15'
-                : 'bg-blue-600/15 text-blue-400 border border-blue-500/15'
+                : 'bg-blue-600/15 text-teal-200 border border-blue-500/15'
             }`}>
               {project.isComplete ? 'Ready' : 'In Progress'}
             </span>
@@ -166,7 +166,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
           {!project.isComplete && (
             <div className="mt-2 h-1 rounded-full bg-surface-800/60 overflow-hidden max-w-[200px]">
               <div
-                className="h-full rounded-full bg-blue-500/60 transition-all duration-300"
+                className="h-full rounded-full bg-teal-500/60 transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -183,7 +183,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
           <button
             onClick={handleConfirmDelete}
             disabled={isDeleting}
-            className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-600/80 hover:bg-red-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-50 focus-ring"
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-rose-600 hover:bg-rose-500 active:scale-95 text-white transition-all duration-200 disabled:opacity-50 focus-ring"
             aria-label="Confirm delete"
           >
             {isDeleting ? (
@@ -222,7 +222,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
           {!project.isComplete && (
             <button
               onClick={() => onResume(project)}
-              className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-600/80 hover:bg-blue-500 active:scale-95 text-white transition-all duration-200 focus-ring"
+              className="w-10 h-10 flex items-center justify-center rounded-lg bg-teal-600 hover:bg-teal-500 active:scale-95 text-white transition-all duration-200 focus-ring"
               title="Resume editing from where you left off"
               aria-label="Resume editing from where you left off"
             >
@@ -232,7 +232,7 @@ function ProjectItem({ project, onDownload, onResume, onDelete, isDownloading })
 
           <button
             onClick={() => setConfirmingDelete(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-red-600/80 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-700/60 hover:bg-rose-600 active:scale-95 text-surface-400 hover:text-white transition-all duration-200 focus-ring"
             title="Delete from storage"
             aria-label="Delete from storage"
           >

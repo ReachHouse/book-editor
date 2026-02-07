@@ -38,7 +38,7 @@ function LoginPage({ onSwitchToRegister }) {
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-surface-950 via-surface-900/50 to-surface-950" />
         <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full opacity-[0.035] ambient-glow-green" />
-        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02] ambient-glow-blue" />
+        <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full opacity-[0.02] ambient-glow-teal" />
         <div className="absolute inset-0 opacity-[0.015] noise-texture" />
       </div>
 
@@ -60,9 +60,9 @@ function LoginPage({ onSwitchToRegister }) {
         <form onSubmit={handleSubmit} noValidate className="glass-card p-6 sm:p-8 animate-fade-in">
           {/* Error message */}
           {error && (
-            <div className="flex items-start gap-2 mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20" role="alert">
-              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-red-300">{error}</p>
+            <div className="flex items-start gap-2 mb-4 p-3 rounded-lg bg-rose-500/15 border border-rose-500/20" role="alert">
+              <AlertCircle className="w-4 h-4 text-rose-200 mt-0.5 shrink-0" />
+              <p className="text-sm text-rose-200">{error}</p>
             </div>
           )}
 
