@@ -66,12 +66,15 @@ book-editor/
 │       ├── hooks/             # useProjects.js, useToast.js
 │       ├── services/api.js    # All frontend API calls
 │       └── utils/             # documentUtils.js, fetchUtils.js, jwtUtils.js
+├── .claude/
+│   ├── hooks/session-start.sh # SessionStart hook — auto-installs deps in new sessions
+│   └── settings.json          # Claude Code project settings (hooks config)
 ├── docs/
 │   ├── API.md                 # Complete API endpoint reference
 │   └── DEPLOYMENT.md          # VPS deployment guide and troubleshooting
 ├── Dockerfile                 # Multi-stage build (Node 18-alpine)
-├── docker-compose.yml         # Docker orchestration
-└── deploy.sh                  # Deployment script (generates .env, builds, deploys)
+├── docker-compose.yml         # Docker orchestration (port 3002 → 3001)
+└── deploy.sh                  # VPS deployment script (generates .env, builds, deploys)
 ```
 
 ---
@@ -176,7 +179,7 @@ Two roles: **admin** (mauve badge, unlimited tokens) and **user** (teal badge, 5
 
 ## Deployment
 
-Production runs on a Hostinger VPS via Docker. Deploy by SSHing to the VPS and running `./deploy.sh` in the application directory. The script pulls latest code, generates `.env`, builds the Docker image, and restarts the container with health checks. For full deployment instructions, rollback procedures, and VPS maintenance commands, see **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)**.
+Production runs on a Hostinger VPS via Docker. Deploy by SSHing to the VPS and running `./deploy.sh` in `/root/book-editor-backend`. The script pulls latest code from GitHub, loads secrets from `.env` (auto-generates `JWT_SECRET` and `SETUP_SECRET` on first run), tags the current image for rollback, rebuilds the Docker image, and restarts the container with health checks. For full deployment instructions, rollback procedures, and VPS maintenance commands, see **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)**.
 
 ---
 
@@ -202,4 +205,4 @@ Before pushing changes, review this file and update:
 
 ---
 
-*Last updated: 2026-02-07*
+*Last updated: 2026-02-08*

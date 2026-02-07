@@ -423,9 +423,9 @@ No authentication required.
 ```json
 {
   "status": "ok",
-  "timestamp": "2026-02-06T12:00:00.000Z",
-  "version": "1.52.0",
-  "database": "connected"
+  "message": "Book Editor Backend is running",
+  "apiKeyConfigured": true,
+  "databaseHealthy": true
 }
 ```
 
