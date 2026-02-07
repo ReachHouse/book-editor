@@ -7,89 +7,107 @@
  * It sends manuscript text to Claude for editing according to the
  * Reach House House Style Guide.
  *
- * API CONFIGURATION:
- * ------------------
- * - Model: claude-sonnet-4-20250514 (Claude Sonnet 4)
- * - Max tokens: 4000 (sufficient for ~2000 word chunks)
- * - API Version: 2023-06-01
- *
- * AUTHENTICATION:
- * ---------------
- * Requires ANTHROPIC_API_KEY environment variable.
- * Key format: sk-ant-api03-... (starts with sk-ant-)
- * Set in .env file for local development, Docker env for production.
- *
- * EDITING WORKFLOW:
- * -----------------
- * 1. First chunk: Claude receives style guide + editing instructions
- * 2. After first chunk: Generate document-specific style guide summary
- * 3. Subsequent chunks: Include style guide summary for consistency
- *
- * This two-phase approach ensures:
- * - Consistent voice throughout the document
- * - Same terminology and formatting choices
- * - Coherent editing across all sections
- *
- * PROMPT ENGINEERING:
- * -------------------
- * The system prompt includes:
- * - Full Reach House House Style Guide
- * - Instructions to return ONLY edited text (no explanations)
- * - Context from previous sections (for subsequent chunks)
- *
- * ERROR HANDLING:
- * ---------------
- * - API errors are thrown and handled by the calling route
- * - Style guide generation fails gracefully with default
- * - Frontend implements retry logic for transient failures
- *
- * EXPORTS:
- * --------
- * - editChunk: Edit a text chunk using Claude
- * - generateStyleGuide: Create consistency guide from first chunk
- * - makeAnthropicRequest: Low-level API request function
- * - MODEL, ANTHROPIC_API_URL: Configuration constants
+ * FEATURES:
+ * ---------
+ * - Circuit breaker pattern to prevent cascading failures
+ * - Structured logging for production monitoring
+ * - Timeout handling with AbortController
+ * - Response validation
  *
  * =============================================================================
  */
 
 const { STYLE_GUIDE } = require('../config/styleGuide');
+const config = require('../config/app');
+const logger = require('./logger');
+const { ServiceUnavailableError } = require('./errors');
 
 // =============================================================================
-// API CONFIGURATION
+// API CONFIGURATION (from centralized config)
+// =============================================================================
+
+const ANTHROPIC_API_URL = config.ANTHROPIC.API_URL;
+const ANTHROPIC_VERSION = config.ANTHROPIC.API_VERSION;
+const MODEL = config.ANTHROPIC.MODEL;
+const API_TIMEOUT_MS = config.ANTHROPIC.TIMEOUT_MS;
+
+// =============================================================================
+// CIRCUIT BREAKER
 // =============================================================================
 
 /**
- * Anthropic API endpoint for chat completions
+ * Simple circuit breaker to prevent repeated calls to a failing service.
+ *
+ * States:
+ * - CLOSED:    Normal operation, requests go through
+ * - OPEN:      Service is failing, requests are rejected immediately
+ * - HALF_OPEN: Testing if service has recovered (one request allowed)
+ *
+ * Transitions:
+ * - CLOSED -> OPEN: After FAILURE_THRESHOLD consecutive failures
+ * - OPEN -> HALF_OPEN: After RESET_TIMEOUT_MS has elapsed
+ * - HALF_OPEN -> CLOSED: If the test request succeeds
+ * - HALF_OPEN -> OPEN: If the test request fails
  */
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const circuitBreaker = {
+  state: 'CLOSED', // CLOSED | OPEN | HALF_OPEN
+  failures: 0,
+  lastFailureTime: null,
+  FAILURE_THRESHOLD: config.ANTHROPIC.CIRCUIT_BREAKER.FAILURE_THRESHOLD,
+  RESET_TIMEOUT_MS: config.ANTHROPIC.CIRCUIT_BREAKER.RESET_TIMEOUT_MS,
 
-/**
- * API version header - required by Anthropic
- */
-const ANTHROPIC_VERSION = '2023-06-01';
+  /**
+   * Check if requests are allowed through the circuit.
+   * @returns {boolean}
+   */
+  canRequest() {
+    if (this.state === 'CLOSED') return true;
 
-/**
- * Claude model to use for editing
- * Sonnet 4 provides good balance of quality and speed for editing tasks
- */
-const MODEL = 'claude-sonnet-4-20250514';
+    if (this.state === 'OPEN') {
+      // Check if enough time has passed to try again
+      if (Date.now() - this.lastFailureTime >= this.RESET_TIMEOUT_MS) {
+        this.state = 'HALF_OPEN';
+        logger.info('Circuit breaker transitioning to HALF_OPEN');
+        return true;
+      }
+      return false;
+    }
 
-/**
- * API request timeout in milliseconds (4 minutes)
- * Claude can take a while for large chunks; this prevents indefinite hangs
- */
-const API_TIMEOUT_MS = 4 * 60 * 1000;
+    // HALF_OPEN: allow one request through
+    return true;
+  },
+
+  /**
+   * Record a successful request.
+   */
+  onSuccess() {
+    if (this.state === 'HALF_OPEN') {
+      logger.info('Circuit breaker CLOSED (service recovered)');
+    }
+    this.failures = 0;
+    this.state = 'CLOSED';
+  },
+
+  /**
+   * Record a failed request.
+   */
+  onFailure() {
+    this.failures++;
+    this.lastFailureTime = Date.now();
+
+    if (this.state === 'HALF_OPEN' || this.failures >= this.FAILURE_THRESHOLD) {
+      this.state = 'OPEN';
+      logger.warn('Circuit breaker OPEN', { failures: this.failures });
+    }
+  }
+};
 
 // =============================================================================
 // LOW-LEVEL API COMMUNICATION
 // =============================================================================
 
 /**
- * Make a request to the Anthropic API with timeout.
- *
- * This is the core function that handles HTTP communication with Claude.
- * It adds authentication headers, timeout handling, and error responses.
+ * Make a request to the Anthropic API with timeout and circuit breaker.
  *
  * @param {Object} body - Request body matching Anthropic API schema
  * @returns {Promise<Object>} Parsed API response
@@ -98,17 +116,22 @@ const API_TIMEOUT_MS = 4 * 60 * 1000;
 async function makeAnthropicRequest(body) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  // Validate API key exists
   if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not configured');
+    throw new ServiceUnavailableError('ANTHROPIC_API_KEY is not configured');
   }
 
-  // Create AbortController for timeout
+  // Circuit breaker check
+  if (!circuitBreaker.canRequest()) {
+    throw new ServiceUnavailableError(
+      'Claude API is temporarily unavailable. Please try again in a minute.'
+    );
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const startTime = Date.now();
 
   try {
-    // Make HTTP request to Anthropic API with timeout
     const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
       headers: {
@@ -120,7 +143,8 @@ async function makeAnthropicRequest(body) {
       signal: controller.signal
     });
 
-    // Handle non-200 responses
+    const duration = Date.now() - startTime;
+
     if (!response.ok) {
       let errorMessage = `API request failed with status ${response.status}`;
       try {
@@ -131,22 +155,39 @@ async function makeAnthropicRequest(body) {
       } catch {
         // Failed to parse error response, use default message
       }
+
+      // 5xx errors trip the circuit breaker; 4xx errors are client issues
+      if (response.status >= 500) {
+        circuitBreaker.onFailure();
+      }
+
+      logger.error('Anthropic API error', {
+        status: response.status,
+        duration,
+        error: errorMessage
+      });
+
       throw new Error(errorMessage);
     }
 
-    // Parse response
     const data = await response.json();
 
-    // Validate response structure
     if (!data.content || !data.content[0] || typeof data.content[0].text !== 'string') {
       throw new Error('Invalid API response: missing or malformed content');
     }
 
+    circuitBreaker.onSuccess();
+    logger.debug('Anthropic API request succeeded', { duration, model: body.model });
+
     return data;
   } catch (error) {
-    // Handle timeout specifically
     if (error.name === 'AbortError') {
+      circuitBreaker.onFailure();
       throw new Error('API request timed out after 4 minutes');
+    }
+    // Network errors also trip the breaker
+    if (error.message.includes('fetch') || error.message.includes('network')) {
+      circuitBreaker.onFailure();
     }
     throw error;
   } finally {
@@ -161,28 +202,22 @@ async function makeAnthropicRequest(body) {
 /**
  * Edit a chunk of manuscript text using Claude.
  *
- * Sends text to Claude with the Reach House style guide and
- * instructions to return only the edited text.
- *
  * @param {string} text - The text chunk to edit (~2000 words)
  * @param {string} styleGuide - Document-specific style notes (for consistency)
  * @param {boolean} isFirst - True if this is the first chunk (no prior context)
- * @param {string|null} customStyleGuide - User-customized style guide (optional, uses default if null)
- * @returns {Promise<string>} The edited text
+ * @param {string|null} customStyleGuide - User-customized style guide (optional)
+ * @returns {Promise<{ text: string, usage: Object|null }>}
  */
 async function editChunk(text, styleGuide, isFirst, customStyleGuide = null) {
-  // Build the system prompt with style guide and instructions
   const systemPrompt = buildEditingPrompt(styleGuide, isFirst, customStyleGuide);
 
-  // Send to Claude - the text to edit is the user message
   const data = await makeAnthropicRequest({
     model: MODEL,
-    max_tokens: 4000,
+    max_tokens: config.ANTHROPIC.MAX_TOKENS_EDIT,
     system: systemPrompt,
     messages: [{ role: 'user', content: text }]
   });
 
-  // Return the edited text and usage data
   return {
     text: data.content[0].text,
     usage: data.usage || null
@@ -192,34 +227,24 @@ async function editChunk(text, styleGuide, isFirst, customStyleGuide = null) {
 /**
  * Build the system prompt for editing.
  *
- * The prompt includes:
- * 1. Role definition (professional book editor)
- * 2. Full Reach House House Style Guide (or user's custom guide)
- * 3. Context from previous sections (if not first chunk)
- * 4. Instruction to return only edited text
- *
  * @param {string} styleGuide - Document-specific style notes
  * @param {boolean} isFirst - Whether this is the first chunk
  * @param {string|null} customStyleGuide - User-customized style guide (optional)
  * @returns {string} Complete system prompt
  */
 function buildEditingPrompt(styleGuide, isFirst, customStyleGuide = null) {
-  // Use custom style guide if provided, otherwise use default
   const effectiveStyleGuide = customStyleGuide && customStyleGuide.trim()
     ? customStyleGuide
     : STYLE_GUIDE;
 
-  // Base prompt with role and style guide
   const basePrompt = `You are a professional book editor for Reach House. You MUST follow the Reach House House Style Guide strictly and without exception.
 
 ${effectiveStyleGuide}`;
 
-  // Context-specific instructions
   const contextPrompt = isFirst
     ? 'Edit this text following ALL the rules above. Fix grammar, spelling, punctuation, consistency, clarity, and style. Maintain the author\'s voice while improving readability.'
     : `Edit this text following ALL the rules above AND maintain consistency with this established style from earlier sections: ${styleGuide}`;
 
-  // Combine with output instructions
   return `${basePrompt}
 
 ${contextPrompt}
@@ -230,18 +255,12 @@ Return ONLY the edited text with no preamble, no explanations, no comments - jus
 /**
  * Generate a document-specific style guide from the first edited chunk.
  *
- * After editing the first chunk, we ask Claude to summarize the style
- * decisions it made. This summary is then included in prompts for
- * subsequent chunks to ensure consistency throughout the document.
- *
  * @param {string} editedText - The first edited chunk
- * @returns {Promise<string>} Brief style guide (3-4 sentences)
+ * @returns {Promise<{ text: string, usage: Object|null }>}
  */
 async function generateStyleGuide(editedText) {
-  // Default fallback if generation fails
   const defaultGuide = 'Professional, clear, and engaging style following Reach House standards.';
 
-  // Can't generate without API key
   if (!process.env.ANTHROPIC_API_KEY) {
     return { text: defaultGuide, usage: null };
   }
@@ -249,7 +268,7 @@ async function generateStyleGuide(editedText) {
   try {
     const data = await makeAnthropicRequest({
       model: MODEL,
-      max_tokens: 500,
+      max_tokens: config.ANTHROPIC.MAX_TOKENS_STYLE_GUIDE,
       messages: [{
         role: 'user',
         content: `Based on this edited text, create a brief style guide (3-4 sentences) noting: tone, formality level, punctuation preferences, and any special terminology. Text: ${editedText.substring(0, 1000)}`
@@ -261,8 +280,7 @@ async function generateStyleGuide(editedText) {
       usage: data.usage || null
     };
   } catch (error) {
-    // Style guide generation is non-critical - log and return default
-    console.error('Style guide generation error:', error.message);
+    logger.error('Style guide generation error', { error: error.message });
     return { text: defaultGuide, usage: null };
   }
 }
@@ -272,14 +290,11 @@ async function generateStyleGuide(editedText) {
 // =============================================================================
 
 module.exports = {
-  // Main editing functions
   editChunk,
   generateStyleGuide,
-
-  // Low-level API access (for testing/debugging)
   makeAnthropicRequest,
-
-  // Configuration (for reference)
   MODEL,
-  ANTHROPIC_API_URL
+  ANTHROPIC_API_URL,
+  // Exported for testing
+  _circuitBreaker: circuitBreaker
 };

@@ -37,11 +37,21 @@
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { database } = require('../services/database');
+const config = require('../config/app');
+const logger = require('../services/logger');
 
-// Bcrypt cost factor (matches authService.js: 10 = ~100ms on modern hardware)
-const BCRYPT_SALT_ROUNDS = 10;
+const BCRYPT_SALT_ROUNDS = config.AUTH.BCRYPT_SALT_ROUNDS;
+
+const setupLimiter = rateLimit({
+  windowMs: config.RATE_LIMIT.SETUP.windowMs,
+  max: config.RATE_LIMIT.SETUP.max,
+  message: { error: 'Too many setup attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 /**
  * Check if setup is needed (no users exist).
@@ -193,7 +203,7 @@ router.get('/api/setup/status', (req, res) => {
     const setupEnabled = !!process.env.SETUP_SECRET;
     res.json({ needsSetup, setupEnabled });
   } catch (err) {
-    console.error('Setup status check error:', err.message);
+    logger.error('Setup status check error', { error: err.message });
     res.status(500).json({ error: 'Failed to check setup status' });
   }
 });
@@ -220,12 +230,12 @@ router.get('/api/setup/status', (req, res) => {
  *   403 - Setup already completed (users exist) or setup disabled
  *   500 - Server error
  */
-router.post('/api/setup/complete', async (req, res) => {
+router.post('/api/setup/complete', setupLimiter, async (req, res) => {
   try {
     // SECURITY: Check setup is still required before proceeding
     // This prevents race conditions where setup completes between page load and submit
     if (!isSetupRequired()) {
-      console.warn('Setup attempt blocked: users already exist');
+      logger.warn('Setup attempt blocked: users already exist');
       return res.status(403).json({
         error: 'Setup already completed',
         message: 'An admin account already exists. Please use the login page.'
@@ -238,7 +248,7 @@ router.post('/api/setup/complete', async (req, res) => {
     // This is the critical protection against unauthorized setup attempts
     const secretCheck = validateSetupSecret(setup_secret);
     if (!secretCheck.valid) {
-      console.warn('Setup attempt blocked: invalid setup secret');
+      logger.warn('Setup attempt blocked: invalid setup secret');
       return res.status(403).json({ error: secretCheck.error });
     }
 
@@ -282,13 +292,10 @@ router.post('/api/setup/complete', async (req, res) => {
     });
 
     // Log successful setup for audit trail
-    console.log('═══════════════════════════════════════════════════════════');
-    console.log('FIRST-TIME SETUP COMPLETED');
-    console.log('═══════════════════════════════════════════════════════════');
-    console.log(`Admin account created: ${result.username}`);
-    console.log(`Email: ${result.email}`);
-    console.log(`Time: ${new Date().toISOString()}`);
-    console.log('═══════════════════════════════════════════════════════════');
+    logger.info('First-time setup completed', {
+      username: result.username,
+      email: result.email
+    });
 
     res.json({
       success: true,
@@ -304,7 +311,7 @@ router.post('/api/setup/complete', async (req, res) => {
       });
     }
 
-    console.error('Setup completion error:', err.message);
+    logger.error('Setup completion error', { error: err.message });
     res.status(500).json({ error: 'Failed to complete setup. Please try again.' });
   }
 });

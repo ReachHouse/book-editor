@@ -34,6 +34,7 @@
 
 const { verifyAccessToken } = require('../services/authService');
 const { database } = require('../services/database');
+const logger = require('../services/logger');
 
 /**
  * Extract Bearer token from Authorization header.
@@ -92,7 +93,7 @@ function requireAuth(req, res, next) {
     next();
   } catch (err) {
     // Database error - log and return 500 (not 401)
-    console.error('Database error in requireAuth:', err.message);
+    logger.error('Database error in requireAuth', { error: err.message });
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -154,7 +155,7 @@ function optionalAuth(req, res, next) {
     }
   } catch (err) {
     // Database error - log but continue as unauthenticated
-    console.error('Database error in optionalAuth:', err.message);
+    logger.error('Database error in optionalAuth', { error: err.message });
     req.user = null;
   }
 

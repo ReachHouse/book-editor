@@ -594,13 +594,26 @@ class DatabaseService {
     const db = this.db;
     return {
       /**
-       * List all projects for a user (metadata only, no large text fields).
+       * List projects for a user (metadata only, no large text fields).
        * Sorted by updated_at descending (newest first).
+       * Supports pagination with limit/offset.
        *
        * @param {number} userId
+       * @param {number} [limit] - Max results (omit for all)
+       * @param {number} [offset=0] - Skip this many results
        * @returns {Array}
        */
-      listByUser(userId) {
+      listByUser(userId, limit, offset = 0) {
+        if (limit !== undefined) {
+          return db.prepare(`
+            SELECT id, user_id, file_name, is_complete, chunks_completed,
+                   total_chunks, chunk_size, created_at, updated_at
+            FROM projects
+            WHERE user_id = ?
+            ORDER BY updated_at DESC
+            LIMIT ? OFFSET ?
+          `).all(userId, limit, offset);
+        }
         return db.prepare(`
           SELECT id, user_id, file_name, is_complete, chunks_completed,
                  total_chunks, chunk_size, created_at, updated_at
@@ -621,6 +634,19 @@ class DatabaseService {
         return db.prepare(
           'SELECT * FROM projects WHERE id = ? AND user_id = ?'
         ).get(id, userId);
+      },
+
+      /**
+       * Count total projects for a user (for pagination).
+       *
+       * @param {number} userId
+       * @returns {number}
+       */
+      count(userId) {
+        const row = db.prepare(
+          'SELECT COUNT(*) as count FROM projects WHERE user_id = ?'
+        ).get(userId);
+        return row ? row.count : 0;
       },
 
       /**
@@ -698,18 +724,6 @@ class DatabaseService {
           'DELETE FROM projects WHERE id = ? AND user_id = ?'
         ).run(id, userId);
         return result.changes > 0;
-      },
-
-      /**
-       * Count projects for a user.
-       *
-       * @param {number} userId
-       * @returns {number}
-       */
-      count(userId) {
-        return db.prepare(
-          'SELECT COUNT(*) AS count FROM projects WHERE user_id = ?'
-        ).get(userId).count;
       },
 
       /**

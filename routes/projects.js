@@ -25,17 +25,11 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { database } = require('../services/database');
+const config = require('../config/app');
+const logger = require('../services/logger');
 
-/**
- * Maximum project data size (10MB of text content).
- * Manuscripts typically range from 50KB to 1MB.
- */
-const MAX_PROJECT_TEXT_LENGTH = 10 * 1024 * 1024;
-
-/**
- * Maximum projects per user to prevent abuse.
- */
-const MAX_PROJECTS_PER_USER = 50;
+const MAX_PROJECT_TEXT_LENGTH = config.PROJECTS.MAX_TEXT_LENGTH;
+const MAX_PROJECTS_PER_USER = config.PROJECTS.MAX_PER_USER;
 
 // =============================================================================
 // HELPERS
@@ -73,7 +67,7 @@ function safeJsonParse(json, fallback) {
   try {
     return JSON.parse(json);
   } catch (err) {
-    console.error('JSON parse error in project data:', err.message);
+    logger.error('JSON parse error in project data', { error: err.message });
     return fallback;
   }
 }
@@ -104,18 +98,40 @@ function formatProjectFull(row) {
 /**
  * GET /api/projects
  *
- * List all projects for the authenticated user.
+ * List projects for the authenticated user with pagination.
  * Returns metadata only (no large text fields) for efficient listing.
  *
- * Response: { projects: [...] }
+ * Query params:
+ *   limit  (optional, default 20, max 50)
+ *   offset (optional, default 0)
+ *
+ * Response: { projects: [...], total: number, limit: number, offset: number }
  */
 router.get('/api/projects', requireAuth, (req, res) => {
   try {
-    const rows = database.projects.listByUser(req.user.userId);
+    const parsedLimit = parseInt(req.query.limit, 10);
+    const parsedOffset = parseInt(req.query.offset, 10);
+    const limit = Math.max(1, Math.min(isNaN(parsedLimit) ? 20 : parsedLimit, MAX_PROJECTS_PER_USER));
+    const offset = Math.max(0, isNaN(parsedOffset) ? 0 : parsedOffset);
+
+    const total = database.projects.count(req.user.userId);
+    const rows = database.projects.listByUser(req.user.userId, limit, offset);
     const projects = rows.map(formatProjectMeta);
-    res.json({ projects });
+
+    // ETag based on latest updated_at for cache validation
+    if (rows.length > 0) {
+      const latestUpdate = rows[0].updated_at;
+      const etag = `"projects-${req.user.userId}-${latestUpdate}"`;
+      res.setHeader('ETag', etag);
+
+      if (req.headers['if-none-match'] === etag) {
+        return res.status(304).end();
+      }
+    }
+
+    res.json({ projects, total, limit, offset });
   } catch (err) {
-    console.error('List projects error:', err.message);
+    logger.error('List projects error', { error: err.message });
     res.status(500).json({ error: 'Failed to load projects' });
   }
 });
@@ -140,7 +156,7 @@ router.get('/api/projects/:id', requireAuth, (req, res) => {
     }
     res.json(formatProjectFull(row));
   } catch (err) {
-    console.error('Get project error:', err.message);
+    logger.error('Get project error', { error: err.message });
     res.status(500).json({ error: 'Failed to load project' });
   }
 });
@@ -184,14 +200,14 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
     if (fullEditedText && fullEditedText.length > MAX_PROJECT_TEXT_LENGTH) {
       return res.status(400).json({ error: 'Edited text exceeds maximum size' });
     }
-    if (styleGuide && styleGuide.length > 10000) {
-      return res.status(400).json({ error: 'Style guide exceeds maximum size (10KB)' });
+    if (styleGuide && styleGuide.length > config.PROJECTS.MAX_STYLE_GUIDE_LENGTH) {
+      return res.status(400).json({ error: `Style guide exceeds maximum size (${config.PROJECTS.MAX_STYLE_GUIDE_LENGTH.toLocaleString()} chars)` });
     }
-    if (customStyleGuide && customStyleGuide.length > 50000) {
-      return res.status(400).json({ error: 'Custom style guide exceeds maximum size (50KB)' });
+    if (customStyleGuide && customStyleGuide.length > config.PROJECTS.MAX_CUSTOM_STYLE_GUIDE_LENGTH) {
+      return res.status(400).json({ error: `Custom style guide exceeds maximum size (${config.PROJECTS.MAX_CUSTOM_STYLE_GUIDE_LENGTH.toLocaleString()} chars)` });
     }
-    if (fileName.length > 255) {
-      return res.status(400).json({ error: 'File name exceeds maximum length (255 chars)' });
+    if (fileName.length > config.PROJECTS.MAX_FILE_NAME_LENGTH) {
+      return res.status(400).json({ error: `File name exceeds maximum length (${config.PROJECTS.MAX_FILE_NAME_LENGTH} chars)` });
     }
 
     // Use transaction for atomic check-and-save to prevent race conditions
@@ -230,7 +246,7 @@ router.put('/api/projects/:id', requireAuth, (req, res) => {
     if (err.status) {
       return res.status(err.status).json({ error: err.message });
     }
-    console.error('Save project error:', err.message);
+    logger.error('Save project error', { error: err.message });
     res.status(500).json({ error: 'Failed to save project' });
   }
 });
@@ -254,7 +270,7 @@ router.delete('/api/projects/:id', requireAuth, (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    console.error('Delete project error:', err.message);
+    logger.error('Delete project error', { error: err.message });
     res.status(500).json({ error: 'Failed to delete project' });
   }
 });

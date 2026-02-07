@@ -35,6 +35,7 @@ const punctuationRules = require('./punctuation');
 const dialogueRules = require('./dialogue');
 const formattingRules = require('./formatting');
 const concordRules = require('./concord');
+const logger = require('../logger');
 
 /**
  * Combined array of all style rules from all categories.
@@ -74,7 +75,7 @@ function detectStyleViolations(original, edited) {
       }
     } catch (error) {
       // Skip rule if detection fails
-      console.error(`Style rule detection error for ${rule.id}:`, error.message);
+      logger.error('Style rule detection error', { ruleId: rule.id, error: error.message });
     }
   }
 

@@ -40,25 +40,18 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { database } = require('./database');
+const config = require('../config/app');
+const logger = require('./logger');
 
 // =============================================================================
-// CONFIGURATION
+// CONFIGURATION (from centralized config)
 // =============================================================================
 
-/** Number of bcrypt salt rounds (10 = ~100ms on modern hardware) */
-const BCRYPT_SALT_ROUNDS = 10;
-
-/** Access token lifetime (15 minutes) */
-const ACCESS_TOKEN_EXPIRY = '15m';
-
-/** Refresh token lifetime (7 days) */
-const REFRESH_TOKEN_EXPIRY_DAYS = 7;
-
-/** Maximum failed login attempts before lockout */
-const MAX_FAILED_ATTEMPTS = 5;
-
-/** Lockout duration in minutes */
-const LOCKOUT_DURATION_MINUTES = 15;
+const BCRYPT_SALT_ROUNDS = config.AUTH.BCRYPT_SALT_ROUNDS;
+const ACCESS_TOKEN_EXPIRY = config.AUTH.ACCESS_TOKEN_EXPIRY;
+const REFRESH_TOKEN_EXPIRY_DAYS = config.AUTH.REFRESH_TOKEN_EXPIRY_DAYS;
+const MAX_FAILED_ATTEMPTS = config.AUTH.MAX_FAILED_ATTEMPTS;
+const LOCKOUT_DURATION_MINUTES = config.AUTH.LOCKOUT_DURATION_MINUTES;
 
 /**
  * Get the JWT secret from environment or generate a fallback.
@@ -74,7 +67,7 @@ function getJwtSecret() {
   // This is acceptable for development but not production.
   if (!getJwtSecret._fallback) {
     getJwtSecret._fallback = crypto.randomBytes(64).toString('hex');
-    console.warn('  WARNING: No JWT_SECRET set. Generated random secret (tokens will not survive restart).');
+    logger.warn('No JWT_SECRET set - generated random secret (tokens will not survive restart)');
   }
   return getJwtSecret._fallback;
 }
